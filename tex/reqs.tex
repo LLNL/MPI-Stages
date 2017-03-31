@@ -15,6 +15,54 @@ This requirements document represents the aggregate required feature set of this
 \section{Individual Branch Requirements}
 
 \subsection{Nawrin}
+\textbf{MPI bindings in LULESH:}\\\\
+LULESH 2.0:\\
+MPI\_Init\\
+MPI\_Comm\_rank\\
+MPI\_Comm\_size\\
+MPI\_Irecv\\
+MPI\_Isend\\
+MPI\_Reduce\\
+MPI\_Allreduce\\
+MPI\_Barrier\\
+MPI\_Waitall\\
+MPI\_Wait\\
+MPI\_Wtime\\
+MPI\_Abort\\
+MPI\_Finalize\\
+\\
+LULESH 1.0:\\
+All 2.0 functions and \\
+MPI\_Type\_vector\\
+MPI\_Type\_commit\\
+\\
+Data Structures in LULESH 2.0:\\
+MPI_Datatype: MPI_FLOAT, MPI_DOUBLE\\
+MPI_Status\\
+MPI_Request\\
+\\
+Constant:\\
+MPI_MIN, MPI_MAX\\
+\\
+
+\textbf{Re-initialize the state of an MPI library from a previously taken checkpoint.}\\
+
+	Checkpoint/rollback:\\
+	
+	A checkpoint/rollback module - If checkpoint/restart support is needed, this module will be selected to run.\\
+	
+	Incorporating a perfect fault detector into MPI's runtime layer. It is needed to determine which ranks need to be restarted.\\
+	
+	Need to define checkpoints of MPI in a way that does not contain implementation-dependent aspects. This way it will be possible to save a checkpoint from one library and loaded later from another library.\\
+	
+	Checkpoint will be taken synchronously, e.g., when the application saves its own state every N iterations in the main loop.\\
+	
+	To support checkpointing, the communication layer needs the ability to handle checkpoint. If there are any in-flight messages, the communication layer needs to support functionalities to handle those and also to handle resources associated with it. Also when MPI process will restart execution from a saved state, it should have the ability to re-establish connections.\\
+	
+	
+	
+	
+
 
 \subsection{Alexander}
 
