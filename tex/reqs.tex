@@ -1,80 +1,183 @@
 \documentclass{article}
- 
+
+\newcommand{\itemtt}[1]{\item \texttt{#1}}
+
+\title{Requriements for AUMPI\\ v0.1}
+\author{Shane Farmer, Nawrin Sultana, Alexander Calvert}
+
 \begin{document}
 
-This requirements document represents the aggregate required feature set of this MPI library.
+\maketitle
+\tableofcontents
 
-\section{Basic Requirements}
 
-\section{Best-practice Requirements}
+\section{Common Basic Requirements}
 
-\subsection{Coupling}
+Here we detail relatively uninteresting requirements fundamental to the library as a whole.
+
+\subsection{Message Passing Interface}
+
+The library must function as an implementation of a sufficient subset of MPI to support a number of testing applications as well as ongoing research.  This subset is itself a superset of the function calls of all applicable software; to this end we propose benchmarks in the non-common requirements which the library must support as a common requirement.
+
+\subsection{Environment}
+
+MPI serves as more than just a networking abstraction, also providing functionality for distribution and initialization of application code across a number of nodes in a system.  Therefore, a replacement library must provide those same accommodations.
+
+\subsection{Network Transports}
+
+The library must support specific network transports for operation; while additional transport options can always be argued for, we identify here a few specific options for operation.
+
+\paragraph{TCP}  Production code seldom utilizes TCP when alternatives are available; however, the ubiquity of TCP as a communications option makes it a credible fallback for operation in unfamiliar environments, for both library and application testing.  Combined with the relative ease of implementation we offer TCP operation as a fundamental requirement of the library.
+
+\paragraph{InfiniBand}  For meaningful performance comparison and demonstration a high-performance network fabric is required.  InfiniBand represents a reasonable combination of availability and performance, with the advantage of numerous available implementations already available.  In addition, it seems likely to be the most ``painful'' absence when considering interest in results.  We therefore view InfiniBand operation as a formal requirement.
+
+\section{Common Implementation Requirements}
+
+This section discusses both those requirements that can be derived from software engineering principles and those that do not directly relate to the specific problem domain.
+
+\subsection{Public Interfaces}
+
+This library (common to MPI libraries) will export a C interface for linking.\footnote{Notably, a FORTRAN interface is neither planned nor supported.}  The form of this interface, as is traditional, will be provided through a common MPI header file.  Interface calls will conform to the MPI standard where provided and will be explained in detail where not.
+
+\subsection{Modularity and Component Reuse}
+
+This library represents a collaborative effort with multiple directions of research, and one desired outcome is the reuse of individual components and provision of modular functionality achievable by ``swapping'' various segments of the library.  To support that, we will identify and segregate portions of the library into modules that can function without explicit reliance on methods of operation of other modules of the library.\footnote{The goal being to allow progress in various research directions that touch only specific modules and, in turn, provide their outcomes merely by swapping the module in question.}
+
+\subsection{Internal Interfaces}
+
+As specified above, the library will be decomposed into modules; this requires internal interfaces exist between the relevant pieces to enable decoupled operation.  The design of these interfaces is critical to allowing research to progress, and each will be justified as the modules are designed.
+
+\subsection{Implementation}
+
+Internally, the implementation will be written in well-formed C++ with specific characteristics (``style'') documented elsewhere.  As a research vehicle, flexibility with regards to target platform enables selection of more modern C++ standards -- a minimum compilation requirement will not be formalized until later in the design process.
+
+\paragraph{OOP}  In general, where object orientation can be reasonable achieved, the library must follow solid OO design choices.  In a very real sense, extensibility and reuse of the code is itself the research vehicle for the common project, and so design decisions must be agreed upon by all.
+
+\paragraph{Optimization}  As performance is a requirement of this implementation, code optimization is an unavoidable additional requirement.  Justifiable and well-documented code optimization\footnote{Such as template metaprogramming, move construction, and the like.} is a functional requirement.
+
+\section{Common Novel Requirements}
+
+These are those requirements motivating this research that are shared across potential and planned subprojects.
 
 \subsection{Performance}
 
-\section{Individual Branch Requirements}
+MPI is useful not solely as an abstraction but also due to the \emph{minimal cost} of that abstraction.  A critical factor in selection of MPI library and its configuration is the impact on program performance\footnote{Whether measured as time to completion, power usage, total queue completion, etc.} and what gains are made in exchange for that.  
 
-\subsection{Nawrin}
-\textbf{MPI bindings in LULESH:}\\\\
-LULESH 2.0:\\
-MPI\_Init\\
-MPI\_Comm\_rank\\
-MPI\_Comm\_size\\
-MPI\_Irecv\\
-MPI\_Isend\\
-MPI\_Reduce\\
-MPI\_Allreduce\\
-MPI\_Barrier\\
-MPI\_Waitall\\
-MPI\_Wait\\
-MPI\_Wtime\\
-MPI\_Abort\\
-MPI\_Finalize\\
-\\
-LULESH 1.0:\\
-All 2.0 functions and \\
-MPI\_Type\_vector\\
-MPI\_Type\_commit\\
-\\
-Data Structures in LULESH 2.0:\\
-MPI\_Datatype: MPI\_FLOAT, MPI\_DOUBLE\\
-MPI\_Status\\
-MPI\_Request\\
-\\
-Constant:\\
-MPI\_MIN, MPI\_MAX\\
-\\
+Some aspects of this research are predicated upon performance enhancements available through application-agnostic logic; others seek to provide new functionality traditionally seen as expensive or otherwise unavailable.  Therefore, the core version of the library must function as \emph{at least} comparable in performance to a reasonable MPI implementation\footnote{Here, reasonable can in most places be taken to mean OpenMPI.} to provide a reasonable opportunity for research goals to demonstrate improvement in either performance or function (or both).
 
-\textbf{Re-initialize the state of an MPI library from a previously taken checkpoint.}\\
+\subsection{Code Extensibility and Reuse}
 
-	In this approach, when there will be a process failure MPI will re-initialize itself and 
-	will also be responsible for restarting the failed process.\\
-	
-	\textbf{Fault Detector}\\
-	
-	Need to incorporate a perfect fault detector within MPI runtime. If there is a process failure it should be able to detect and 
-	propagate the failure information among all the surviving processes of the runtime. 
-	It will be responsible to determine which processes need to be restarted.\\
-	
-	\textbf{Checkpoint of MPI:}\\
-	
-	A checkpoint/rollback module/ resilience MPI library - If checkpoint/restart support is needed, this module will be selected to run.\\
-		
-	Need to define checkpoints of MPI in a way that does not contain implementation-dependent aspects. 
-	This way it will be possible to save a checkpoint from one library and loaded later from another library.\\
-	
-	Checkpoint will be taken synchronously, e.g., when the application saves its own state every N iterations in the main loop.
-	While checkpointing, need to save minimal information.\\
-	
-	For MPI re-initialization, the communication layer needs the ability to handle any in-flight or interrupted messages. 
-	It needs functionalities to cancel these messages and also to free the resources associated with it. 
-	Also when MPI process will restart execution from a saved state, it should have the ability to re-establish connections.\\
-	
-	Need synchronization among the communicators in runtime.\\
-	
+This, covered in detail above, merits restatement as an overall goal of the project:  to generate an efficient and extensible MPI free of legacy code and with well-defined and well-engineered methods of extension and future development.  MPI as a research vehicle is hindered by availability of easily extensible code bases, and a core goal of this joint project is to correct that.
 
-\subsection{Alexander}
 
-\subsection{Shane}
+
+\section{Requirements Introduced by Nawrin's Research}
+
+\subsection{Benchmark Function Bindings}
+
+LULESH is proposed as a target benchmark for Nawrin's work, rendering its MPI bindings a requirement.
+
+\subsubsection{LULESH 2.0 bindings}
+These binding requirements are introduced by LULESH 2.0:
+\begin{itemize}
+\itemtt{MPI\_Init}
+\itemtt{MPI\_Comm\_rank}
+\itemtt{MPI\_Comm\_size}
+\itemtt{MPI\_Irecv}
+\itemtt{MPI\_Isend}
+\itemtt{MPI\_Reduce}
+\itemtt{MPI\_Allreduce}
+\itemtt{MPI\_Barrier}
+\itemtt{MPI\_Waitall}
+\itemtt{MPI\_Wait}
+\itemtt{MPI\_Wtime}
+\itemtt{MPI\_Abort}
+\itemtt{MPI\_Finalize}
+\end{itemize}
+
+\subsubsection{LULESH 1.0 Bindings}
+
+These binding requirements are introduced by LULESH 1.0:
+\begin{itemize}
+\item All 2.0 functions
+\itemtt{MPI\_Type\_vector}
+\itemtt{MPI\_Type\_commit}
+\end{itemize}
+
+\subsubsection{Other LULESH 2.0 Requirements}
+
+The following structures, datatypes, and constants are required by LULESH 2.0:
+
+\begin{itemize}
+\itemtt{MPI\_FLOAT}
+\itemtt{MPI\_DOUBLE}
+\itemtt{MPI\_MIN}
+\itemtt{MPI\_MAX}
+\itemtt{MPI\_Status}
+\itemtt{MPI\_Request}
+\end{itemize}
+
+\subsection{Functional Requirements}
+
+\paragraph{Re-initialize the state of an MPI library from a previously taken checkpoint.}
+
+In this approach, when there will be a process failure MPI will re-initialize itself and 
+	will also be responsible for restarting the failed process.
+	
+\paragraph{Fault Detector}
+	Need to incorporate a perfect fault detector within MPI runtime. If there is a process failure it should be able to detect and  propagate the failure information among all the surviving processes of the runtime.  It will be responsible to determine which processes need to be restarted.
+	
+\paragraph{Checkpoint of MPI}
+	A checkpoint/rollback module/ resilience MPI library: if checkpoint/restart support is needed, this module will be selected to run.
+	
+\begin{itemize}
+\item Need to define checkpoints of MPI in a way that does not contain implementation-dependent aspects.  This way it will be possible to save a checkpoint from one library and loaded later from another library.
+\item Checkpoint will be taken synchronously, e.g., when the application saves its own state every N iterations in the main loop. While checkpointing, need to save minimal information.
+\item 	For MPI re-initialization, the communication layer needs the ability to handle any in-flight or interrupted messages.  It needs functionalities to cancel these messages and also to free the resources associated with it.  Also when MPI process will restart execution from a saved state, it should have the ability to re-establish connections.
+\item Need synchronization among the communicators in runtime.
+\end{itemize}
+
+
+\section{Requirements Introduced by Alexander's Research}
+
+Alexander's research deals primarily with extension of FA-MPI\footnote{Probably need citation here} and the requirements imposed by it in turn.  
+
+\subsection{Non-blocking operations}
+
+FA-MPI operates through non-blocking operations; for this library to serve as a research vehicle in this regard it must support those non-blocking operations sufficient to enable FA-MPI's operation.
+
+\subsection{Scope}  
+
+As FA-MPI restricts MPI to non-blocking operations, the generated requirements should apply only to non-blocking operations as present in the library.
+
+
+
+\section{Requirements Introduced by Shane's Research}
+
+Shane Farmer's research deals largely with modeling the properties of network transports using an efficient two-stage process meant to enable messaging layers to make decisions at runtime regarding the disposition and shaping of message traffic.  This involves not only the layer's ability to evaluate, store, and transform messages, but also the methods by which they are dispatched.  This generates both requirements for ongoing research, and requirements within a proposed final result.
+
+\subsection{Bindings}  
+
+HPCG is proposed as a target benchmark for Shane's work, rendering its set of bindings a requirement.
+
+\subsection{Research} 
+
+To serve as a research vehicle, the library must:
+
+\begin{enumerate}
+\item Support well-defined internal interfaces that allow for replacement functionality in storing and retrieving messages, as well as communicating them to the network hardware, with the goal of allowing various methods of message composition and decomposition
+\item Support an easy method of replacing internal progress engines with experimental (and possibly highly novel) variations
+\item Maintain a high level of baseline performance to allow evaluation of various methods in contrast to an unmodified performant implementation
+\end{enumerate}
+
+\subsection{Goals} 
+
+As an end goal of this research, the proposed library would:
+
+\begin{enumerate}
+\item Adapt to message traffic in an application-agnostic manner, providing well-reasoned decisions in message shaping primarily through composition and decomposition
+\item Offer adaptive progression that is aware of modern\footnote{Multicore.} environments
+\item Demonstrate throughput improvements without requiring application intervention
+\end{enumerate}
 
 \end{document}
