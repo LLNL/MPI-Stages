@@ -37,32 +37,41 @@ MPI\_Type\_vector\\
 MPI\_Type\_commit\\
 \\
 Data Structures in LULESH 2.0:\\
-MPI_Datatype: MPI_FLOAT, MPI_DOUBLE\\
-MPI_Status\\
-MPI_Request\\
+MPI\_Datatype: MPI\_FLOAT, MPI\_DOUBLE\\
+MPI\_Status\\
+MPI\_Request\\
 \\
 Constant:\\
-MPI_MIN, MPI_MAX\\
+MPI\_MIN, MPI\_MAX\\
 \\
 
 \textbf{Re-initialize the state of an MPI library from a previously taken checkpoint.}\\
 
-	Checkpoint/rollback:\\
+	In this approach, when there will be a process failure MPI will re-initialize itself and 
+	will also be responsible for restarting the failed process.\\
 	
-	A checkpoint/rollback module - If checkpoint/restart support is needed, this module will be selected to run.\\
+	\textbf{Fault Detector}\\
 	
-	Incorporating a perfect fault detector into MPI's runtime layer. It is needed to determine which ranks need to be restarted.\\
+	Need to incorporate a perfect fault detector within MPI runtime. If there is a process failure it should be able to detect and 
+	propagate the failure information among all the surviving processes of the runtime. 
+	It will be responsible to determine which processes need to be restarted.\\
 	
-	Need to define checkpoints of MPI in a way that does not contain implementation-dependent aspects. This way it will be possible to save a checkpoint from one library and loaded later from another library.\\
+	\textbf{Checkpoint of MPI:}\\
 	
-	Checkpoint will be taken synchronously, e.g., when the application saves its own state every N iterations in the main loop.\\
+	A checkpoint/rollback module/ resilience MPI library - If checkpoint/restart support is needed, this module will be selected to run.\\
+		
+	Need to define checkpoints of MPI in a way that does not contain implementation-dependent aspects. 
+	This way it will be possible to save a checkpoint from one library and loaded later from another library.\\
 	
-	To support checkpointing, the communication layer needs the ability to handle checkpoint. If there are any in-flight messages, the communication layer needs to support functionalities to handle those and also to handle resources associated with it. Also when MPI process will restart execution from a saved state, it should have the ability to re-establish connections.\\
+	Checkpoint will be taken synchronously, e.g., when the application saves its own state every N iterations in the main loop.
+	While checkpointing, need to save minimal information.\\
 	
+	For MPI re-initialization, the communication layer needs the ability to handle any in-flight or interrupted messages. 
+	It needs functionalities to cancel these messages and also to free the resources associated with it. 
+	Also when MPI process will restart execution from a saved state, it should have the ability to re-establish connections.\\
 	
+	Need synchronization among the communicators in runtime.\\
 	
-	
-
 
 \subsection{Alexander}
 
