@@ -1,4 +1,5 @@
 \documentclass{article}
+\usepackage{multicol}
 
 \newcommand{\itemtt}[1]{\item \texttt{#1}}
 
@@ -179,5 +180,53 @@ As an end goal of this research, the proposed library would:
 \item Offer adaptive progression that is aware of modern\footnote{Multicore.} environments
 \item Demonstrate throughput improvements without requiring application intervention
 \end{enumerate}
+
+\section{List of Functions for New MPI Implementation}
+
+Initial subset of MPI functions that will be implemented. We will add more functions to the list as we go on.
+
+\subsection{Function List}
+\begin{multicols}{2}
+    \begin{itemize}
+        \itemtt {MPI\_Init}
+        \itemtt {MPI\_Comm\_rank}
+        \itemtt {MPI\_Comm\_size}
+        \itemtt {MPI\_Send}
+        \itemtt {MPI\_Recv}
+        \itemtt {MPI\_Isend}
+        \itemtt {MPI\_Irecv}
+        \itemtt {MPI\_Bcast}
+        \itemtt {MPI\_Reduce}
+        \itemtt {MPI\_Allreduce}
+        \itemtt {MPI\_Gather}
+        \itemtt {MPI\_Scatter}
+        \itemtt {MPI\_Allgather}
+        \itemtt {MPI\_Alltoall}
+        \itemtt {MPI\_Barrier}
+        \itemtt {MPI\_Wait}
+        \itemtt {MPI\_Waitall}
+        \itemtt {MPI\_Wtime}
+        \itemtt {MPI\_Type\_commit (LULESH 1.0)}
+        \itemtt {MPI\_Type\_vector (LULESH 1.0)}
+        \itemtt {MPI\_Abort}
+        \itemtt {MPI\_Finalize}
+    \end{itemize}
+    \end{multicols}
+    
+    \subsection{Other Requirements}
+    \begin{multicols}{2}
+    \begin{itemize}
+        \itemtt {MPI\_COMM\_WORLD}
+        \itemtt {MPI\_Status}
+        \itemtt {MPI\_Request}
+        \itemtt {MPI\_MIN}
+        \itemtt {MPI\_MAX}
+        \itemtt {MPI\_SUM}
+        \itemtt {MPI\_INT}
+        \itemtt {MPI\_LONG\_LONG\_INT}
+        \itemtt {MPI\_FLOAT}
+        \itemtt {MPI\_DOUBLE}
+    \end{itemize}
+    \end{multicols}
 
 \end{document}
