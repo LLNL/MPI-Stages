@@ -3,7 +3,7 @@
 
 \newcommand{\itemtt}[1]{\item \texttt{#1}}
 
-\title{Requriements for AUMPI\\ v0.1}
+\title{Requriements for exaMPI\\ v0.2}
 \author{Shane Farmer, Nawrin Sultana, Alexander Calvert}
 
 \begin{document}
@@ -31,6 +31,10 @@ The library must support specific network transports for operation; while additi
 \paragraph{TCP}  Production code seldom utilizes TCP when alternatives are available; however, the ubiquity of TCP as a communications option makes it a credible fallback for operation in unfamiliar environments, for both library and application testing.  Combined with the relative ease of implementation we offer TCP operation as a fundamental requirement of the library.
 
 \paragraph{InfiniBand}  For meaningful performance comparison and demonstration a high-performance network fabric is required.  InfiniBand represents a reasonable combination of availability and performance, with the advantage of numerous available implementations already available.  In addition, it seems likely to be the most ``painful'' absence when considering interest in results.  We therefore view InfiniBand operation as a formal requirement.
+
+\subsection{PMPI}
+
+As application profiling will be critical to evaluation of the research effort, the PMPI bindings will be required to enable application-level execution flow control.
 
 \section{Common Implementation Requirements}
 
@@ -70,7 +74,53 @@ Some aspects of this research are predicated upon performance enhancements avail
 
 This, covered in detail above, merits restatement as an overall goal of the project:  to generate an efficient and extensible MPI free of legacy code and with well-defined and well-engineered methods of extension and future development.  MPI as a research vehicle is hindered by availability of easily extensible code bases, and a core goal of this joint project is to correct that.
 
+\section{Common Requirements Motivated by Proposed MPI Features}
 
+Here we present requirements motivated by MPI proposals and discussions that we view to critical to all branches of this work.
+
+\subsection{Persistent Operations}
+
+Persistent operations are viewed as a core requirement for this library; an implementation and evaluation of the interface is a requirement of this effort.
+
+\subsubsection{Persistent Operation Parity}
+
+For meaningful evaluation, persistent operations must logically be faster than equivalent non-persistent operations.\footnote{Indeed, this captures what one might call the entire point of persistent operations.}
+
+\subsubsection{Collective Description Parity}
+
+Required interface augmentations for persistent operation support should preserve syntax to the highest degree possible, enabling collective description of similar complexity for both persistent and non-persistent options.
+
+\subsection{MPI Sessions}
+
+We view a complete first-class support of MPI Sessions\footnote{Need a cite, here} as a functional requirement.  Detailed requirements of that implementation will be followed from original sources where possible; further or derived requirements will be documented here.
+
+\subsection{Multiple/Independent Initialization}
+
+Separate from above, the library must explicitly allow multiple invocations of \texttt{MPI\_Init} and \texttt{MPI\_Finalize}; in addition, a ``reinitialization'' function must be provided.
+
+\subsection{Communicator Granularity}
+
+This library will be designed to build communicators as needed at runtime, as opposed to the canonical method of beginning all processes as part of a global world communicator.  This shares space with MPI Sessions but represents an explicit requirement on its own.
+
+\subsection{Asynchronous Multithreaded Scheduling}
+
+The design of the library is meant to enable modularity in the progress engine, but an explicit requirement is a design focus in all cases on queueing mechanisms that emphasize asynchronous scheduling of internal messages, and that operate in a well-defined multithreaded or singlethreaded mode.
+
+\subsection{Blocking Operation}
+
+Proper routing of notifications and events is one target of research for this project, but as a central requirement for all solutions the library must not ``spin'' threads by polling indefinitely on event queues.
+
+\subsection{Block/Poll Tunability}
+
+One outcome of this research is to provide an abstraction for hybrid poll-sleep notification processing as an alternative to a purely blocking approach.  Some provision for that in the design is a requirement.
+
+\subsection{User-level Short-term Polling}
+
+The use of user-level mechanisms for (extremely) short-term polling is a required feature of the core library design.
+
+\subsection{Single-direction operation}
+
+As a core design requirement of the internal grammar of the library, directional coherence of operations must be maintained (i.e receives must never send, and sends must never receive).
 
 \section{Requirements Introduced by Nawrin's Research}
 
