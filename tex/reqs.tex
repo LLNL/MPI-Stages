@@ -3,8 +3,8 @@
 
 \newcommand{\itemtt}[1]{\item \texttt{#1}}
 
-\title{Requriements for exaMPI\\ v0.2}
-\author{Shane Farmer, Nawrin Sultana, Alexander Calvert}
+\title{Requriements for exaMPI\\ v0.3}
+\author{Shane Farmer, Nawrin Sultana, Alexander Calvert\\Auburn Project Lead:  Dr. Anthony Skjellum}
 
 \begin{document}
 
@@ -31,6 +31,8 @@ The library must support specific network transports for operation; while additi
 \paragraph{TCP}  Production code seldom utilizes TCP when alternatives are available; however, the ubiquity of TCP as a communications option makes it a credible fallback for operation in unfamiliar environments, for both library and application testing.  Combined with the relative ease of implementation we offer TCP operation as a fundamental requirement of the library.
 
 \paragraph{InfiniBand}  For meaningful performance comparison and demonstration a high-performance network fabric is required.  InfiniBand represents a reasonable combination of availability and performance, with the advantage of numerous available implementations already available.  In addition, it seems likely to be the most ``painful'' absence when considering interest in results.  We therefore view InfiniBand operation as a formal requirement.
+
+\paragraph{UDP} UDP is proposed as a portable transport that avoids the overhead of TCP at the cost of requiring more managed state on the part of the transport.  Our view is that a UDP transport will be low-risk to implement and will provide reasonable network utilization.  We are therefore adopting UDP as a requirement for transport implementation (and to be the first implemented).  First versions may make the assumption that UDP transmission is reliable and reserve fault recovery for later iterations.
 
 \subsection{PMPI}
 
