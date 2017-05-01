@@ -1,6 +1,10 @@
 // Placeholder MPI file pending further implementation
 // 2017-04-26 SF
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 
 /* FIXME: These are dummy datatypes!  SF */
 typedef MPI_Datatype int;
@@ -8,6 +12,11 @@ typedef MPI_Comm int;
 typedef MPI_Session int;
 typedef MPI_Group int;
 typedef MPI_Request int;
+
+/*FIXME: These are dummy constant */
+enum {
+	MPI_SUCCESS = 0;
+};
 
 
 /* Core MPI API */
@@ -89,3 +98,7 @@ int PMPI_Startall(int, MPI_Request *);
 int PMPI_Wait(MPI_Request *, MPI_Status *);
 int PMPI_Waitall(int, MPI_Request *, MPI_Status *);
 int PMPI_Wtime(void);
+
+#ifdef __cplusplus
+}
+#endif
