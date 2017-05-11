@@ -1,7 +1,7 @@
 #include "mpi.h"
-#include "aumpi.h"
+#include "ExaMPI.h"
 
 int MPI_Init(int *argc, char ***argv) {
-	int rc = mpi_init();
+	int rc = bint.MPI_Init(argc, argv);
 	return MPI_SUCCESS;
 }

@@ -2,6 +2,6 @@
 #include "aumpi.h"
 
 int MPI_Finalize(void) {
-	int rc = mpi_finalize();
+	int rc = bint.MPI_Finalize();
 	return MPI_SUCCESS;
 }
