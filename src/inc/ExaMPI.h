@@ -4,6 +4,16 @@
 namespace exampi
 {
 
+typedef int MPI_Comm;
+typedef void *MPI_Datatype;
+typedef struct MPI_Status {
+	int count;
+	int cancelled;
+	int MPI_SOURCE;
+	int MPI_TAG;
+	int MPI_ERROR;
+} MPI_Status;
+
 class ICheckpoint
 {
   public:
