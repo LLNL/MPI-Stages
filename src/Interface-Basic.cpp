@@ -33,6 +33,16 @@ class BasicInterface : public IInterface
       return 0;
     }
     virtual int MPI_Finalize() { return 0; }
+
+    virtual int MPI_Send(const void* buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm) {
+    	bprogress.send_data(buf, count, datatype, dest, tag, comm);
+    	return 0;
+    }
+
+    virtual int MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, int tag, MPI_Comm comm, MPI_Status *status) {
+    	bprogress.recv_data(buf, count, datatype, source, tag, comm, &status);
+    	return 0;
+    }
 };
 
 // This is an ugly, temporary hack -- we need compile-time selection
