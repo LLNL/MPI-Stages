@@ -21,6 +21,8 @@ class IInterface
   public:
     virtual int MPI_Init(int *argc, char ***argv) = 0;
     virtual int MPI_Finalize(void) = 0;
+    virtual int MPI_Send(const void* buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm) = 0;
+    virtual int MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, int tag, MPI_Comm comm, MPI_Status *status) = 0;
 };
 
 class IMemory
@@ -32,13 +34,15 @@ class IMemory
 class IProgress
 {
   public:
-    virtual void DoSomething() = 0;
+    virtual int send_data(const void* buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm) = 0;
+    virtual int recv_data(void *buf, int count, MPI_Datatype datatype, int source, int tag, MPI_Comm comm, MPI_Status *status) = 0;
 };
 
 class ITransport
 {
   public:
-    virtual void DoSomething() = 0;
+	virtual void send(const void* buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm) = 0;
+	virtual int recv(void *buf, int count, MPI_Datatype datatype, int source, int tag, MPI_Comm comm, MPI_Status *status) = 0;
 };
 
 }
