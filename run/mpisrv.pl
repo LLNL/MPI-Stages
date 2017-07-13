@@ -23,9 +23,15 @@ while(1)
   my $s = $listen->accept();
   my $bin = "";
   my $rank = "";
+  my $sz = "";
+  my $hosts = "";
   $s->recv($bin, 2048);
   $s->recv($rank, 16);
+  $s->recv($sz, 16);
+  $s->recv($hosts, 1024 * 16);
+  open(my $hostsfile, ">", "mpihosts.stdin.tmp") or die "Couldn't create temporary stdin file";
+  print $hostsfile $hosts;
   say "Launching $bin as rank $rank";
-  say `$bin MPIARGST $rank 0 MPIARGEN`;
+  say `$bin MPIARGST $rank $sz MPIARGEN < mpihosts.stdin.tmp`;
   shutdown($s, 1);
 }

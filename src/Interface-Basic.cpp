@@ -9,8 +9,12 @@ class BasicInterface : public IInterface
 {
   private:
     int rank;  // TODO: Don't keep this here, hand off to progress
+    int ranks;
+    std::vector<std::string> hosts;
+    BasicProgress bprogress;
+
   public:
-    BasicInterface() : rank(0){};
+    BasicInterface() : rank(0), bprogress() {};
     virtual int MPI_Init(int *argc, char ***argv)
     {
       std::string arghdr("MPIARGST");
@@ -26,10 +30,20 @@ class BasicInterface : public IInterface
       rank = std::stoi(**argv);
       (*argv)++;
       (*argc)--;
-      // ignore transport opts for now
+      ranks = std::stoi(**argv);
       (*argv)++;
       (*argc)--;
       // assume footer was there and correct
+      //
+      // warning:  magic word
+      std::ifstream hostsfh("mpihosts.stdin.tmp");
+      std::string tmp;
+      while(std::getline(hostsfh, temp))
+      {
+        hosts.push_back(tmp);
+      }
+
+      bprogress.SetHosts(hosts);
       return 0;
     }
     virtual int MPI_Finalize() { return 0; }

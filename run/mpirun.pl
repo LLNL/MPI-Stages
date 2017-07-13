@@ -11,7 +11,7 @@ my $MPISOCKET = 4422;
 
 open(my $hostsfh, "<", "MPIHOSTS") or die "Can't read MPIHOSTS";
 my @hosts = <$hostsfh>;
-
+my $sz = $hosts;
 my $nextrank = 1;
 
 foreach $host (@hosts)
@@ -26,6 +26,8 @@ foreach $host (@hosts)
   die "Failed connecting to $host:$MPISOCKET..." unless $s;
   $s->send($bin);
   $s->send($nextrank);
+  $s->send($sz);
+  $s->send(join("\n", @hosts));
   $nextrank += 1;
   $s->close();
 }

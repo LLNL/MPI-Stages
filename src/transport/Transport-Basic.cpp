@@ -11,12 +11,13 @@ class BasicTransport : public ITransport
   private:
     string address;
     uint16_t port;
+    std::vector<std::string> hosts;
   public:
     BasicTransport() {};
         
     virtual void send(const void* buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm) {
       //TODO: figure out destination ip and port from dest
-      address = "127.0.0.1";
+      address = hosts[r].cstr();
       port = 8080;
       try {
         UDPSocket sock;
@@ -45,7 +46,11 @@ class BasicTransport : public ITransport
       }
       return 0;
     }
+
+    void SetHosts(std::vector<std::string> h)
+    {
+      hosts = h;
+    }
 };
 
-static BasicTransport btransport;
 }
