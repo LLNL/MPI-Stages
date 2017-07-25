@@ -1,0 +1,6 @@
+#Directory path to folder where checkpoint file will be saved
+#path format ----/home/<your_name>/Documents----
+dirPath=/home/nawrin/Documents
+
+#Directory name where checkpoint file will be saved
+localDir=Checkpoint
