@@ -1,5 +1,10 @@
+#ifndef EXAMPI_EXAMPI_H
+#define EXAMPI_EXAMPI_H
+
 /* Internal include for ExaMPI
  */
+
+#include <vector>
 
 namespace exampi
 {
@@ -56,3 +61,5 @@ class ITransport
 };
 
 }
+
+#endif
