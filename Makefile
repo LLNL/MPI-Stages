@@ -1,4 +1,4 @@
-default: framework modules
+default: framework modules examples
 
 framework:
 	$(MAKE) -C src
@@ -9,6 +9,9 @@ modules:
 docs:
 	$(MAKE) -C tex
 	
+examples: framework modules
+	$(MAKE) -C examples
+
 .PHONY: clean
 
 clean:
