@@ -21,14 +21,14 @@
 //UDPSocket
 UDPSocket::UDPSocket() {
 	if ((sockfd = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0) {
-		std::cerr << "Unable to create socket" << endl;		      
+		std::cerr << "Unable to create socket" << std::endl;		      
 	}
 }
 
 UDPSocket::UDPSocket(uint16_t port) {
 
 	if ((sockfd = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0) {
-		std::cerr << "Unable to create socket" << endl;
+		std::cerr << "Unable to create socket" << std::endl;
 	}
 	sockaddr_in addr;
 	memset(&addr, 0, sizeof(addr));
@@ -37,11 +37,11 @@ UDPSocket::UDPSocket(uint16_t port) {
 	addr.sin_port = htons(port);
 
 	if (bind(sockfd, (sockaddr *) &addr, sizeof(sockaddr_in)) < 0) {
-		std::cerr << "Unable to bind" << endl;
+		std::cerr << "Unable to bind" << std::endl;
 	}
 }
 
-void UDPSocket::send(const void *buf, int length, const string &address, uint16_t port) {
+void UDPSocket::send(const void *buf, int length, const std::string &address, uint16_t port) {
 	sockaddr_in destAddr;
 	memset(&destAddr, 0, sizeof(destAddr));
 	destAddr.sin_family = AF_INET;
@@ -49,23 +49,23 @@ void UDPSocket::send(const void *buf, int length, const string &address, uint16_
 
 	hostent *host = gethostbyname(address.c_str());
 	if (host == NULL) {
-		std::cerr << "Unable to resolve host" << endl;
+		std::cerr << "Unable to resolve host" << std::endl;
 	}
 	destAddr.sin_addr.s_addr = inet_addr(address.c_str());
 
 	if (sendto(sockfd, (void *) buf, length, 0,
 	             (sockaddr *) &destAddr, sizeof(destAddr)) != length) {
-		std::cerr << "Unable to send" << endl;
+		std::cerr << "Unable to send" << std::endl;
 	}
 }
 
-int UDPSocket::recv(void *buf, int length, string &sourceAddress, uint16_t &sourcePort){
+int UDPSocket::recv(void *buf, int length, std::string &sourceAddress, uint16_t &sourcePort){
 	sockaddr_in clntAddr;
 	socklen_t addrLen = sizeof(clntAddr);
 	int rtn;
 	if ((rtn = recvfrom(sockfd, (void *) buf, length, 0,
 	                      (sockaddr *) &clntAddr, (socklen_t *) &addrLen)) < 0) {
-		std::cerr << "Unable to receive" << endl;
+		std::cerr << "Unable to receive" << std::endl;
 	}
 	sourceAddress = inet_ntoa(clntAddr.sin_addr);
 	sourcePort = ntohs(clntAddr.sin_port);

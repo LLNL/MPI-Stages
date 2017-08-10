@@ -1,6 +1,7 @@
 #include <ExaMPI.h>
 #include <UDPSocket.h>
 #include <fstream>
+#include <iostream>
 
 namespace exampi
 {
@@ -128,5 +129,9 @@ class BasicInterface : public IInterface
     	return 0;
     }
 };
+
+// FIXME this is bad --msf
+static BasicInterface bint;
+
 
 } // namespace exampi

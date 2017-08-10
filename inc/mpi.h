@@ -7,16 +7,18 @@ extern "C"
 #endif
 
 /* FIXME: These are dummy datatypes!  SF */
-typedef MPI_Datatype int;
-typedef MPI_Comm int;
-typedef MPI_Session int;
-typedef MPI_Group int;
-typedef MPI_Request int;
+typedef void * MPI_Datatype;
+typedef int MPI_Comm;
+typedef int MPI_Session;
+typedef int MPI_Group;
+typedef int MPI_Request;
+typedef int MPI_Op;
+typedef int MPI_Status;
+typedef int MPI_Info;
+typedef int MPI_Errhandler;
 
 /*FIXME: These are dummy constant */
-enum {
-	MPI_SUCCESS = 0;
-};
+const int	MPI_SUCCESS = 0;
 
 
 /* Core MPI API */
@@ -36,7 +38,7 @@ int MPI_Comm_split(MPI_Comm, int, int, MPI_Comm *);
 int MPI_Finalize(void);
 int MPI_Gather(void *, int, MPI_Datatype, void *, int, MPI_Datatype, int, MPI_Comm);
 int MPI_Group_create_session(MPI_Session, char *, MPI_Group *);
-int MPI_Iallreduce(void *, void *, int, MPI_datatype, MPI_Op, MPI_Comm, MPI_Request *);
+int MPI_Iallreduce(void *, void *, int, MPI_Datatype, MPI_Op, MPI_Comm, MPI_Request *);
 int MPI_Ibcast(void *, int, MPI_Datatype, int, MPI_Comm, MPI_Request *);
 int MPI_Icheckpoint(MPI_Comm, MPI_Request *);
 int MPI_Igather(void *, int, MPI_Datatype, void *, int, MPI_Datatype, int, MPI_Comm, MPI_Request *);
@@ -76,7 +78,7 @@ int PMPI_Comm_split(MPI_Comm, int, int, MPI_Comm *);
 int PMPI_Finalize(void);
 int PMPI_Gather(void *, int, MPI_Datatype, void *, int, MPI_Datatype, int, MPI_Comm);
 int PMPI_Group_create_session(MPI_Session, char *, MPI_Group *);
-int PMPI_Iallreduce(void *, void *, int, MPI_datatype, MPI_Op, MPI_Comm, MPI_Request *);
+int PMPI_Iallreduce(void *, void *, int, MPI_Datatype, MPI_Op, MPI_Comm, MPI_Request *);
 int PMPI_Ibcast(void *, int, MPI_Datatype, int, MPI_Comm, MPI_Request *);
 int PMPI_Icheckpoint(MPI_Comm, MPI_Request *);
 int PMPI_Igather(void *, int, MPI_Datatype, void *, int, MPI_Datatype, int, MPI_Comm, MPI_Request *);

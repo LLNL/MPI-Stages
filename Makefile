@@ -1,4 +1,4 @@
-default: framework modules docs
+default: framework modules
 
 framework:
 	$(MAKE) -C src
