@@ -21,6 +21,14 @@ typedef int MPI_Errhandler;
 const int	MPI_SUCCESS = 0;
 
 
+/* MPI datatypes */
+#define MPI_INT   0
+
+/* MPI Communicators */
+#define MPI_COMM_WORLD    0
+
+
+
 /* Core MPI API */
 
 int MPI_Abort(MPI_Comm, int);
@@ -48,6 +56,8 @@ int MPI_Init(int *, char ***);
 int MPI_Init_info(int *, char ***, MPI_Info);
 int MPI_Irecv(void *, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
 int MPI_Isend(void *, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
+int MPI_Recv(void *, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
+int MPI_Send(const void *, int, MPI_Datatype, int, int, MPI_Comm);
 int MPI_Recv_init(void *, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
 int MPI_Reduce(void *, void *, int, MPI_Datatype, MPI_Op, int, MPI_Comm);
 int MPI_Scatter(void *, int, MPI_Datatype, void *, int, MPI_Datatype, int, MPI_Comm);

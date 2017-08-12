@@ -1,2 +1,7 @@
+dirs = hello ring
+
 default:
-	$(MAKE) -C hello
+	$(foreach dir,$(dirs),$(MAKE) -C $(dir);)
+
+clean:
+	$(foreach dir,$(dirs),$(MAKE) -C $(dir) clean;)
