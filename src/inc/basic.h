@@ -85,10 +85,6 @@ class BasicInterface : public IInterface
     BasicInterface() : rank(0), config(), bprogress(&config) {};
     virtual int MPI_Init(int *argc, char ***argv)
     {
-// argv is char**  -- strings are char*
-// so it's a ptr to str
-// argv ref is char***
-// ptr to ptr to str
 
       // first param is config file, second is rank
       std::cout << "Loading config from " << **argv << std::endl;
