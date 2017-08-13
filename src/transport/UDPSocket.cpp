@@ -15,20 +15,22 @@
 #include <netdb.h>
 #include <cstdlib>
 #include <iostream>
+#include <string.h>
 
 //using namespace std;
 
 //UDPSocket
 UDPSocket::UDPSocket() {
 	if ((sockfd = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0) {
-		std::cerr << "Unable to create socket" << std::endl;		      
-	}
+		std::cerr << "Unable to create socket: " << strerror(errno) << std::endl;		      
+  }
+	
 }
 
 UDPSocket::UDPSocket(uint16_t port) {
 
 	if ((sockfd = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0) {
-		std::cerr << "Unable to create socket" << std::endl;
+		std::cerr << "Unable to create socket:  " << strerror(errno) << std::endl;
 	}
 	sockaddr_in addr;
 	memset(&addr, 0, sizeof(addr));
@@ -49,7 +51,7 @@ void UDPSocket::send(const void *buf, int length, const std::string &address, ui
 
 	hostent *host = gethostbyname(address.c_str());
 	if (host == NULL) {
-		std::cerr << "Unable to resolve host" << std::endl;
+		std::cerr << "Unable to resolve host (" << address << "):  " << strerror(errno) << std::endl;
 	}
 	destAddr.sin_addr.s_addr = inet_addr(address.c_str());
 

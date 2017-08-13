@@ -1,27 +1,31 @@
 #include <ExaMPI.h>
 #include <UDPSocket.h>
+#include <config.h>
 #include <fstream>
 #include <iostream>
 
 namespace exampi
 {
 
+const std::string runtimeConfig("mpihosts.stdin.tmp");
+
 class BasicTransport : public ITransport
 {
   private:
     std::string address;
     uint16_t port;
-    std::vector<std::string> hostsv;
+    Config *config;
   public:
-    BasicTransport() {};
+    BasicTransport(Config *c) : config(c) {};
         
     virtual void send(const void* buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm) {
-      //TODO: figure out destination ip and port from dest
-      address = hostsv[dest].c_str();
+      std::cout << "In BasicTransport.send(...,rank="<<dest<<",...)" << std::endl;
+      std::string rank = std::to_string(dest);
+      std::string destip = (*config)[rank];
       port = 8080;
       try {
         UDPSocket sock;
-        sock.send(buf, count, address, port);
+        sock.send(buf, count, destip.c_str(), port);
       } catch (std::exception &ex) {
           std::cerr << ex.what() << std::endl;
           exit(1);  
@@ -36,10 +40,8 @@ class BasicTransport : public ITransport
          std::string sourceAddress;
          uint16_t sourcePort;
          int recvDataSize;
-         for (;;) {
             recvDataSize = sock.recv(buf, count, sourceAddress, sourcePort);
             std::cout << "Received packet from " << sourceAddress << " : " << sourcePort << " : " << buf << std::endl;
-         }
       } catch (std::exception &ex) {
           std::cerr << ex.what() << std::endl;
           exit(1);
@@ -47,19 +49,15 @@ class BasicTransport : public ITransport
       return 0;
     }
 
-    void SetHosts(std::vector<std::string> h)
-    {
-      hostsv = h;
-    }
 };
 class BasicProgress : public IProgress
 {
   private:
+    Config *config;
     BasicTransport btransport;
-    std::vector<std::string> hosts;
 
   public:
-    BasicProgress() : btransport() {};
+    BasicProgress(Config *c) : config(c), btransport(config) {};
         
     virtual int send_data(const void* buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm) {
       btransport.send(buf, count, datatype, dest, tag, comm);
@@ -70,10 +68,6 @@ class BasicProgress : public IProgress
       return 0;
     }
 
-    void SetHosts(std::vector<std::string> h) 
-    {
-      btransport.SetHosts(h);
-    }
 };
 
 class BasicInterface : public IInterface
@@ -82,39 +76,29 @@ class BasicInterface : public IInterface
     int rank;  // TODO: Don't keep this here, hand off to progress
     int ranks;
     std::vector<std::string> hosts;
+    Config config;
     BasicProgress bprogress;
 
   public:
-    BasicInterface() : rank(0), bprogress() {};
+    static BasicInterface *global;
+
+    BasicInterface() : rank(0), config(), bprogress(&config) {};
     virtual int MPI_Init(int *argc, char ***argv)
     {
-      std::string arghdr("MPIARGST");
-      std::string argftr("MPIARGEN");
-      if(arghdr.compare(**argv) != 0)
-      {
-        // already initialized or other thread initializing, return
-        return 0;
-      }
-      // for now, use fixed format of (hdr rank tportopts ftr)
-      (*argv)++;
-      (*argc)--;
-      rank = std::stoi(**argv);
-      (*argv)++;
-      (*argc)--;
-      ranks = std::stoi(**argv);
-      (*argv)++;
-      (*argc)--;
-      // assume footer was there and correct
-      //
-      // warning:  magic word
-      std::ifstream hostsfh("mpihosts.stdin.tmp", std::ifstream::in);
-      std::string tmp;
-      while(std::getline(hostsfh, tmp))
-      {
-        hosts.push_back(tmp);
-      }
+// argv is char**  -- strings are char*
+// so it's a ptr to str
+// argv ref is char***
+// ptr to ptr to str
 
-      bprogress.SetHosts(hosts);
+      // first param is config file, second is rank
+      std::cout << "Loading config from " << **argv << std::endl;
+      config.Load(**argv);
+      (*argv)++;
+      (*argc)--;
+      std::cout << "Taking rank to be arg " << **argv << std::endl;
+      rank = atoi(**argv);
+      (*argv)++;
+      (*argc)--;
       return 0;
     }
     virtual int MPI_Finalize() { return 0; }
@@ -128,10 +112,19 @@ class BasicInterface : public IInterface
     	bprogress.recv_data(buf, count, datatype, source, tag, comm, status);
     	return 0;
     }
-};
 
-// FIXME this is bad --msf
-static BasicInterface bint;
+    virtual int MPI_Comm_rank(MPI_Comm comm, int *r)
+    {
+      *r = rank;
+      return 0;
+    }
+
+    virtual int MPI_Comm_size(MPI_Comm comm, int *r)
+    {
+      *r = std::stoi(config["size"]);
+      return 0;
+    }
+};
 
 
 } // namespace exampi

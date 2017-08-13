@@ -8,7 +8,8 @@ extern "C"
 #endif
 
 int MPI_Finalize(void) {
-	int rc = exampi::bint.MPI_Finalize();
+	int rc = exampi::BasicInterface::global->MPI_Finalize();
+  delete exampi::BasicInterface::global;
 	return MPI_SUCCESS;
 }
 
