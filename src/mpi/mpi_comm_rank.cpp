@@ -2,11 +2,11 @@
 #include <mpi.h>
 #include "basic.h"
 
-#pragma weak MPI_Comm_rank = PMPI_Comm_rank
 
 extern "C"
 {
 
+#pragma weak MPI_Comm_rank = PMPI_Comm_rank
 
 int PMPI_Comm_rank(MPI_Comm c, int *r)
 {

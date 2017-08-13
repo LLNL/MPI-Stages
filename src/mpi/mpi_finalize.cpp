@@ -2,10 +2,8 @@
 #include "ExaMPI.h"
 #include "basic.h"
 
-#ifdef __cplusplus
 extern "C"
 {
-#endif
 
 #pragma weak MPI_Finalize = PMPI_Finalize
 
@@ -15,6 +13,5 @@ int PMPI_Finalize(void) {
 	return MPI_SUCCESS;
 }
 
-#ifdef __cplusplus
 }
-#endif
+
