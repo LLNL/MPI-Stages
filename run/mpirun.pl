@@ -13,10 +13,35 @@ my $MPISOCKET = 4422;
 
 open(my $hostsfh, "<", "MPIHOSTS") or die "Can't read MPIHOSTS";
 my @hosts = <$hostsfh>;
-my $sz = $hosts;
-my $nextrank = 1;
+chomp @hosts;
+my $sz = scalar @hosts;
+my $nextrank = 0;
 my $host;
 
+my %config;
+$config{"size"} = "$sz";
+say "Generating config table...";
+foreach $host (@hosts)
+{
+  say "Assigning $nextrank to $host";
+  $config{"$nextrank"} = "$host";
+  $nextrank += 1;
+}
+
+
+
+say "Generating config list and string...";
+my @configlist = ();
+foreach my $k (keys %config)
+{
+  say "Registering $k:$config{$k}";
+  push (@configlist, "$k:$config{$k}");
+}
+my $configstr = join(";",@configlist);
+
+
+$nextrank = 0;
+say "Sending config str and rank assignments...";
 foreach $host (@hosts)
 {
   say "Assigning rank $nextrank to $host...";
@@ -27,10 +52,9 @@ foreach $host (@hosts)
   );
 
   die "Failed connecting to $host:$MPISOCKET..." unless $s;
-  $s->send($bin . ";");
-  $s->send($nextrank . ";");
-  $s->send($sz . ";");
-  $s->send(join("", @hosts) . "#");
+  say $s $bin;
+  say $s $nextrank;
+  say $s $configstr;
   $nextrank += 1;
   $s->close();
 }

@@ -22,40 +22,28 @@ die "Couldn't create listening socket; $!" unless $listen;
 while(1)
 {
   my $s = $listen->accept();
-  my $bin = "";
-  my $rank = "";
-  my $sz = "";
-  my $hosts = "";
-  my $recv_data;
-  my $count = 0;
-  my $result = "";
-  while(1) {
-  	$s->recv($recv_data, 1);
-  	if ($recv_data eq ";") {
-  	  if ($count == 0) {
-  	    $bin = $result;
-  	  }
-  	  elsif ($count == 1) {
-  	    $rank = $result;
-  	  }
-  	  elsif ($count == 2) {
-  	    $sz = $result;
-  	  }
-  	  $count++;
-  	  $result = "";
-  	}
-  	elsif ($recv_data eq "#") {
-  	  $hosts = $result;
-  	  last;
-  	}
-  	else {
-  	  $result .= $recv_data;
-  	}
-  }
-  
-  open(my $hostsfile, ">", "mpihosts.stdin.tmp") or die "Couldn't create temporary stdin file";
-  print $hostsfile $hosts;
+  my $bin = <$s>;
+  chomp $bin;
+  my $rank = <$s>;
+  chomp $rank;
+  my $configstr = <$s>;
+  chomp $configstr;
+  my $filename = "mpirun.$rank.tmp";
+
+  say "Received:";
+  say "  bin = $bin";
+  say "  rank = $rank";
+  say "  configstr = $configstr";
+
+
+  open(my $config, ">", $filename) or die "Couldn't create temporary file";
+  print $config join("\n", split(/;/, $configstr));
+
+  my @args = ("$filename", "$rank", "$bin");
+  push(@args, @ARGV);
+
+
   say "Launching $bin as rank $rank";
-  say `./$bin MPIARGST $rank $sz MPIARGEN < mpihosts.stdin.tmp`;
+  system $bin @args;
   shutdown($s, 1);
 }
