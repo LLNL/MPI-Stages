@@ -9,6 +9,15 @@ namespace exampi
 
 const std::string runtimeConfig("mpihosts.stdin.tmp");
 
+class BasicBufferWrapper : public IMsg
+{
+  private:
+    struct iovec iov;
+  public:
+    BasicBufferWrapper(void *p, size_t sz) {iov.iov_base = p; iov.iov_len = sz;}
+    virtual struct iovec AsIovec() { return iov;}
+};
+
 class BasicTransport : public ITransport
 {
   private:
