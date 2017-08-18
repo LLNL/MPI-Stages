@@ -7,6 +7,7 @@
 #include <vector>
 
 #include <mpi.h>
+#include <datatypes.h>
 
 namespace exampi
 {

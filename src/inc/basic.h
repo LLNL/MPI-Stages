@@ -1,8 +1,17 @@
+/* 
+
+   Exampi public "mpi.h"  V 0.0
+
+   Authors: Shane Matthew Farmer, Nawrin Sultana, Anthony Skjellum
+  
+*/
+
 #include <ExaMPI.h>
 #include <UDPSocket.h>
 #include <config.h>
 #include <fstream>
 #include <iostream>
+
 
 namespace exampi
 {
@@ -25,7 +34,10 @@ class BasicTransport : public ITransport
       port = 8080;
       try {
         UDPSocket sock;
-        sock.send(buf, count, destip.c_str(), port);
+	const Datatype *internal_dt = DatatypeProperties::get_properties(datatype);
+        int extent = (internal_dt) ? internal_dt->get_extent() : 0; // we need to throw error if not a known datatype 
+
+        sock.send(buf, count*extent, destip.c_str(), port);
       } catch (std::exception &ex) {
           std::cerr << ex.what() << std::endl;
           exit(1);  
@@ -37,11 +49,19 @@ class BasicTransport : public ITransport
       port = 8080;
       try {
          UDPSocket sock(port);
+	 const Datatype *internal_dt = DatatypeProperties::get_properties(datatype);
+	 int extent = (internal_dt) ? internal_dt->get_extent() : 0; // we need to throw error if not a known datatype 
+
          std::string sourceAddress;
          uint16_t sourcePort;
          int recvDataSize;
-            recvDataSize = sock.recv(buf, count, sourceAddress, sourcePort);
+
+            recvDataSize = sock.recv(buf, count*extent, sourceAddress, sourcePort);
             std::cout << "Received packet from " << sourceAddress << " : " << sourcePort << " : " << buf << std::endl;
+
+
+	    // test here for recvDataSize != count*extent OK? should yield an MPI_TRUNCATE issue if it happens
+
       } catch (std::exception &ex) {
           std::cerr << ex.what() << std::endl;
           exit(1);
@@ -95,9 +115,12 @@ class BasicInterface : public IInterface
       rank = atoi(**argv);
       (*argv)++;
       (*argc)--;
+
+      InitializeDatatypes();
+
       return 0;
     }
-    virtual int MPI_Finalize() { return 0; }
+    virtual int MPI_Finalize() { DeInitializeDatatypes(); return 0; }
 
     virtual int MPI_Send(const void* buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm) {
     	bprogress.send_data(buf, count, datatype, dest, tag, comm);
