@@ -3,20 +3,89 @@
 #include <config.h>
 #include <fstream>
 #include <iostream>
+#include <cstdint>
+#include <sys/uio.h>
 
 namespace exampi
 {
 
 const std::string runtimeConfig("mpihosts.stdin.tmp");
 
-class BasicBufferWrapper : public IMsg
+class BasicBuf : public IBuf
 {
   private:
-    struct iovec iov;
+    struct iovec v;
   public:
-    BasicBufferWrapper(void *p, size_t sz) {iov.iov_base = p; iov.iov_len = sz;}
-    virtual struct iovec AsIovec() { return iov;}
+    BasicBuf(void *p, size_t sz) {v.iov_base = p; v.iov_len = sz;}
+    virtual struct iovec iov() { return v;}
 };
+
+
+namespace udp
+{
+
+class Socket
+{
+  private:
+    int fd;
+  public:
+    Socket() { fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP); }
+    ~Socket() { close(fd); }
+    int getFd() { return fd; }
+};
+
+class Address
+{
+  private:
+    sockaddr_in addr;
+  public:
+    void set(const std::string &ip, const uint16_t &port)
+    {
+      addr.sin_family = AF_INET;
+      addr.sin_port = htons(port);
+      addr.sin_addr.s_addr = inet_addr(ip.c_str());
+    }
+    Address() { memset(&addr, 0, sizeof(addr));}
+    Address(std::string ip, uint16_t port)
+    {
+      Address();
+      set(ip, port);
+    }
+    sockaddr_in *get() { return &addr; }
+    socklen_t size() { return sizeof(addr); }
+};
+
+class Message
+{
+  private:  
+    struct msghdr hdr;
+    std::vector<struct iovec> iov;
+  public:
+    Message() : iov()
+    {
+      hdr.msg_control = NULL;
+      hdr.msg_controllen = 0;
+    }
+
+    void addBuf(IBuf *b) { iov.push_back(b->iov()); }
+    void updateHeader()
+    {
+      hdr.msg_iov = iov.data();
+      hdr.msg_iovlen = iov.size();
+    }
+    void updateHeader(Address &addr)
+    {
+      updateHeader();
+      hdr.msg_name = addr.get();
+      hdr.msg_namelen = addr.size();
+    }
+
+
+    void send(Socket &sock, Address &addr) { updateHeader(addr); sendmsg(sock.getFd(), &hdr, 0); };
+    void receive(Socket &sock) { updateHeader(); recvmsg(sock.getFd(), &hdr, 0); };
+};
+
+} // udp
 
 class BasicTransport : public ITransport
 {
@@ -26,6 +95,27 @@ class BasicTransport : public ITransport
     Config *config;
   public:
     BasicTransport(Config *c) : config(c) {};
+
+    virtual void send(IBuf *buf, int dest, MPI_Comm comm)
+    {
+      std::string rank = std::to_string(dest);
+      std::string destip = (*config)[rank];
+      udp::Socket s;
+      udp::Address addr(destip, 8080);
+      udp::Message msg;
+
+      msg.addBuf(buf);
+      msg.send(s, addr);
+    }
+
+    virtual void receive(IBuf *buf, MPI_Comm comm)
+    {
+      udp::Socket s;
+      udp::Message msg;
+
+      msg.addBuf(buf);
+      msg.receive(s);
+    }
         
     virtual void send(const void* buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm) {
       std::cout << "In BasicTransport.send(...,rank="<<dest<<",...)" << std::endl;
@@ -69,11 +159,16 @@ class BasicProgress : public IProgress
     BasicProgress(Config *c) : config(c), btransport(config) {};
         
     virtual int send_data(const void* buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm) {
-      btransport.send(buf, count, datatype, dest, tag, comm);
+
+      BasicBuf b((void *)buf, count);
+      btransport.send(&b, dest, comm );
+      //btransport.send(buf, count, datatype, dest, tag, comm);
       return 0;
     }
     virtual int recv_data(void *buf, int count, MPI_Datatype datatype, int source, int tag, MPI_Comm comm, MPI_Status *status) {
-      btransport.recv(buf, count, datatype, source, tag, comm, status);
+      BasicBuf b(buf, count);
+      btransport.receive(&b, comm);
+      //btransport.recv(buf, count, datatype, source, tag, comm, status);
       return 0;
     }
 
