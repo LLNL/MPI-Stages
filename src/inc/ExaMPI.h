@@ -5,6 +5,7 @@
  */
 
 #include <vector>
+#include <string>
 #include <cstdint>
 #include <cstring>
 
@@ -20,22 +21,22 @@
 #include <arpa/inet.h>
 
 
-namespace exampi
-{
+namespace exampi {
 
-class ICheckpoint
-{
-  public:
-    virtual void DoSomething() = 0;
-};
-
-class IFault
+namespace i {
+class Checkpoint
 {
   public:
     virtual void DoSomething() = 0;
 };
 
-class IInterface
+class Fault
+{
+  public:
+    virtual void DoSomething() = 0;
+};
+
+class Interface
 {
   public:
     virtual int MPI_Init(int *argc, char ***argv) = 0;
@@ -44,13 +45,13 @@ class IInterface
     virtual int MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, int tag, MPI_Comm comm, MPI_Status *status) = 0;
 };
 
-class IMemory
+class Memory
 {
   public:
     virtual void DoSomething() = 0;
 };
 
-class IProgress
+class Progress
 {
   public:
     virtual int send_data(const void* buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm) = 0;
@@ -58,38 +59,58 @@ class IProgress
 };
 
 // send/recv buffer that knows how to describe itself as an iovec
-class IBuf
+class Buf
 {
   public:
     virtual struct iovec iov() = 0;
 };
 
 // as above, but as a vector
-class IBufV
+class BufV
 {
   public:
     virtual struct iovec *AsIovecV() = 0;
 };
 
+class Address
+{
+  public:
+    virtual size_t size() = 0;
+};
+
+class Transport
+{
+  public:
+  virtual size_t addEndpoint(const int rank, const std::vector<std::string> &opts) = 0; 
+  virtual void send(Buf *buf, int dest, MPI_Comm comm) = 0;
+  virtual void receive(Buf *buf, MPI_Comm comm) = 0;
+};
+
+} // i
+
+class Tag
+{
+  public:
+    uint32_t bits;
+    bool operator==(Tag &b) { return bits == b.bits; }
+    bool test(Tag &t) { return bits == t.bits; }
+    bool test(Tag &t, Tag &mask) { return (bits & mask.bits) == (t.bits & mask.bits); }
+};
+
+// This may not need to go here -- it may be a property of e.g. the progress module
+// Single buffer wrong; ok for now
 // Decorated MPI-class transmit
-class IMessage
+class Message
 {
   public:
     int rank;
-    uint32_t tag;
-    int context;
     MPI_Comm communicator;
+    Tag tag;
+    int context;
+    i::Buf *buf;
+    
 };
 
-class ITransport
-{
-  public:
-	//virtual void send(const void* buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm) = 0;
-  virtual void send(IBuf *buf, int dest, MPI_Comm comm) = 0;
-  virtual void receive(IBuf *buf, MPI_Comm comm) = 0;
-	//virtual int recv(void *buf, int count, MPI_Datatype datatype, int source, int tag, MPI_Comm comm, MPI_Status *status) = 0;
-};
-
-}
+} //exampi
 
 #endif

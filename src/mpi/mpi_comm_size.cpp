@@ -1,6 +1,7 @@
 #include <ExaMPI.h>
 #include <mpi.h>
 #include "basic.h"
+#include "basic/interface.h"
 
 extern "C"
 {
@@ -9,7 +10,7 @@ extern "C"
 
 int PMPI_Comm_size(MPI_Comm c, int *r)
 {
-  exampi::BasicInterface::global->MPI_Comm_size(c, r);
+  exampi::basic::Interface::global->MPI_Comm_size(c, r);
   return MPI_SUCCESS;
 }
 
