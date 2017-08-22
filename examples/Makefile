@@ -1,4 +1,4 @@
-dirs = hello ring
+dirs = hello ring $(wildcard collectives/*)
 
 default:
 	$(foreach dir,$(dirs),$(MAKE) -C $(dir);)
