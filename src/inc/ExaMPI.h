@@ -20,6 +20,7 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 
+#include <config.h>
 
 namespace exampi {
 
@@ -43,6 +44,8 @@ class Interface
     virtual int MPI_Finalize(void) = 0;
     virtual int MPI_Send(const void* buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm) = 0;
     virtual int MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, int tag, MPI_Comm comm, MPI_Status *status) = 0;
+    virtual int MPI_Comm_rank(MPI_Comm comm, int *r) = 0;
+    virtual int MPI_Comm_size(MPI_Comm comm, int *r) = 0;
 };
 
 class Memory
@@ -54,6 +57,7 @@ class Memory
 class Progress
 {
   public:
+    virtual int init() = 0;
     virtual int send_data(const void* buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm) = 0;
     virtual int recv_data(void *buf, int count, MPI_Datatype datatype, int source, int tag, MPI_Comm comm, MPI_Status *status) = 0;
 };
@@ -110,6 +114,15 @@ class Message
     i::Buf *buf;
     
 };
+
+// global symbol decls
+namespace global
+{
+  extern exampi::Config *config;
+  extern exampi::i::Interface *interface;
+  extern exampi::i::Progress *progress;
+  extern exampi::i::Transport *transport;
+} // global
 
 } //exampi
 

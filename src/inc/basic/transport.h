@@ -13,9 +13,8 @@ class Transport : public exampi::i::Transport
     std::string address;
     std::unordered_map<int,udp::Address> endpoints;
     uint16_t port;
-    Config *config;
   public:
-    Transport(Config *c) : config(c), endpoints() {};
+    Transport() : endpoints() {};
 
     virtual size_t addEndpoint(const int rank, const std::vector<std::string> &opts)
     {

@@ -3,4 +3,4 @@
 #include "basic.h"
 #include "basic/interface.h"
 
-exampi::basic::Interface* exampi::basic::Interface::global;
+//exampi::basic::Interface* exampi::basic::Interface::global;
