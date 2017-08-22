@@ -5,30 +5,23 @@
 #include <map>
 #include <unordered_map>
 #include <list>
+#include <mutex>
 #include "basic/transport.h"
 
 namespace exampi {
 namespace basic {
 
-class Message
+// POD types
+class Header
 {
   public:
     static constexpr size_t HeaderSize = (8 * 4);
-  private:
+
     int rank;
     uint32_t tag;
     int context;
     MPI_Comm comm;
-    std::vector<struct iovec> iov;
     char hdr[HeaderSize];
-    
-    struct iovec iovHdr()
-    {
-      struct iovec iov;
-      iov.iov_base = hdr;
-      iov.iov_len = HeaderSize;
-      return iov;
-    }
 
     void buildHeader()
     {
@@ -46,25 +39,56 @@ class Message
       dword[7] = 0xABBA;  // CRC
     }
 
-  public: 
-    Message() : iov()
+    struct iovec getIovec()
     {
-      iov.push_back(iovHdr());
+      buildHeader();
+      struct iovec iov = {hdr, HeaderSize};
+      return iov;
     }
+};
 
-    Message(struct iovec v) { Message();  iov.push_back(v); }
-    Message(exampi::i::Buf *buf) { Message();  iov.push_back(buf->iov());}
+// demoting this from exampi.h for now --sf
+class UserArray
+{
+  public:
+    void *buf;
+    Datatype *datatype;
+    int count;
+    struct iovec getIovec() { struct iovec iov = {buf, datatype->getExtent() * count}; return iov; }
+};
 
+class Request
+{
+  public:
+    int dest;
+    MPI_Comm comm;
+    Header hdr;
+    UserArray array;
+    std::vector<struct iovec> getIovecs()
+    {
+      std::vector<struct iovec> result;
+      result.push_back(hdr.getIovec());
+      result.push_back(array.getIovec());
+      return result;
+    }
+};
 
-
-
+template<typename T>
+class FutureQueue
+{
+  
 };
 
 class Progress : public exampi::i::Progress
 {
   private:
-    //std::list sends;
-    //std::list recvs;
+    std::list<Request> sendsPending;
+    std::list<Request> sendsComplete;
+    std::list<Request> recvsPending;
+    std::list<Request> recvsComplete;
+    std::mutex sendLock;
+    std::mutex recvLock;
+
 
     void addEndpoints()
     {
@@ -94,17 +118,26 @@ class Progress : public exampi::i::Progress
     // const pointers.  We can cast away, but killing the guarantee for now.
     virtual int send_data(void* buf, size_t count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm) {
 
-      std::vector<struct iovec> iov;
-      struct iovec v = {buf, count};
-      iov.push_back(v);
-      exampi::global::transport->send(iov, dest, comm );
+      Request req;
+      req.dest = dest;
+      req.comm = comm;
+      req.hdr.tag = tag;
+      req.hdr.rank = exampi::global::rank;
+      req.array.buf = buf;
+      req.array.datatype = &exampi::global::datatypes[datatype];
+      req.array.count = count;
+      exampi::global::transport->send(req.getIovecs(), req.dest, comm );
       return 0;
     }
     virtual int recv_data(void *buf, size_t count, MPI_Datatype datatype, int source, int tag, MPI_Comm comm, MPI_Status *status) {
-      std::vector<struct iovec> iov;
-      struct iovec v = {buf, count};
-      iov.push_back(v);
-      exampi::global::transport->receive(iov, comm);
+
+      Request req;
+      req.comm = comm;
+      req.dest = -1;
+      req.array.buf = buf;
+      req.array.datatype = &exampi::global::datatypes[datatype];
+      req.array.count = count;
+      exampi::global::transport->receive(req.getIovecs(), comm);
       return 0;
     }
 

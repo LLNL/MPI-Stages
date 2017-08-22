@@ -21,19 +21,9 @@
 #include <arpa/inet.h>
 
 #include <config.h>
+#include <datatype.h>
 
 namespace exampi {
-
-class UserArray
-{
-  private:
-    void *buf;
-    int count;
-    MPI_Datatype type;
-  public:
-    UserArray(void *b, int c, MPI_Datatype t) : buf(b), count(c), type(t) {;}
-
-};
 
 namespace i {
 class Checkpoint
@@ -130,10 +120,12 @@ class Message
 // global symbol decls
 namespace global
 {
+  extern int rank;
   extern exampi::Config *config;
   extern exampi::i::Interface *interface;
   extern exampi::i::Progress *progress;
   extern exampi::i::Transport *transport;
+  extern std::unordered_map<MPI_Datatype, exampi::Datatype> datatypes;
 } // global
 
 } //exampi

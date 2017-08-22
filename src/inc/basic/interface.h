@@ -29,6 +29,7 @@ class Interface : public exampi::i::Interface
       (*argv)++;
       (*argc)--;
 
+      exampi::global::rank = rank;
       exampi::global::progress->init();
       return 0;
     }
