@@ -26,24 +26,22 @@ class Transport : public exampi::i::Transport
       endpoints[rank] = addr;
     }
 
-    virtual void send(exampi::i::Buf *buf, int dest, MPI_Comm comm)
+    virtual void send(std::vector<struct iovec> iov, int dest, MPI_Comm comm)
     {
       std::cout << "\tbasic::Transport::send(...)\n";
       udp::Socket s;
-      udp::Message msg;
+      udp::Message msg(iov);
 
-      msg.addBuf(buf);
       msg.send(s, endpoints[dest]);
     }
 
-    virtual void receive(exampi::i::Buf *buf, MPI_Comm comm)
+    virtual void receive(std::vector<struct iovec> iov, MPI_Comm comm)
     {
       std::cout << "\tbasic::Transport::receive(...)\n";
       udp::Socket s;
-      udp::Message msg;
+      udp::Message msg(iov);
 
       s.bindPort(8080);
-      msg.addBuf(buf);
       msg.receive(s);
     }
         

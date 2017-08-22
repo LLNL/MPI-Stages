@@ -57,6 +57,7 @@ class Message
 
 
 
+
 };
 
 class Progress : public exampi::i::Progress
@@ -79,21 +80,31 @@ class Progress : public exampi::i::Progress
       }
     }
 
+    void sendWork()
+    {
+      
+    }
 
   public:
     Progress() {;}
         
     virtual int init() { addEndpoints(); }
 
-    virtual int send_data(const void* buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm) {
+    // TODO:  We have a small issue here.  We need iovecs of this data ultimately, but iovecs don't take
+    // const pointers.  We can cast away, but killing the guarantee for now.
+    virtual int send_data(void* buf, size_t count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm) {
 
-      Buf b((void *)buf, count);
-      exampi::global::transport->send(&b, dest, comm );
+      std::vector<struct iovec> iov;
+      struct iovec v = {buf, count};
+      iov.push_back(v);
+      exampi::global::transport->send(iov, dest, comm );
       return 0;
     }
-    virtual int recv_data(void *buf, int count, MPI_Datatype datatype, int source, int tag, MPI_Comm comm, MPI_Status *status) {
-      Buf b(buf, count);
-      exampi::global::transport->receive(&b, comm);
+    virtual int recv_data(void *buf, size_t count, MPI_Datatype datatype, int source, int tag, MPI_Comm comm, MPI_Status *status) {
+      std::vector<struct iovec> iov;
+      struct iovec v = {buf, count};
+      iov.push_back(v);
+      exampi::global::transport->receive(iov, comm);
       return 0;
     }
 

@@ -55,6 +55,8 @@ class Address : public exampi::i::Address
     size_t size() { return sizeof(addr); }
 };
 
+// WARNING:  This class creates a THIRD copy of the std::vector
+// Need to write a custom container and do move semantics
 class Message
 {
   private:  
@@ -62,6 +64,12 @@ class Message
     std::vector<struct iovec> iov;
   public:
     Message() : iov()
+    {
+      hdr.msg_control = NULL;
+      hdr.msg_controllen = 0;
+    }
+
+    Message(std::vector<struct iovec> i) : iov(i)
     {
       hdr.msg_control = NULL;
       hdr.msg_controllen = 0;

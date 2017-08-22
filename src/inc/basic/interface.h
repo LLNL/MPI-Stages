@@ -35,7 +35,7 @@ class Interface : public exampi::i::Interface
     virtual int MPI_Finalize() { return 0; }
 
     virtual int MPI_Send(const void* buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm) {
-      exampi::global::progress->send_data(buf, count, datatype, dest, tag, comm);
+      exampi::global::progress->send_data(const_cast<void *>(buf), static_cast<size_t>(count), datatype, dest, tag, comm);
     	return 0;
     }
 

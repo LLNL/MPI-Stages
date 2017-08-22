@@ -24,6 +24,17 @@
 
 namespace exampi {
 
+class UserArray
+{
+  private:
+    void *buf;
+    int count;
+    MPI_Datatype type;
+  public:
+    UserArray(void *b, int c, MPI_Datatype t) : buf(b), count(c), type(t) {;}
+
+};
+
 namespace i {
 class Checkpoint
 {
@@ -58,8 +69,9 @@ class Progress
 {
   public:
     virtual int init() = 0;
-    virtual int send_data(const void* buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm) = 0;
-    virtual int recv_data(void *buf, int count, MPI_Datatype datatype, int source, int tag, MPI_Comm comm, MPI_Status *status) = 0;
+    virtual int send_data(void *buf, size_t count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm) = 0;
+    virtual int recv_data(void *buf, size_t count, MPI_Datatype datatype, int source, int tag, MPI_Comm comm, MPI_Status *status) = 0;
+    //virtual std::promise postSend(const void *, MPI_Datatype datatype, )
 };
 
 // send/recv buffer that knows how to describe itself as an iovec
@@ -86,8 +98,8 @@ class Transport
 {
   public:
   virtual size_t addEndpoint(const int rank, const std::vector<std::string> &opts) = 0; 
-  virtual void send(Buf *buf, int dest, MPI_Comm comm) = 0;
-  virtual void receive(Buf *buf, MPI_Comm comm) = 0;
+  virtual void send(std::vector<struct iovec> iov, int dest, MPI_Comm comm) = 0;
+  virtual void receive(std::vector<struct iovec> iov, MPI_Comm comm) = 0;
 };
 
 } // i
