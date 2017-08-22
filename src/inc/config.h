@@ -46,7 +46,7 @@ class Config
       dict = c.dict;
     }
 
-    void Load(std::string filename)
+    void load(std::string filename)
     {
       std::ifstream file(filename, std::ifstream::in);
       std::string next;
@@ -55,7 +55,7 @@ class Config
 
     }
 
-    std::map<std::string,std::string> AsMap()
+    std::map<std::string,std::string> asMap()
     {
       return dict;
     }
