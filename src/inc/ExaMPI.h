@@ -6,6 +6,7 @@
 
 #include <vector>
 #include <string>
+#include <iomanip>
 #include <cstdint>
 #include <cstring>
 
@@ -59,6 +60,7 @@ class Progress
 {
   public:
     virtual int init() = 0;
+    virtual void barrier() = 0;
     virtual int send_data(void *buf, size_t count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm) = 0;
     virtual int recv_data(void *buf, size_t count, MPI_Datatype datatype, int source, int tag, MPI_Comm comm, MPI_Status *status) = 0;
     //virtual std::promise postSend(const void *, MPI_Datatype datatype, )
@@ -121,6 +123,7 @@ class Message
 namespace global
 {
   extern int rank;
+  extern int worldSize;
   extern exampi::Config *config;
   extern exampi::i::Interface *interface;
   extern exampi::i::Progress *progress;

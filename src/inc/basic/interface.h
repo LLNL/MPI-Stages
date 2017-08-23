@@ -30,7 +30,9 @@ class Interface : public exampi::i::Interface
       (*argc)--;
 
       exampi::global::rank = rank;
+      exampi::global::worldSize = std::stoi((*exampi::global::config)["size"]);
       exampi::global::progress->init();
+      exampi::global::progress->barrier();
       return 0;
     }
     virtual int MPI_Finalize() { return 0; }

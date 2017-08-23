@@ -26,7 +26,7 @@ int main(int argc, char** argv)
     smallmessage[i] = 0;
 
   
-  printf("About to rank-0 send....\n");
+  printf("About to try rank-0 send....\n");
   if(rank == 0)
   {
     // sf:  adding sleep to fix lack of barrier
@@ -39,7 +39,7 @@ int main(int argc, char** argv)
   {
     printf("\tAbout to MPI_Recv...\n");
     MPI_Recv(smallmessage, ARRAY_LEN, MPI_INT, (rank-1+size)%size, TAG, MPI_COMM_WORLD, &status);
-    printf("\t-> smallmessage[0] is now %d\n", smallmessage[0]);
+    printf("\trecv from rank %d\n\t-> smallmessage[0] is now %d\n", status.MPI_SOURCE,smallmessage[0]);
 
     // sf:  fixed bug here where 0 would quit as soon as sm[0]==0, meaning it never made it around the ring
     // result of this fix indexes trip count at 0, e.g. TIMES_AROUND_LOOP 10 means 11 trips
