@@ -1,5 +1,12 @@
 #ifndef __EXAMPI_BASIC_H
 #define __EXAMPI_BASIC_H
+/* 
+
+   Exampi public "mpi.h"  V 0.0
+
+   Authors: Shane Matthew Farmer, Nawrin Sultana, Anthony Skjellum
+  
+*/
 
 #include <ExaMPI.h>
 #include <UDPSocket.h>

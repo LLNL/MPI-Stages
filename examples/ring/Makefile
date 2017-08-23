@@ -4,7 +4,8 @@ incdir = $(basedir)/inc
 binname = ring
 
 all:
-	g++ -ggdb -I$(incdir) -L$(libdir) -o $(binname) ring.c -lexampi
+	gcc -c -ggdb -I$(incdir) ring.c 
+	g++    -ggdb -L$(libdir) -o $(binname) ring.o -lexampi
 
 clean:
 	rm -f $(binname)
