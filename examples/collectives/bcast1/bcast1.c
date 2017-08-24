@@ -13,6 +13,7 @@ int main(int argc, char** argv)
   int i;
   int rank, size;
   int smallmessage[ARRAY_LEN];
+  int loopcount = -1;
   MPI_Status status;
 
 #ifdef DEBUG
@@ -41,26 +42,33 @@ int main(int argc, char** argv)
 
   if(rank == 0)
   {
-    printf("This is rank 0!\nSleeping...\n");
-    // sf:  adding sleep to fix lack of barrier
+    // sf:  adding sleep to fix lack of barrier -- when can we remove this?
     usleep(500000);
-    printf("Woke up, about to send...\n");
     MPI_Send(smallmessage, ARRAY_LEN, MPI_INT, (rank+1)%size, TAG, MPI_COMM_WORLD); /* inject initial message to ring  */
-  }
 
+    loopcount = TIMES_AROUND_LOOP;
+  }
 #ifdef DEBUG
-  printf("%d: Entering do loop...\n",rank);
+  printf("%d: Before bcast\n", rank);
 #endif
 
-  do
+  MPI_Bcast(&loopcount, 1, MPI_INT, 0 /* root */, MPI_COMM_WORLD);
+
+#ifdef DEBUG
+  printf("%d: Past bcast [loopcount = %d; entering loop...\n", rank, loopcount);
+#endif
+
+  for(i = 0; i < loopcount; i++)
   {
-    printf("\tAbout to MPI_Recv; smallmessage[0] is %d\n", smallmessage[0]);
+#ifdef DEBUG
+    printf("%d: i=%3d: About to MPI_Recv...\n", rank, i);
+#endif
+
     MPI_Recv(smallmessage, ARRAY_LEN, MPI_INT, (rank-1+size)%size, TAG, MPI_COMM_WORLD, &status);
-    printf("recv from rank %d-> smallmessage[0] is now %d\n", status.MPI_SOURCE,smallmessage[0]);
+    printf("%d: smallmessage[0] is now %d\n", rank, smallmessage[0]);
+
     // sf:  fixed bug here where 0 would quit as soon as sm[0]==0, meaning it never made it around the ring
     // result of this fix indexes trip count at 0, e.g. TIMES_AROUND_LOOP 10 means 11 trips
-    // AS:  Yes, but you added another bug.
-
     if(rank == 0)
       --smallmessage[0];
 
@@ -71,7 +79,7 @@ int main(int argc, char** argv)
     if((rank == 0 && smallmessage[0])||(rank > 0)) /* don't leave a dangling message in the network */
       MPI_Send(smallmessage, ARRAY_LEN, MPI_INT, (rank+1)%size, TAG, MPI_COMM_WORLD); /* forward around the logical ring */
 
-  } while(smallmessage[0] > 0);
+  } 
 
 #ifdef DEBUG
   printf("%d: Exiting loop\n", rank);
@@ -80,3 +88,4 @@ int main(int argc, char** argv)
   MPI_Finalize();
   return 0;
 }
+

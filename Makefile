@@ -12,9 +12,10 @@ docs:
 examples: framework modules
 	$(MAKE) -C examples
 
-.PHONY: clean
+.PHONY: clean default framework modules docs feamework-clean modules-clean examples-clean
 
 clean: framework-clean modules-clean examples-clean
+	@-rm src/libexampi.a	
 
 framework-clean:
 	$(MAKE) -C src clean

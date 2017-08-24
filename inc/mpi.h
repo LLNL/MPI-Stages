@@ -63,7 +63,6 @@ const int	MPI_SUCCESS = 0; /* this is the default error class for success */
 #define MPI_LONG_DOUBLE     ((MPI_Datatype)12)
 
 #define MPI_BOOL            ((MPI_Datatype)32)
-
 #define MPI_FLOAT_INT       ((MPI_Datatype)64)
 #define MPI_LONG_INT        ((MPI_Datatype)65)
 #define MPI_DOUBLE_INT      ((MPI_Datatype)66)

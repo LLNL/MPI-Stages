@@ -13,6 +13,7 @@
 #include <sstream>
 
 #include <mpi.h>
+#include <datatypes.h>
 #include <sys/uio.h>
 #include <sys/types.h>
 #include <sys/socket.h>
