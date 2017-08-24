@@ -103,8 +103,15 @@ class Message
     }
     void receive(Socket &sock) 
     { 
+      std::cout << debug() << "basic::Transport::udp::recv\n";
       updateHeader(); 
-      recvmsg(sock.getFd(), &hdr, 0); 
+      recvmsg(sock.getFd(), &hdr, MSG_WAITALL); 
+      std::cout << debug() << "basic::Transport::udp::recv exiting\n";
+    }
+    void peek(Socket &sock)
+    {
+      updateHeader();
+      recvmsg(sock.getFd(), &hdr, MSG_WAITALL | MSG_PEEK);
     }
 };
 
