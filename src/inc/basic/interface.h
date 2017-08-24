@@ -61,6 +61,21 @@ class Interface : public exampi::i::Interface
     	return 0;
     }
 
+    virtual int MPI_Bcast(void *buf, int count, MPI_Datatype datatype, int root, MPI_Comm comm)
+    {
+      if(exampi::global::rank == root)
+      {
+        for(int i = 0; i < exampi::global::worldSize; i++)
+          if(i != root) 
+            MPI_Send(buf, count, datatype, i, 0, 0);
+      }
+      else
+      {
+        MPI_Status st;
+        MPI_Recv(buf, count, datatype, root, 0, 0, &st);
+      }          
+    }
+
     virtual int MPI_Comm_rank(MPI_Comm comm, int *r)
     {
       *r = rank;

@@ -9,7 +9,7 @@
 
   
 */
-
+#define _EXAMPI_DATATYPES_H
 #ifndef _EXAMPI_DATATYPES_H
 #define _EXAMPI_DATATYPES_H
 
