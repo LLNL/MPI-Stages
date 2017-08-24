@@ -4,7 +4,8 @@ incdir = $(basedir)/inc
 binname = hello
 
 all:
-	g++ -pthread -I$(incdir) -L$(libdir) -o $(binname) hello.c -lexampi
+	gcc -c -ggdb -I$(incdir) hello.c 
+	g++    -ggdb -L$(libdir) -o $(binname) hello.o -lexampi
 
 clean:
 	rm -f $(binname)

@@ -41,10 +41,8 @@ int main(int argc, char** argv)
 
   if(rank == 0)
   {
-    printf("This is rank 0!\nSleeping...\n");
     // sf:  adding sleep to fix lack of barrier
     usleep(500000);
-    printf("Woke up, about to send...\n");
     MPI_Send(smallmessage, ARRAY_LEN, MPI_INT, (rank+1)%size, TAG, MPI_COMM_WORLD); /* inject initial message to ring  */
   }
 
@@ -54,9 +52,15 @@ int main(int argc, char** argv)
 
   do
   {
-    printf("\tAbout to MPI_Recv; smallmessage[0] is %d\n", smallmessage[0]);
+#ifdef DEBUG
+    printf("%d: About to MPI_Recv...\n", rank);
+#endif
+
     MPI_Recv(smallmessage, ARRAY_LEN, MPI_INT, (rank-1+size)%size, TAG, MPI_COMM_WORLD, &status);
-    printf("recv from rank %d-> smallmessage[0] is now %d\n", status.MPI_SOURCE,smallmessage[0]);
+#ifdef DEBUG
+    printf("%d:  smallmessage[0] is now %d\n", rank, smallmessage[0]);
+#endif
+
     // sf:  fixed bug here where 0 would quit as soon as sm[0]==0, meaning it never made it around the ring
     // result of this fix indexes trip count at 0, e.g. TIMES_AROUND_LOOP 10 means 11 trips
     // AS:  Yes, but you added another bug.
