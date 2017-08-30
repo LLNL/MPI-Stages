@@ -61,6 +61,37 @@ class Interface : public exampi::i::Interface
     	return 0;
     }
 
+    virtual int MPI_Isend(const void *buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm, MPI_Request *request)
+    {
+      size_t szcount = count;
+      // have to move construct the future; i'll fix this later with a pool in progress
+      std::future<MPI_Status> *f = new std::future<MPI_Status>();
+      (*f) = exampi::global::progress->postSend(
+            {const_cast<void *>(buf), &(exampi::global::datatypes[datatype]), szcount},
+            {dest, comm}, tag);
+      (*request) = reinterpret_cast<MPI_Request>(f);    
+    
+      return 0;
+    }
+
+    virtual int MPI_Irecv(void *buf, int count, MPI_Datatype datatype, int source, int tag, MPI_Comm comm, MPI_Request *request) {
+      //exampi::global::progress->recv_data(buf, count, datatype, source, tag, comm, status);
+      size_t szcount = count;
+      std::future<MPI_Status> *f = new std::future<MPI_Status>();
+      (*f) = exampi::global::progress->postRecv(
+            {const_cast<void *>(buf), &(exampi::global::datatypes[datatype]), szcount},
+            tag);
+      (*request) = reinterpret_cast<MPI_Request>(f);
+    	return 0;
+    }
+
+    virtual int MPI_Wait(MPI_Request *request, MPI_Status *status)
+    {
+      std::future<MPI_Status> *f = reinterpret_cast<std::future<MPI_Status> *>(*request);
+      (*status) = f->get();
+      return 0;
+    }
+
     virtual int MPI_Bcast(void *buf, int count, MPI_Datatype datatype, int root, MPI_Comm comm)
     {
       if(exampi::global::rank == root)

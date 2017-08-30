@@ -174,6 +174,7 @@ class Request
     }
 };
 #endif
+
 class Progress : public exampi::i::Progress
 {
   private:

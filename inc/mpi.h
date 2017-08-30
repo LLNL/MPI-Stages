@@ -9,6 +9,8 @@
 #ifndef _MPI_H
 #define _MPI_H
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -19,7 +21,7 @@ typedef int MPI_Datatype;
 typedef int MPI_Comm;
 typedef int MPIX_Session;
 typedef int MPI_Group;
-typedef int MPI_Request;
+typedef uintptr_t MPI_Request;
 typedef int MPI_Op;
 typedef int MPI_Info;
 typedef int MPI_Errhandler;
@@ -210,7 +212,7 @@ int PMPI_Iscatter(void *, int, MPI_Datatype, void *, int, MPI_Datatype, int, MPI
 int PMPI_Init(int *, char ***);
 int PMPI_Init_info(int *, char ***, MPI_Info);
 int PMPI_Irecv(void *, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
-int MPI_Isend(void *, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
+int PMPI_Isend(void *, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
 int PMPI_Recv(void* buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm, MPI_Status *status);
 int PMPI_Recv_init(void *, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
 int PMPI_Reduce(void *, void *, int, MPI_Datatype, MPI_Op, int, MPI_Comm);

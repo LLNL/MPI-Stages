@@ -5,7 +5,7 @@ binname = hello
 
 all:
 	gcc -c -ggdb -I$(incdir) hello.c 
-	g++    -ggdb -L$(libdir) -o $(binname) hello.o -lexampi
+	g++    -pthread -ggdb -L$(libdir) -o $(binname) hello.o -lexampi
 
 clean:
 	rm -f $(binname)
