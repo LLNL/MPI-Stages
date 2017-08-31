@@ -6,8 +6,11 @@
 
 #include <vector>
 #include <string>
+#include <list>
+#include <iomanip>
 #include <cstdint>
 #include <cstring>
+#include <sstream>
 
 #include <mpi.h>
 #include <datatypes.h>
@@ -20,20 +23,138 @@
 #include <netinet/udp.h>
 #include <unistd.h>
 #include <arpa/inet.h>
+#include <future>
 
 #include <config.h>
+#include <datatype.h>
 
 namespace exampi {
 
+// unique_ptr is c++11, but make_unique is c++14 headexplode.gif --sf
+template<typename T, typename... Args>
+std::unique_ptr<T> make_unique(Args&&... args) {
+    return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+}
+
+static inline std::thread::id thisThread() { return std::this_thread::get_id(); }
+
+static inline std::string debug()
+{
+  std::stringstream stream;
+  stream << "\t[0x" << std::hex << std::setfill('0') << std::setw(8) << thisThread() << "] ";
+  return stream.str();
+}
+
+static inline std::string mpiStatusString(MPI_Status st)
+{
+  std::stringstream stream;
+  stream << "MPI_Status{MPI_SOURCE=" << st.MPI_SOURCE
+         << ", MPI_TAG = " << st.MPI_TAG 
+         << ", MPI_ERROR = " << st.MPI_ERROR << "}";
+  return stream.str();
+}
+
+enum class Op : int
+{
+  Send,
+  Receive
+};
+
+// TODO:  should really wrap this into a class --sf
+static inline void iovMove(std::vector<struct iovec> toVec, std::vector<struct iovec> fromVec)
+{
+  auto toPos = toVec.begin();
+  auto fromPos = fromVec.begin();
+  struct iovec to = *toPos;
+  struct iovec from = *fromPos;
+  bool done = false;
+  while(!done)
+  {
+    size_t sz = std::min(to.iov_len, from.iov_len);
+    memmove(to.iov_base, from.iov_base, sz);
+    to.iov_len -= sz;
+    from.iov_len -= sz;
+    if(to.iov_len <= 0) to = *(++toPos);
+    if(from.iov_len <= 0) from = *(++fromPos);
+    if((toPos == toVec.end()) || (fromPos == fromVec.end())) done = true;
+  }
+  
+}
+
+template<typename T>
+class AsyncQueue
+{
+  typedef std::unique_ptr<T> DataType;
+  typedef std::promise<DataType> PromiseType;
+  typedef std::unique_ptr<PromiseType> PromisePtrType;
+  typedef std::list<DataType> ListType;
+  typedef std::list<PromisePtrType> PromiseListType;
+  protected:
+    ListType data;
+    PromiseListType promises;
+    std::mutex putLock;
+    std::mutex getLock;
+
+    void test()
+    {
+      std::cout << debug() << "\tAQ:  testing\n";
+      if(promises.size() > 0)
+        if(data.size() > 0)
+        {
+          std::cout << debug() << "\tAQ:  data and promises, advancing\n";
+          promises.front()->set_value(std::move(data.front()));
+          promises.pop_front();
+          data.pop_front();
+        }
+      std::cout << debug() << "\tAQ:  done testing\n";
+    }
+  public:
+    AsyncQueue()
+    {
+      std::cout << debug() << "\tAsyncQueue:  constructing\n"; 
+    }
+
+    std::future<DataType> promise()
+    { 
+      std::cout << debug() << "\tAQ: Promise requested.  data(" << data.size() << ") promises(" << promises.size() << ")\n";
+      promises.push_back(make_unique<PromiseType>());
+      std::cout << debug() << "\tAQ: Promise pushed; about to get_future...\n";
+      auto result = promises.back()->get_future();
+      test();
+      return result;
+    }
+
+    void put(DataType&& v)
+    {
+      std::cout << debug() << "\tAQ:  Putting\n";
+      data.push_back(std::move(v));
+      test();
+    }
+};
+
 class UserArray
 {
-  private:
-    void *buf;
-    int count;
-    MPI_Datatype type;
   public:
-    UserArray(void *b, int c, MPI_Datatype t) : buf(b), count(c), type(t) {;}
+    void *ptr;
+    Datatype *datatype;
+    size_t count;
+    struct iovec getIovec() { struct iovec iov = {ptr, datatype->getExtent() * count}; return iov; }
+    // only really useful for debugging:
+    std::string toString()
+    {
+      std::stringstream stream;
+      stream <<"UserArray{ptr=" << ptr << ",datatype=" << datatype << ",count=" << count << "}";
+      return stream.str();
+    }
+};
 
+class Endpoint
+{
+  public:
+    int rank;
+    MPI_Comm comm;
+
+    void invalid() { rank = -1; comm = -1; }
 };
 
 namespace i {
@@ -56,6 +177,10 @@ class Interface
     virtual int MPI_Finalize(void) = 0;
     virtual int MPI_Send(const void* buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm) = 0;
     virtual int MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, int tag, MPI_Comm comm, MPI_Status *status) = 0;
+    virtual int MPI_Isend(const void* buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm, MPI_Request *request) = 0;
+    virtual int MPI_Irecv(void* buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm, MPI_Request *request) = 0;
+    virtual int MPI_Wait(MPI_Request *request, MPI_Status *status) = 0;
+    virtual int MPI_Bcast(void *buf, int count, MPI_Datatype datatype, int root, MPI_Comm comm) = 0;
     virtual int MPI_Comm_rank(MPI_Comm comm, int *r) = 0;
     virtual int MPI_Comm_size(MPI_Comm comm, int *r) = 0;
 };
@@ -70,9 +195,12 @@ class Progress
 {
   public:
     virtual int init() = 0;
+    virtual void barrier() = 0;
     virtual int send_data(void *buf, size_t count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm) = 0;
     virtual int recv_data(void *buf, size_t count, MPI_Datatype datatype, int source, int tag, MPI_Comm comm, MPI_Status *status) = 0;
     //virtual std::promise postSend(const void *, MPI_Datatype datatype, )
+    virtual std::future<MPI_Status> postSend(UserArray array, Endpoint dest, int tag) = 0;
+    virtual std::future<MPI_Status> postRecv(UserArray array, int tag) = 0;
 };
 
 // send/recv buffer that knows how to describe itself as an iovec
@@ -98,9 +226,11 @@ class Address
 class Transport
 {
   public:
+  virtual void init() = 0;
   virtual size_t addEndpoint(const int rank, const std::vector<std::string> &opts) = 0; 
-  virtual void send(std::vector<struct iovec> iov, int dest, MPI_Comm comm) = 0;
-  virtual void receive(std::vector<struct iovec> iov, MPI_Comm comm) = 0;
+  virtual std::future<int> send(std::vector<struct iovec> iov, int dest, MPI_Comm comm) = 0;
+  virtual std::future<int> receive(std::vector<struct iovec> iov, MPI_Comm comm) = 0;
+  virtual int peek(std::vector<struct iovec> iov, MPI_Comm comm) = 0;
 };
 
 } // i
@@ -131,10 +261,13 @@ class Message
 // global symbol decls
 namespace global
 {
+  extern int rank;
+  extern int worldSize;
   extern exampi::Config *config;
   extern exampi::i::Interface *interface;
   extern exampi::i::Progress *progress;
   extern exampi::i::Transport *transport;
+  extern std::unordered_map<MPI_Datatype, exampi::Datatype> datatypes;
 } // global
 
 } //exampi

@@ -5,7 +5,7 @@ cobj = $(csrc:.c=.c.o)
 alib = libexampi.a
 
 CFLAGS = -std=gnu11 -Iinc -I../inc
-CXXFLAGS = -std=gnu++11 -Iinc -I../inc -Itransport
+CXXFLAGS = -std=c++11 -pthread -Iinc -I../inc -Itransport
 
 $(alib): $(cppobj) $(cobj)
 	$(AR) rcs $@ $^
