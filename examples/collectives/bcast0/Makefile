@@ -1,11 +1,8 @@
-basedir = ../../..
-libdir = $(basedir)/src
-incdir = $(basedir)/inc
 binname = bcast0
 
 all:
-	gcc -c -pthread -ggdb -I$(incdir) bcast0.c 
-	g++    -pthread -ggdb -L$(libdir) -o $(binname) bcast0.o -lexampi
+	$(CC) $(CFLAGS) bcast0.c
+	$(CCPP) $(LDFLAGS) -o $(binname) bcast0.o -lexampi
 
 clean:
 	rm -f $(binname)
