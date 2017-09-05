@@ -28,6 +28,11 @@
 #include <config.h>
 #include <datatype.h>
 
+#include <array.h>
+#include <i/interface.h>
+#include <i/progress.h>
+#include <i/transport.h>
+
 namespace exampi {
 
 // unique_ptr is c++11, but make_unique is c++14 headexplode.gif --sf
@@ -132,31 +137,87 @@ class AsyncQueue
     }
 };
 
-class UserArray
+
+#if 0
+namespace relay {
+// policies
+// disabled for now
+namespace policy
 {
-  public:
-    void *ptr;
-    Datatype *datatype;
-    size_t count;
-    struct iovec getIovec() { struct iovec iov = {ptr, datatype->getExtent() * count}; return iov; }
-    // only really useful for debugging:
-    std::string toString()
+struct SignalNext
+{
+  protected:
+  void signalQueue() 
+  { 
+    q.front()->signal(); 
+    q.pop_front();
+  }
+};
+
+struct SignalAll
+{
+  protected:
+  void signalQueue()
+  {
+    for(sinkPtr &s : q)
     {
-      std::stringstream stream;
-      stream <<"UserArray{ptr=" << ptr << ",datatype=" << datatype << ",count=" << count << "}";
-      return stream.str();
+      s->signal();
+    }
+  }
+};
+
+struct SignalAllOnce
+{
+  protected:
+  void signalQueue()
+  {
+    for(sinkPtr &s : q)
+    {
+      s->signal();
+    }
+    q.clear();
+  }
+};
+} // policy
+template<typename SignalPolicy>
+class Relay : private SignalPolicy
+{
+  protected:
+    std::mutex mutex;
+    std::condition_variable cv;
+    std::deque<Relay *> q;
+    int signals;
+    int incomingConnections;
+    void notify()
+    {
+      incomingConnections++;
+    }
+  public:
+    Relay() : signals(0) {;}
+    void add(Relay *r)
+    {
+      q.push_back(r);
+    }
+    void signal()
+    {
+      std::unique_lock<std::mutex> lock(mutex);
+      signals++;
+      lock.unlock();
+      testForCompletion();
+    }
+    void wait()
+    {
+      std::unique_lock<std::mutex> lock(mutex);
+      cv.wait(lock, []{return needed < 1;});
     }
 };
 
-class Endpoint
+}
+
+class Promise
 {
-  public:
-    int rank;
-    MPI_Comm comm;
-
-    void invalid() { rank = -1; comm = -1; }
 };
-
+#endif
 namespace i {
 class Checkpoint
 {
@@ -170,37 +231,10 @@ class Fault
     virtual void DoSomething() = 0;
 };
 
-class Interface
-{
-  public:
-    virtual int MPI_Init(int *argc, char ***argv) = 0;
-    virtual int MPI_Finalize(void) = 0;
-    virtual int MPI_Send(const void* buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm) = 0;
-    virtual int MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, int tag, MPI_Comm comm, MPI_Status *status) = 0;
-    virtual int MPI_Isend(const void* buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm, MPI_Request *request) = 0;
-    virtual int MPI_Irecv(void* buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm, MPI_Request *request) = 0;
-    virtual int MPI_Wait(MPI_Request *request, MPI_Status *status) = 0;
-    virtual int MPI_Bcast(void *buf, int count, MPI_Datatype datatype, int root, MPI_Comm comm) = 0;
-    virtual int MPI_Comm_rank(MPI_Comm comm, int *r) = 0;
-    virtual int MPI_Comm_size(MPI_Comm comm, int *r) = 0;
-};
-
 class Memory
 {
   public:
     virtual void DoSomething() = 0;
-};
-
-class Progress
-{
-  public:
-    virtual int init() = 0;
-    virtual void barrier() = 0;
-    virtual int send_data(void *buf, size_t count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm) = 0;
-    virtual int recv_data(void *buf, size_t count, MPI_Datatype datatype, int source, int tag, MPI_Comm comm, MPI_Status *status) = 0;
-    //virtual std::promise postSend(const void *, MPI_Datatype datatype, )
-    virtual std::future<MPI_Status> postSend(UserArray array, Endpoint dest, int tag) = 0;
-    virtual std::future<MPI_Status> postRecv(UserArray array, int tag) = 0;
 };
 
 // send/recv buffer that knows how to describe itself as an iovec
@@ -221,16 +255,6 @@ class Address
 {
   public:
     virtual size_t size() = 0;
-};
-
-class Transport
-{
-  public:
-  virtual void init() = 0;
-  virtual size_t addEndpoint(const int rank, const std::vector<std::string> &opts) = 0; 
-  virtual std::future<int> send(std::vector<struct iovec> iov, int dest, MPI_Comm comm) = 0;
-  virtual std::future<int> receive(std::vector<struct iovec> iov, MPI_Comm comm) = 0;
-  virtual int peek(std::vector<struct iovec> iov, MPI_Comm comm) = 0;
 };
 
 } // i
