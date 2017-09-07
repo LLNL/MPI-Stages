@@ -1,5 +1,5 @@
 #ifndef __EXAMPI_I_INTERFACE_H
-#define __EXAMPI_H_INTERFACE_H
+#define __EXAMPI_I_INTERFACE_H
 
 #include <mpi.h>
 
