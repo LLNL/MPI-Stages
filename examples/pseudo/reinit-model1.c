@@ -68,6 +68,13 @@ restart_loop:
 
   }
 
+  /* this section of code: no fault protection in postamble??? */
+
+  MPI_Comm_free(mycomm);
+
+  MPI_Finalize();
+
+  return 0;
 }
 
 /* need signal handler here */
