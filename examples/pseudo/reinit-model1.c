@@ -50,14 +50,15 @@ restart_loop:
 
     /* communicate */
 
-    /* quiesce */
-    MPI_Barrier(mycomm);
 
     if(!((i+1) % CP_FREQUENCY))
     {
+      /* quiesce */
+      MPI_Barrier(mycomm);
+
       /* serialize all MPI objects */
       serialized[0] = MPIX_Comm_serialize(mycomm, &mycomm_serialized); /* DEAL WITH DANGLING ALLOCATED MEMORY PLEASE; this is not quite kosher */
-      /* ... */
+      /* ... notice, we don't serialize mpi_comm_world; I guess we don't ever use it???  */
 
       Application_Checkpoint_Write(i,rank,fault_epoch,...,serialized,1); /* needs global blob of objects to */
       MPIX_Checkpoint_write(i,fault_epoch,mycomm); /* arguments ? */
