@@ -28,16 +28,20 @@ restart_mpi:
   /* See:  http://man7.org/linux/man-pages/man3/longjmp.3.html
      http://en.cppreference.com/w/cpp/utility/program/setjmp */
          
-  fault_epoch = MPI_New_reinit(&argc, &argv, &mpi_comm_world);
+  fault_epoch = MPI_New_reinit(&argc, &argv, &mpi_comm_world); /* reads the last checkpointed MPI state for this process */
+  /* CAN THIS MPI_New_reinit() know if there is a restart, given the longjmp? Is this logically defective*/
+
   if(!fault_epoch)
+  {
     MPI_Comm_dup(mpi_comm_world, &mycomm);
+  }
 
   /* load/reload the user data */
   Application_Checkpoint_Read(-1,rank,fault_epoch /*think here more */,&restart_iteration...,&serialized,&n_serialized); /* needs global blob of objects to  */
 
   /* revivify the handles (one in this case): */  
   if(fault_epoch > 0)
-     MPIX_Comm_deserialize(serialized[0], &mycomm);
+     MPIX_Comm_deserialize(&serialized[0], &mycomm); /* deserialize and free? */
 
 restart_loop:
   for(i = restart_iteration; i < MAX_ITERATIONS; ++i)
@@ -52,11 +56,13 @@ restart_loop:
     if(!((i+1) % CP_FREQUENCY))
     {
       /* serialize all MPI objects */
-      serialized[0] = MPIX_Comm_serialize(mycomm, &mycomm_serialized);
+      serialized[0] = MPIX_Comm_serialize(mycomm, &mycomm_serialized); /* DEAL WITH DANGLING ALLOCATED MEMORY PLEASE; this is not quite kosher */
       /* ... */
 
       Application_Checkpoint_Write(i,rank,fault_epoch,...,serialized,1); /* needs global blob of objects to */
       MPIX_Checkpoint_write(i,fault_epoch,mycomm); /* arguments ? */
+
+      MPI_Comm_serialize_free(serialized[0]); /* is this OK? */
     }
 
   }
