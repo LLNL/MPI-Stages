@@ -118,6 +118,13 @@ class Interface : public exampi::i::Interface
       *r = std::stoi((*exampi::global::config)["size"]);
       return 0;
     }
+
+    virtual int MPI_Checkpoint(const char *cstrid)
+    {
+      std::string id(cstrid);
+      exampi::global::checkpoint->save(id);
+      return MPI_SUCCESS;
+    }
 };
 
 

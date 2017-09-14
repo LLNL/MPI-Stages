@@ -22,6 +22,12 @@ class Transport : public exampi::i::Transport
       recvSocket.bindPort(8080);
     }
 
+    virtual void init(std::istream &t)
+    {
+      init();
+      size_t 
+    }
+
     virtual size_t addEndpoint(const int rank, const std::vector<std::string> &opts)
     {
       uint16_t port = std::stoi(opts[1]);
@@ -59,6 +65,37 @@ class Transport : public exampi::i::Transport
     {
       udp::Message msg(iov);
       msg.peek(recvSocket);
+      return 0;
+    }
+
+    virtual int save(std::ostream &t)
+    {
+      // save endpoints
+      size_t epsz = endopints.size();
+      t.write(&epsz, sizeof(size_t));
+      for(auto i : endpoints)
+      {
+        auto key = i->first;
+        auto val = i->second;
+        t.write(&key, sizeof(key));
+        t.write(&val, sizeof(val));
+      }
+      return 0;
+    }
+
+    virtual int load(std::ostream &t)
+    {
+      // load endpoints
+      size_t epsz;
+      int r;
+      t.read(&epsz, sizeof(size_t));
+      upd::Address addr;
+      while(epsz)
+      {
+        t.read(&rank, sizeof(rank));
+        t.read(&addr, sizeof(addr));
+        endpoints[rank] = addr;
+      }
       return 0;
     }
         

@@ -199,6 +199,7 @@ class Progress : public exampi::i::Progress
         exampi::global::transport->addEndpoint(i, elem);
       }
     }
+
 #if 0
     void rankZeroBarrierRecv()
     {
@@ -308,6 +309,12 @@ class Progress : public exampi::i::Progress
       matchThread = std::thread{matchThreadProc, &alive, &matchList, &matchLock};
     }
 
+    virtual int init(std::istream &t)
+    {
+      // nothing to restore (currently only valid if no pending comm.)
+      init();
+    }
+
     virtual int stop()
     {
       alive = false;
@@ -381,6 +388,13 @@ class Progress : public exampi::i::Progress
       matchList.push_back(std::move(r));
       return result;
     }
+
+    virtual int save(std::ostream &t)
+    {
+      // Assuming no pending comm, nothing to do
+      return MPI_SUCCESS;
+    }
+
 
 };
 
