@@ -25,7 +25,6 @@ class Transport : public exampi::i::Transport
     virtual void init(std::istream &t)
     {
       init();
-      size_t 
     }
 
     virtual size_t addEndpoint(const int rank, const std::vector<std::string> &opts)
@@ -71,29 +70,30 @@ class Transport : public exampi::i::Transport
     virtual int save(std::ostream &t)
     {
       // save endpoints
-      size_t epsz = endopints.size();
-      t.write(&epsz, sizeof(size_t));
+      size_t epsz = endpoints.size();
+      t.write(reinterpret_cast<char *>(&epsz), sizeof(size_t));
       for(auto i : endpoints)
       {
-        auto key = i->first;
-        auto val = i->second;
-        t.write(&key, sizeof(key));
-        t.write(&val, sizeof(val));
+        auto key = i.first;
+        auto val = i.second;
+        t.write(reinterpret_cast<char *>(&key), sizeof(key));
+        t.write(reinterpret_cast<char *>(&val), sizeof(val));
       }
       return 0;
     }
 
-    virtual int load(std::ostream &t)
+    virtual int load(std::istream &t)
     {
       // load endpoints
       size_t epsz;
       int r;
-      t.read(&epsz, sizeof(size_t));
-      upd::Address addr;
+      int rank;
+      udp::Address addr;
+      t.read(reinterpret_cast<char *>(&epsz), sizeof(size_t));
       while(epsz)
       {
-        t.read(&rank, sizeof(rank));
-        t.read(&addr, sizeof(addr));
+        t.read(reinterpret_cast<char *>(&rank), sizeof(rank));
+        t.read(reinterpret_cast<char *>(&addr), sizeof(addr));
         endpoints[rank] = addr;
       }
       return 0;

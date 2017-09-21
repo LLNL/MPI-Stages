@@ -32,6 +32,7 @@
 #include <i/interface.h>
 #include <i/progress.h>
 #include <i/transport.h>
+#include <i/checkpoint.h>
 
 namespace exampi {
 
@@ -219,12 +220,6 @@ class Promise
 };
 #endif
 namespace i {
-class Checkpoint
-{
-  public:
-    virtual void DoSomething() = 0;
-};
-
 class Fault
 {
   public:
@@ -287,11 +282,13 @@ namespace global
 {
   extern int rank;
   extern int worldSize;
+  extern int epoch;
   extern exampi::Config *config;
   extern exampi::i::Interface *interface;
   extern exampi::i::Progress *progress;
   extern exampi::i::Transport *transport;
   extern std::unordered_map<MPI_Datatype, exampi::Datatype> datatypes;
+  extern exampi::i::Checkpoint *checkpoint;
 } // global
 
 } //exampi

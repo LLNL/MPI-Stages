@@ -39,7 +39,7 @@ while(1)
   open(my $config, ">", $filename) or die "Couldn't create temporary file";
   print $config join("\n", split(/;/, $configstr));
 
-  my @args = ("$filename", "$rank", "$bin");
+  my @args = ("$filename", "$rank", "0", "$bin");
   push(@args, @ARGV);
 
 

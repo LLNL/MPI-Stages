@@ -11,15 +11,12 @@ class Progress
 {
   public:
     virtual int init() = 0;
-    virtual int init(std::istream &t);
+    virtual int init(std::istream &t) = 0;
     virtual void barrier() = 0;
-    virtual int send_data(void *buf, size_t count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm) = 0;
-    virtual int recv_data(void *buf, size_t count, MPI_Datatype datatype, int source, int tag, MPI_Comm comm, MPI_Status *status) = 0;
-    //virtual std::promise postSend(const void *, MPI_Datatype datatype, )
     virtual std::future<MPI_Status> postSend(UserArray array, Endpoint dest, int tag) = 0;
     virtual std::future<MPI_Status> postRecv(UserArray array, int tag) = 0;
-    //virtual std::future<MPI_Request> nextCompletion() = 0;
-    virtual int save(std::ostream &t);
+    virtual int save(std::ostream &t) = 0;
+    virtual int load(std::istream &t) = 0;
 
 };
 

@@ -157,23 +157,6 @@ class Request
     }
 
 };
-#if 0
-class Request
-{
-  public:
-    int dest;
-    MPI_Comm comm;
-    Header hdr;
-    UserArray array;
-    std::vector<struct iovec> getIovecs()
-    {
-      std::vector<struct iovec> result;
-      result.push_back(hdr.getIovec());
-      result.push_back(array.getIovec());
-      return result;
-    }
-};
-#endif
 
 class Progress : public exampi::i::Progress
 {
@@ -200,34 +183,6 @@ class Progress : public exampi::i::Progress
       }
     }
 
-#if 0
-    void rankZeroBarrierRecv()
-    {
-      int reported = 1;
-      std::set<int> awake;
-      awake.insert(0);
-      Request req;
-      while(reported < exampi::global::worldSize)
-      {
-        exampi::global::transport->receive(req.getIovecs(), 0);
-        req.hdr.unpack();
-        awake.insert(req.hdr.rank);
-        reported = awake.count();
-      }
-    }
-
-    void rankZeroBarrierSend()
-    {
-      Request req;
-      
-    }
-
-    void sendWork()
-    {
-      
-    }
-#endif
-
     static void sendThreadProc(bool *alive, AsyncQueue<Request> *outbox)
     {
       std::cout << debug() << "Launching sendThreadProc(...)\n";
@@ -247,20 +202,7 @@ class Progress : public exampi::i::Progress
         // let r drop scope and die (unique_ptr) 
       }
     }
-#if 0
-    static void recvThreadProc(bool *alive, AsyncQueue<Request> *inbox)
-    {
-      std::cout << debug() << "Launching recvThreadProc(...)\n";
-      while(*alive)
-      {
-        std::unique_ptr<Request> r = make_unique<Request>();
-        std::cout << debug() << "recvThread:  made request, about to receive...\n";
-        exampi::global::transport->receive(r->getHeaderIovecs(), 0);
-        std::cout << debug() << "recvThread:  received\n";
-        inbox->put(std::move(r));
-      }
-    }
-#endif
+
     static void matchThreadProc(bool *alive, std::list<std::unique_ptr<Request>> *matchList, std::mutex *matchLock)
     {
       std::cout << debug() << "Launching matchThreadProc(...)\n";
@@ -323,43 +265,7 @@ class Progress : public exampi::i::Progress
 
     virtual void barrier()
     {
-    }
-
-    // TODO:  We have a small issue here.  We need iovecs of this data ultimately, but iovecs don't take
-    // const pointers.  We can cast away, but killing the guarantee for now.
-    virtual int send_data(void* buf, size_t count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm) {
-      std::cout << debug() << "\tbasic::Interface::send(...)\n";
-
-      Request req;
-      req.endpoint.rank = dest;
-      req.comm = comm;
-      req.tag = tag;
-      req.endpoint.rank = exampi::global::rank;
-      req.array.ptr = buf;
-      req.array.datatype = &exampi::global::datatypes[datatype];
-      req.array.count = count;
-      exampi::global::transport->send(req.getIovecs(), req.endpoint.rank, comm );
-      return 0;
-    }
-    virtual int recv_data(void *buf, size_t count, MPI_Datatype datatype, int source, int tag, MPI_Comm comm, MPI_Status *status) {
-      std::cout << debug() << "\tbasic::Interface::recv(...)\n";
-
-      Request req;
-      req.comm = comm;
-      req.endpoint.rank = -1;
-      req.array.ptr = buf;
-      req.array.datatype = &exampi::global::datatypes[datatype];
-      req.array.count = count;
-      exampi::global::transport->receive(req.getIovecs(), comm);
-      req.unpack();
-      // TODO:  Respect MPI_STATUS_IGNORE
-      if(status)
-      {
-        std::cout << "\tstatus present, writing\n";
-        status->MPI_SOURCE = req.source;
-        status->MPI_TAG = req.tag;
-      }
-      return 0;
+      
     }
 
     virtual std::future<MPI_Status> postSend(UserArray array, Endpoint dest, int tag)
@@ -392,6 +298,11 @@ class Progress : public exampi::i::Progress
     virtual int save(std::ostream &t)
     {
       // Assuming no pending comm, nothing to do
+      return MPI_SUCCESS;
+    }
+
+    virtual int load(std::istream &t)
+    {
       return MPI_SUCCESS;
     }
 

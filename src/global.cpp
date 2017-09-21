@@ -3,6 +3,7 @@
 #include <basic/interface.h>
 #include <basic/progress.h>
 #include <basic/transport.h>
+#include <basic/checkpoint.h>
 
 // global definitions
 // NOTE:  This is where you would use preproc (or w/e)
@@ -16,6 +17,7 @@ namespace global {
 
 int rank = -1;
 int worldSize = -1;
+int epoch = -1;
 
 // NOTE:  I construct the objects here to give them the chance
 // to do preinit at startup -- init calls will be required anyway
@@ -24,6 +26,7 @@ exampi::Config *config = new exampi::Config();
 exampi::i::Interface *interface = new exampi::basic::Interface();
 exampi::i::Progress  *progress = new exampi::basic::Progress();
 exampi::i::Transport *transport = new exampi::basic::Transport();
+exampi::i::Checkpoint *checkpoint = new exampi::basic::Checkpoint();
 
 std::unordered_map<MPI_Datatype, exampi::Datatype> datatypes =
 {

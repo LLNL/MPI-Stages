@@ -20,27 +20,35 @@ class Interface : public exampi::i::Interface
     {
 
       // first param is config file, second is rank
+      // third is epoch
       std::cout << "Loading config from " << **argv << std::endl;
       exampi::global::config->load(**argv);
+      exampi::global::worldSize = std::stoi((*exampi::global::config)["size"]);
       (*argv)++;
       (*argc)--;
       std::cout << "Taking rank to be arg " << **argv << std::endl;
       rank = atoi(**argv);
       (*argv)++;
       (*argc)--;
-
+      std::cout << "Taking epoch to be " << **argv << std::endl;
+      exampi::global::epoch = atoi(**argv);
+      (*argv)++;
+      (*argc)--;
+      
+      exampi::global::checkpoint->load();
+#if 0
       exampi::global::rank = rank;
-      exampi::global::worldSize = std::stoi((*exampi::global::config)["size"]);
       exampi::global::transport->init();
       exampi::global::progress->init();
       //exampi::global::progress->barrier();
+#endif
       std::cout << "Finished MPI_Init\n";
       return 0;
     }
+
     virtual int MPI_Finalize() { return 0; }
 
     virtual int MPI_Send(const void* buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm) {
-      //exampi::global::progress->send_data(const_cast<void *>(buf), static_cast<size_t>(count), datatype, dest, tag, comm);
       size_t szcount = count;
       MPI_Status st = exampi::global::progress->postSend(
           {const_cast<void *>(buf), &(exampi::global::datatypes[datatype]), szcount},
@@ -119,11 +127,16 @@ class Interface : public exampi::i::Interface
       return 0;
     }
 
-    virtual int MPI_Checkpoint(const char *cstrid)
+    virtual int MPI_Checkpoint(int *savedEpoch)
     {
-      std::string id(cstrid);
-      exampi::global::checkpoint->save(id);
+      *savedEpoch = exampi::global::epoch;
+      exampi::global::checkpoint->save();
       return MPI_SUCCESS;
+    }
+
+    virtual int MPIX_Get_epoch(MPI_Comm comm, int *r)
+    {
+      
     }
 };
 

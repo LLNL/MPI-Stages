@@ -39,6 +39,7 @@ typedef struct
 } MPI_Status;
 
 const int	MPI_SUCCESS = 0; /* this is the default error class for success */
+const int MPI_REVERT = 100;  /* Need to revert to a checkpoint epoch */
 /* other error classes not defined yet */
 
 
