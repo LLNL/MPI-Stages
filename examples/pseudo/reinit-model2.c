@@ -51,6 +51,8 @@ New things we'd need to add to our prototype for this to work:
    the restart counter at each step... how do we determine if we need to actually abort the problem from an unmodeled situation even though our process
    works, we fail without net progress too many times?
 
+   3) We should look at each individual error code; we should pass back codes when we think it is wiser just to abort the whole job? What else?
+
    More?
 
 */
@@ -176,7 +178,10 @@ int main_loop(int restart_iteration, int *done)  /* Doesn't contemplate stopping
       /* serialize all MPI objects */
       code = MPIX_Comm_serialize_create(mycomm, &mycomm_serialized, &serialized[0]); /* DEAL WITH DANGLING ALLOCATED MEMORY PLEASE; this is not quite kosher */
       if(code != MPI_SUCCESS)
+      {
+	code = MPIX_TRY_REINIT;
 	break;
+      }
       /* ... notice, we don't serialize mpi_comm_world; I guess we don't ever use it???  */
 
       return_code = Application_Checkpoint_Write(i,rank,fault_epoch,...,serialized,1); /* needs global blob of objects to */
@@ -190,7 +195,7 @@ int main_loop(int restart_iteration, int *done)  /* Doesn't contemplate stopping
       if(code != MPI_SUCCESS) 
       {
 	code = MPIX_TRY_REINIT;
-n	break;
+	break;
       }
 
       code = MPI_Comm_serialize_free(serialized[0]); /* is this OK? */
