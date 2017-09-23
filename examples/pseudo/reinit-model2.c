@@ -198,7 +198,7 @@ int main_loop(int restart_iteration, int *done)  /* Doesn't contemplate stopping
 	break;
       }
 
-      code = MPI_Comm_serialize_free(serialized[0]); /* is this OK? */
+      code = MPIX_Comm_serialize_free(serialized[0]); /* is this OK? */
       if(code != MPI_SUCCESS) 
       {
 	code = MPIX_TRY_REINIT;
