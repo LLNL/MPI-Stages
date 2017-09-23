@@ -100,7 +100,7 @@ int main(int argc, char **argv)
        break;
     }
     if(abort)
-      break;
+      goto abort_process;
 
     switch(recovery_code)
     {
@@ -141,6 +141,7 @@ int main(int argc, char **argv)
       break;
        
     }
+abort_process:
     if(abort) /* we have an unmodeled situation: */
     {
       MPI_Abort(mpi_comm_world, code);
