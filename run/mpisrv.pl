@@ -21,11 +21,14 @@ die "Couldn't create listening socket; $!" unless $listen;
 
 while(1)
 {
+  say "Waiting for mpirun...";
   my $s = $listen->accept();
   my $bin = <$s>;
   chomp $bin;
   my $rank = <$s>;
   chomp $rank;
+  my $epoch = <$s>;
+  chomp $epoch;
   my $configstr = <$s>;
   chomp $configstr;
   my $filename = "mpirun.$rank.tmp";
@@ -33,17 +36,19 @@ while(1)
   say "Received:";
   say "  bin = $bin";
   say "  rank = $rank";
+  say "  epoch = $epoch";
   say "  configstr = $configstr";
 
 
   open(my $config, ">", $filename) or die "Couldn't create temporary file";
   print $config join("\n", split(/;/, $configstr));
 
-  my @args = ("$filename", "$rank", "0", "$bin");
+  my @args = ("$filename", "$rank", "$epoch", "$bin");
   push(@args, @ARGV);
 
 
   say "Launching $bin as rank $rank";
-  system $bin @args;
+  say $s system $bin @args;
+
   shutdown($s, 1);
 }

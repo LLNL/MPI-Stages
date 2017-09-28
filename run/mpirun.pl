@@ -39,24 +39,49 @@ foreach my $k (keys %config)
 }
 my $configstr = join(";",@configlist);
 
+say "Starting at epoch 0...";
+my $epoch = 0;
 
-$nextrank = 0;
-say "Sending config str and rank assignments...";
-foreach $host (@hosts)
+my $done = 0;
+until($done)
 {
-  say "Assigning rank $nextrank to $host...";
-  my $s = new IO::Socket::INET(
-    PeerHost => $host,
-    PeerPort => $MPISOCKET,
-    Proto => 'tcp',
-  );
+  say "Launching processes at epoch $epoch";
 
-  die "Failed connecting to $host:$MPISOCKET..." unless $s;
-  say $s $bin;
-  say $s $nextrank;
-  say $s $configstr;
-  $nextrank += 1;
-  $s->close();
+  $nextrank = 0;
+  my @s;
+  say "Sending config str and rank assignments...";
+  foreach $host (@hosts)
+  {
+    say "Assigning rank $nextrank to $host...";
+    $s[$nextrank] = new IO::Socket::INET(
+      PeerHost => $host,
+      PeerPort => $MPISOCKET,
+      Proto => 'tcp',
+    );
+
+    die "Failed connecting to $host:$MPISOCKET..." unless $s;
+    say $s[$nextrank] $bin;
+    say $s[$nextrank] $nextrank;
+    say $s[$nextrank] $epoch;
+    say $s[$nextrank] $configstr;
+    $nextrank += 1;
+  }
+
+  say "Gathering results...";
+  my $lowest = 999999;
+  $done = 1;
+  $nextrank = 0;
+  foreach $host(@hosts)
+  {
+    my $result = <$s>;
+    chomp $result;
+    if($result > 0 and $result < $lowest)
+    {
+      say "Got nonzero return $result from $host";
+      $done = 0;
+      $lowest = $result;
+    }
+  }
+
 }
-
 say "Done!";
