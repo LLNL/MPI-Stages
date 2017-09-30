@@ -6,82 +6,125 @@
 use v5.10;
 use strict;
 use warnings;
+use IO::Select;
 use IO::Socket::INET;
 
 my ($bin) = @ARGV;
 my $MPISOCKET = 4422;
 
+my $sel = IO::Select->new();
+
+say "Loading MPIHOSTS...";
 open(my $hostsfh, "<", "MPIHOSTS") or die "Can't read MPIHOSTS";
 my @hosts = <$hostsfh>;
 chomp @hosts;
 my $sz = scalar @hosts;
 my $nextrank = 0;
 my $host;
+my %nodes;
 
 my %config;
 $config{"size"} = "$sz";
-say "Generating config table...";
+say "Generating node table...";
 foreach $host (@hosts)
 {
-  say "Assigning $nextrank to $host";
-  $config{"$nextrank"} = "$host";
+  say "\tAssigning $nextrank to $host";
+  $nodes{$host}{rank} = $nextrank;
   $nextrank += 1;
 }
 
-
-
-say "Generating config list and string...";
-my @configlist = ();
-foreach my $k (keys %config)
+say "Generating config string...";
+my @configlist = ("size:$sz");
+foreach my $k (keys %nodes)
 {
-  say "Registering $k:$config{$k}";
-  push (@configlist, "$k:$config{$k}");
+  say "Registering $nodes{$k}{rank}:$k";
+  push (@configlist, "$nodes{$k}{rank}:$k");
 }
 my $configstr = join(";",@configlist);
 
 say "Starting at epoch 0...";
 my $epoch = 0;
 
-my $done = 0;
-until($done)
+say "Opening connection to all ranks...";
+foreach my $h (keys %nodes)
 {
-  say "Launching processes at epoch $epoch";
-
-  $nextrank = 0;
-  my @s;
-  say "Sending config str and rank assignments...";
-  foreach $host (@hosts)
-  {
-    say "Assigning rank $nextrank to $host...";
-    $s[$nextrank] = new IO::Socket::INET(
+  $nodes{$h}{sock} = new IO::Socket::INET(
       PeerHost => $host,
       PeerPort => $MPISOCKET,
       Proto => 'tcp',
     );
+  die "Failed connecting to $h!!!" unless $nodes{$h}{sock};
+  $sel->add($nodes{$h}{sock});
+  say "\t[OK] $h";
+}
 
-    die "Failed connecting to $host:$MPISOCKET..." unless $s;
-    say $s[$nextrank] $bin;
-    say $s[$nextrank] $nextrank;
-    say $s[$nextrank] $epoch;
-    say $s[$nextrank] $configstr;
-    $nextrank += 1;
-  }
+say "Sending basic init...";
+foreach my $h (keys %nodes)
+{
+  say $nodes{$h}{sock} "bin\n$bin";
+  say $nodes{$h}{sock} "rank\n$rank";
+  say $nodes{$h}{sock} "epoch\n$epoch";
+  say $nodes{$h}{sock} "configstr\n$configstr";
+}
 
-  say "Gathering results...";
-  my $lowest = 999999;
+say "Launching...";
+foreach my $h (keys %nodes)
+{
+  say $nodes{$h}{sock} "!run";
+}
+
+
+my $live = scalar keys %nodes;
+my $done = 0;
+my $latest = 1e9;
+say "Starting wait on $live nodes...";
+until($done)
+{
   $done = 1;
-  $nextrank = 0;
-  foreach $host(@hosts)
+  while($live)
   {
-    my $result = <$s>;
-    chomp $result;
-    if($result > 0 and $result < $lowest)
+    my @ready = $sel->can_read;
+    foreach my $s (@ready)
     {
-      say "Got nonzero return $result from $host";
-      $done = 0;
-      $lowest = $result;
+      $live--;
+      my $return = <$s>;
+      chomp $return;
+      my $lastepoch = <$s>;
+      chomp $lastepoch;
+      if($lastepoch < $latest)
+      {
+        say "Updating to epoch $lastepoch";
+        $latest = $lastepoch;
+      }
+      if($return == 0)
+      {
+        say "Got OK return";
+      }
+      else
+      {
+        $done = 0;
+        my $sig = $return & 127;
+        my $st = $return >> 8;
+        say "Bad return!";
+        say "\t Signal $sig";
+        say "\t Status $st";
+        say "Sending kills...";
+        foreach my $h (keys %nodes)
+        {
+          say $nodes{$h}{sock} "!kill";
+        }
+      }
     }
   }
-
+  unless($done)
+  {
+    $live = scalar keys %nodes;
+    $epoch = $latest;
+    $latest = 1e9;
+    say "Not done, so relaunching all in epoch $epoch";
+    foreach my $h (keys %nodes)
+    {
+      say $nodes{$h}{sock} "epoch\n$epoch\n!run";
+    }
+  } 
 }
-say "Done!";
