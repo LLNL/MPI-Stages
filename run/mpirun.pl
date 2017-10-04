@@ -9,6 +9,26 @@ use warnings;
 use IO::Select;
 use IO::Socket::INET;
 
+sub SendCmd
+{
+  my $hr = shift;
+  my $haddr = shift;
+  my $str = shift;
+  say "SendCmd to $haddr:  $str";
+  say {$$hr{$haddr}{sock}} $str;
+}
+
+sub SendAllCmd
+{
+  my $hr = shift;
+  my $str = shift;
+  say "SendAllCmd:  $str";
+  foreach my $h (keys %$hr)
+  {
+    SendCmd($hr, $h, $str);
+  }
+}
+
 my ($bin) = @ARGV;
 my $MPISOCKET = 4422;
 
@@ -22,6 +42,7 @@ my $sz = scalar @hosts;
 my $nextrank = 0;
 my $host;
 my %nodes;
+my $rnodes = \%nodes;
 
 my %config;
 $config{"size"} = "$sz";
@@ -49,28 +70,32 @@ say "Opening connection to all ranks...";
 foreach my $h (keys %nodes)
 {
   $nodes{$h}{sock} = new IO::Socket::INET(
-      PeerHost => $host,
+      PeerHost => $h,
       PeerPort => $MPISOCKET,
       Proto => 'tcp',
     );
-  die "Failed connecting to $h!!!" unless $nodes{$h}{sock};
+  die "\t$h\tFAILED" unless $nodes{$h}{sock};
+  say "\t$h\tOK";
   $sel->add($nodes{$h}{sock});
-  say "\t[OK] $h";
 }
 
 say "Sending basic init...";
 foreach my $h (keys %nodes)
 {
-  say $nodes{$h}{sock} "bin\n$bin";
-  say $nodes{$h}{sock} "rank\n$rank";
-  say $nodes{$h}{sock} "epoch\n$epoch";
-  say $nodes{$h}{sock} "configstr\n$configstr";
+  #say { $nodes{$h}{sock} } "bin\n$bin";
+  #say { $nodes{$h}{sock} } "rank\n$nodes{$h}{rank}";
+  #say { $nodes{$h}{sock} } "epoch\n$epoch";
+  #say { $nodes{$h}{sock} } "configstr\n$configstr";
+  SendCmd($rnodes, $h, "bin\n$bin");
+  SendCmd($rnodes, $h, "rank\n$nodes{$h}{rank}");
+  SendCmd($rnodes, $h, "epoch\n$epoch");
+  SendCmd($rnodes, $h, "configstr\n$configstr");
 }
 
 say "Launching...";
 foreach my $h (keys %nodes)
 {
-  say $nodes{$h}{sock} "!run";
+  say { $nodes{$h}{sock} } "!run";
 }
 
 
@@ -111,7 +136,7 @@ until($done)
         say "Sending kills...";
         foreach my $h (keys %nodes)
         {
-          say $nodes{$h}{sock} "!kill";
+          say { $nodes{$h}{sock} } "!kill";
         }
       }
     }
@@ -124,7 +149,7 @@ until($done)
     say "Not done, so relaunching all in epoch $epoch";
     foreach my $h (keys %nodes)
     {
-      say $nodes{$h}{sock} "epoch\n$epoch\n!run";
+      say { $nodes{$h}{sock} } "epoch\n$epoch\n!run";
     }
   } 
 }

@@ -10,6 +10,8 @@ use IO::Socket::INET;
 $| = 1;
  
 my $MPISOCKET = 4422;
+# this is ugly
+my $stdoutfh = STDOUT;
 
 my $listen = new IO::Socket::INET (
   LocalHost => '0.0.0.0',
@@ -39,6 +41,7 @@ while(1)
     foreach my $s (@ready)
     {
       my $cmd = <$s>;
+      die "Got nothing from socket" unless defined $cmd;
       chomp $cmd;
       say "Got command $cmd";
       # test for special commands
@@ -56,13 +59,16 @@ while(1)
         }
         else #child, get the game on
         {
+          $fh = STDOUT;
+          select $stdoutfh;
           my $configname = "mpirun.$state{rank}.config.tmp";
-          my $epochname = "mpirun.$state{rank}.epoch.tmp"
+          my $epochname = "mpirun.$state{rank}.epoch.tmp";
           open(my $config, ">", $configname) or die "Couldn't create temporary file";
           print $config join("\n", split(/;/, $state{configstr}));
-          my @args = ("$configname", "$state{rank}", "$epochname", "$state{epoch}", "$state{$bin}");
+          my @args = ("$configname", "$state{rank}", "$epochname", "$state{epoch}", "$state{bin}");
           push(@args, @ARGV);
           say "Launching $state{bin} as rank $state{rank}";
+          my $bin = $state{bin};  # can't use hash in system args??
           my $result = system $bin @args;
           say $fh "!term";
           say $fh $result;
@@ -78,6 +84,7 @@ while(1)
         $sel->remove($s);
         close $s;
         my $configname = "mpirun.$state{rank}.config.tmp";
+        my $epochname = "mpirun.$state{rank}.epoch.tmp";
         open(my $epochfh, "<", $epochname);
         my $lastepoch = <$epochfh>;
         chomp $lastepoch;
@@ -89,8 +96,8 @@ while(1)
       {
         # whatever you say
         say "Got request to terminate program :(";
-        kill 9 $state{pid};
-        $sel->remove{fh};
+        kill 9, $state{pid};
+        $sel->remove($state{fh});
         close $state{pid};
       }
       elsif($cmd eq "!done")
@@ -101,7 +108,7 @@ while(1)
       }
       else  # just do a state update
       {
-        my $state{$cmd} = <$s>;
+        $state{$cmd} = <$s>;
         chomp $state{$cmd};
         say "Got update $cmd = $state{$cmd}";
       }

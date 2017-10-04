@@ -134,9 +134,9 @@ class Interface : public exampi::i::Interface
       return MPI_SUCCESS;
     }
 
-    virtual int MPIX_Get_epoch(MPI_Comm comm, int *r)
+    virtual int MPI_Epoch()
     {
-      
+      return exampi::global::epoch;
     }
 };
 
