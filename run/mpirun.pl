@@ -76,27 +76,28 @@ foreach my $h (keys %nodes)
     );
   die "\t$h\tFAILED" unless $nodes{$h}{sock};
   say "\t$h\tOK";
+  $nodes{$h}{sock}->autoflush(1);
   $sel->add($nodes{$h}{sock});
 }
 
 say "Sending basic init...";
+SendAllCmd($rnodes, "bin\n$bin\nepoch\n$epoch\nconfigstr\n$configstr");
 foreach my $h (keys %nodes)
 {
   #say { $nodes{$h}{sock} } "bin\n$bin";
   #say { $nodes{$h}{sock} } "rank\n$nodes{$h}{rank}";
   #say { $nodes{$h}{sock} } "epoch\n$epoch";
   #say { $nodes{$h}{sock} } "configstr\n$configstr";
-  SendCmd($rnodes, $h, "bin\n$bin");
   SendCmd($rnodes, $h, "rank\n$nodes{$h}{rank}");
-  SendCmd($rnodes, $h, "epoch\n$epoch");
-  SendCmd($rnodes, $h, "configstr\n$configstr");
 }
 
 say "Launching...";
-foreach my $h (keys %nodes)
-{
-  say { $nodes{$h}{sock} } "!run";
-}
+SendAllCmd($rnodes, "!run");
+#foreach my $h (keys %nodes)
+#{
+#  SendCmd()
+#  say { $nodes{$h}{sock} } "!run";
+#}
 
 
 my $live = scalar keys %nodes;
@@ -112,6 +113,7 @@ until($done)
     foreach my $s (@ready)
     {
       $live--;
+      say "Got response; now $live live";
       my $return = <$s>;
       chomp $return;
       my $lastepoch = <$s>;
@@ -134,10 +136,11 @@ until($done)
         say "\t Signal $sig";
         say "\t Status $st";
         say "Sending kills...";
-        foreach my $h (keys %nodes)
-        {
-          say { $nodes{$h}{sock} } "!kill";
-        }
+        SendAllCmd($rnodes, "!kill");
+        #foreach my $h (keys %nodes)
+        #{
+        #  say { $nodes{$h}{sock} } "!kill";
+        #}
       }
     }
   }
@@ -147,9 +150,13 @@ until($done)
     $epoch = $latest;
     $latest = 1e9;
     say "Not done, so relaunching all in epoch $epoch";
-    foreach my $h (keys %nodes)
-    {
-      say { $nodes{$h}{sock} } "epoch\n$epoch\n!run";
-    }
+    SendAllCmd($rnodes, "epoch\n$epoch\n!run");
+    #foreach my $h (keys %nodes)
+    #{
+    #  say { $nodes{$h}{sock} } "epoch\n$epoch\n!run";
+    #
   } 
 }
+
+SendAllCmd($rnodes, "!done");
+say "Finished!  Exiting...";

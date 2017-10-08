@@ -20,7 +20,7 @@ class Interface : public exampi::i::Interface
     {
 
       // first param is config file, second is rank
-      // third is epoch
+      // third is epoch file, fourth is epoch
       std::cout << "Loading config from " << **argv << std::endl;
       exampi::global::config->load(**argv);
       exampi::global::worldSize = std::stoi((*exampi::global::config)["size"]);
@@ -28,6 +28,10 @@ class Interface : public exampi::i::Interface
       (*argc)--;
       std::cout << "Taking rank to be arg " << **argv << std::endl;
       rank = atoi(**argv);
+      (*argv)++;
+      (*argc)--;
+      std::cout << "Taking epoch config to be " << **argv << std::endl;
+      exampi::global::epochConfig = std::string(**argv);
       (*argv)++;
       (*argc)--;
       std::cout << "Taking epoch to be " << **argv << std::endl;
@@ -113,6 +117,7 @@ class Interface : public exampi::i::Interface
         MPI_Status st;
         MPI_Recv(buf, count, datatype, root, 0, 0, &st);
       }          
+      return MPI_SUCCESS;
     }
 
     virtual int MPI_Comm_rank(MPI_Comm comm, int *r)

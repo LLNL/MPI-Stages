@@ -282,6 +282,7 @@ namespace global
 {
   extern int rank;
   extern int worldSize;
+  extern std::string epochConfig;
   extern int epoch;
   extern exampi::Config *config;
   extern exampi::i::Interface *interface;

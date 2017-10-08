@@ -10,6 +10,7 @@ extern "C"
 
 int PMPI_Recv(void* buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm, MPI_Status *status) {
 	int rc = exampi::global::interface->MPI_Recv(buf, count, datatype, dest, tag, comm, status);
+  (void)rc;
 	return MPI_SUCCESS;
 }
 

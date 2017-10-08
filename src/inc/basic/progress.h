@@ -73,7 +73,6 @@ class Header
 
     void unpack()
     {
-      uint16_t *word = (uint16_t *)hdr;
       uint32_t *dword = (uint32_t *)hdr;
       rank = dword[4];
       tag = dword[5];
@@ -125,7 +124,6 @@ class Request
 
     void unpack()
     {
-      uint16_t *word = (uint16_t *)hdr;
       uint32_t *dword = (uint32_t *)hdr;
       source = dword[4];
       tag = dword[5];
@@ -249,17 +247,20 @@ class Progress : public exampi::i::Progress
       sendThread = std::thread{sendThreadProc, &alive, &outbox};
       //recvThread = std::thread{recvThreadProc, &alive, &inbox};
       matchThread = std::thread{matchThreadProc, &alive, &matchList, &matchLock};
+      return 0;
     }
 
     virtual int init(std::istream &t)
     {
       // nothing to restore (currently only valid if no pending comm.)
       init();
+      return 0;
     }
 
     virtual int stop()
     {
       alive = false;
+      return 0;
     }
 
 

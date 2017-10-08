@@ -31,6 +31,10 @@ class Checkpoint : public exampi::i::Checkpoint
 
       exampi::global::epoch++;
      
+      std::ofstream ef(exampi::global::epochConfig);
+      ef << exampi::global::epoch;
+      ef.close();
+
     } 
 
     virtual void load()
@@ -48,7 +52,6 @@ class Checkpoint : public exampi::i::Checkpoint
         std::ifstream target(filename.str(), std::ofstream::binary);
 
         // save the global datatype map
-        uint32_t typecount;
         //target.write(&typecount, sizeof(uint32_t));
         for(auto i : exampi::global::datatypes)
         {

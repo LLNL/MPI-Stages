@@ -35,6 +35,7 @@ class Transport : public exampi::i::Transport
 
       std::cout << "\tAssigning " << rank << " to " << opts[0] << ":" << port << "\n";
       endpoints[rank] = addr;
+      return endpoints.size();
     }
 
     virtual std::future<int> send(std::vector<struct iovec> iov, int dest, MPI_Comm comm)
@@ -86,7 +87,6 @@ class Transport : public exampi::i::Transport
     {
       // load endpoints
       size_t epsz;
-      int r;
       int rank;
       udp::Address addr;
       t.read(reinterpret_cast<char *>(&epsz), sizeof(size_t));

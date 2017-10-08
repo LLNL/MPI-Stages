@@ -18,6 +18,7 @@ namespace global {
 int rank = -1;
 int worldSize = -1;
 int epoch = -1;
+std::string epochConfig;
 
 // NOTE:  I construct the objects here to give them the chance
 // to do preinit at startup -- init calls will be required anyway
