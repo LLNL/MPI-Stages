@@ -100,28 +100,30 @@ while(1)  # main serve loop
           open(my $epochfh, "<", $epochname);
           my $lastepoch = <$epochfh>;
           chomp $lastepoch;
+          $state{epoch} = $lastepoch;
           say "Got last valid epoch:  $lastepoch";
           say $incoming $result;
           say $incoming $lastepoch;
+          say $incoming $state{rank};
           close $epochfh;
           waitpid($pid, 0);
         }
-        elsif($cmd eq "!kill")
-        {
+          #elsif($cmd eq "!kill")
+          #{
           # whatever you say
-          say "Got request to terminate program :(";
-          kill 9, $pid;
-          my $result = waitpid($pid, 0);
-          $sel->remove($childfh);
-          my $epochname = "mpirun.$state{rank}.epoch.tmp";
-          open(my $epochfh, "<", $epochname) or die "No epoch file?  $!";
-          my $lastepoch = <$epochfh>;
-          chomp $lastepoch;
-          say "Got last valid epoch:  $lastepoch";
-          say $incoming $result;
-          say $incoming $lastepoch;
-          close $epochfh;
-        }
+          #say "Got request to terminate program :(";
+          #kill 9, $pid;
+          #my $result = waitpid($pid, 0);
+          #$sel->remove($childfh);
+          #my $epochname = "mpirun.$state{rank}.epoch.tmp";
+          #open(my $epochfh, "<", $epochname) or die "No epoch file?  $!";
+          #my $lastepoch = <$epochfh>;
+          #chomp $lastepoch;
+          #say "Got last valid epoch:  $lastepoch";
+          #say $incoming $result;
+          #say $incoming $lastepoch;
+          #close $epochfh;
+          #}
         elsif($cmd eq "!done")
         {
           # k

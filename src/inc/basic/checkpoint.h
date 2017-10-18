@@ -18,8 +18,8 @@ class Checkpoint : public exampi::i::Checkpoint
       std::ofstream target(filename.str(), std::ofstream::binary);
 
       // save the global datatype map
-      uint32_t typecount = exampi::global::datatypes.size();
-      target.write(reinterpret_cast<char *>(&typecount), sizeof(uint32_t));
+      //uint32_t typecount = exampi::global::datatypes.size();
+      //target.write(reinterpret_cast<char *>(&typecount), sizeof(uint32_t));
       for(auto i : exampi::global::datatypes)
       {
         //i.save(target);
@@ -37,12 +37,14 @@ class Checkpoint : public exampi::i::Checkpoint
 
     } 
 
-    virtual void load()
+    virtual int load()
     {
       if(exampi::global::epoch == 0) // first init
       {
+    	std::cout << "In init checkpoint load\n";
         exampi::global::transport->init();
         exampi::global::progress->init();
+        return 0;
       }
       else   // subsequent init
       {
@@ -57,11 +59,12 @@ class Checkpoint : public exampi::i::Checkpoint
         {
          // i.save(target);
         }
-
+        std::cout << "In re-init\n";
         exampi::global::progress->load(target);
-        exampi::global::transport->load(target);
+        //exampi::global::transport->load(target);
         //exampi::global::interface->save(target);
       }
+      return MPI_REVERT;
     }
 };
 

@@ -1,13 +1,13 @@
-#include "mpi.h"
-#include "ExaMPI.h"
+#include <ExaMPI.h>
 #include "basic.h"
 #include "basic/interface.h"
 
 extern "C"
 {
+#pragma weak MPI_Epoch = PMPI_Epoch
 
-int MPI_Epoch(int *out) {
-	(*out) = exampi::global::epoch;
+int PMPI_Epoch(int *out) {
+  exampi::global::interface->MPI_Epoch(out);
   return MPI_SUCCESS;
 }
 

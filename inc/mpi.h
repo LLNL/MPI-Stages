@@ -79,7 +79,6 @@ const int MPI_REVERT = 100;  /* Need to revert to a checkpoint epoch */
 
 /* Built-in collective ops go here: */
 
-
 /* The basic set:
 
 MPI_Op op :
@@ -170,7 +169,7 @@ int MPI_Wtime(void);
 
 // TODO:  Haven't cleared this for PMPI api yet
 int MPI_Checkpoint(int *);
-int MPI_Epoch(int *out);
+int MPI_Epoch(int *);
 
 #if 0
 int MPI_Get_processor_name( char *name, int *resultlen );
@@ -232,6 +231,8 @@ int PMPI_Startall(int, MPI_Request *);
 int PMPI_Wait(MPI_Request *, MPI_Status *);
 int PMPI_Waitall(int, MPI_Request *, MPI_Status *);
 int PMPI_Wtime(void);
+int PMPI_Checkpoint(int *);
+int PMPI_Epoch(int *);
 
 #if 0
 int PMPI_Get_processor_name( char *name, int *resultlen );

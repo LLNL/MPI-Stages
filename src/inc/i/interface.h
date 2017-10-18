@@ -21,7 +21,8 @@ class Interface
     virtual int MPI_Comm_size(MPI_Comm comm, int *r) = 0;
 
     virtual int MPI_Checkpoint(int *savedEpoch) = 0;
-    virtual int MPI_Epoch() = 0;
+    virtual int MPI_Epoch(int *epoch) = 0;
+    virtual int MPI_Barrier(MPI_Comm comm) = 0;
 
     //virtual int MPIX_Checkpoint(MPI_Comm comm) = 0;
 };

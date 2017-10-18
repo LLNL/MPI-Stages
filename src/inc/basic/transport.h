@@ -95,6 +95,7 @@ class Transport : public exampi::i::Transport
         t.read(reinterpret_cast<char *>(&rank), sizeof(rank));
         t.read(reinterpret_cast<char *>(&addr), sizeof(addr));
         endpoints[rank] = addr;
+        epsz--;
       }
       return 0;
     }

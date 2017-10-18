@@ -10,7 +10,7 @@ class Checkpoint
 {
   public:
     virtual void save() = 0;
-    virtual void load() = 0;
+    virtual int load() = 0;
 };
 
 }} // exampi::i

@@ -10,8 +10,8 @@ extern "C"
 #pragma weak MPI_Init = PMPI_Init
 
 int PMPI_Init(int *argc, char ***argv) {
-	exampi::global::interface->MPI_Init(argc, argv);
-	return MPI_SUCCESS;
+	int rc = exampi::global::interface->MPI_Init(argc, argv);
+	return rc;
 }
 
 }

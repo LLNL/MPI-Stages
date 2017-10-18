@@ -118,6 +118,8 @@ until($done)
       chomp $return;
       my $lastepoch = <$s>;
       chomp $lastepoch;
+      my $r = <$s>;
+      chomp $r;
       if($lastepoch < $latest)
       {
         say "Updating to epoch $lastepoch";
@@ -129,33 +131,41 @@ until($done)
       }
       else
       {
-        $done = 0;
+          #$done = 0;
+        $live++;
         my $sig = $return & 127;
         my $st = $return >> 8;
+        $epoch = $latest;
         say "Bad return!";
         say "\t Signal $sig";
         say "\t Status $st";
-        say "Sending kills...";
-        SendAllCmd($rnodes, "!kill");
-        #foreach my $h (keys %nodes)
-        #{
-        #  say { $nodes{$h}{sock} } "!kill";
-        #}
+        say "\t Rank $r";
+          
+        say "Relaunching process...";
+        #SendAllCmd($rnodes, "!kill");
+        foreach my $h (keys %nodes)
+        {
+            #say { $nodes{$h}{sock} } "!kill";
+            if ($nodes{$h}{rank} == $r) {
+                SendCmd($rnodes, $h, "!run");
+                last;
+            }
+        }
       }
     }
   }
-  unless($done)
-  {
-    $live = scalar keys %nodes;
-    $epoch = $latest;
-    $latest = 1e9;
-    say "Not done, so relaunching all in epoch $epoch";
-    SendAllCmd($rnodes, "epoch\n$epoch\n!run");
+    #unless($done)
+    #{
+    #$live = scalar keys %nodes;
+    #$epoch = $latest;
+    #$latest = 1e9;
+    #say "Not done, so relaunching all in epoch $epoch";
+    #SendAllCmd($rnodes, "epoch\n$epoch\n!run");
     #foreach my $h (keys %nodes)
     #{
     #  say { $nodes{$h}{sock} } "epoch\n$epoch\n!run";
     #
-  } 
+    #}
 }
 
 SendAllCmd($rnodes, "!done");
