@@ -15,7 +15,7 @@ class Checkpoint : public exampi::i::Checkpoint
       // get a file.  this is actually nontrivial b/c of shared filesystems; we'll salt for now
       std::stringstream filename;
       filename << exampi::global::epoch << "." << exampi::global::rank << ".cp";
-      std::ofstream target(filename.str(), std::ofstream::binary);
+      std::ofstream target(filename.str(), std::ofstream::out);
 
       // save the global datatype map
       //uint32_t typecount = exampi::global::datatypes.size();
@@ -25,9 +25,10 @@ class Checkpoint : public exampi::i::Checkpoint
         //i.save(target);
       }
 
-      exampi::global::progress->save(target);
+      //exampi::global::progress->save(target);
       exampi::global::transport->save(target);
       //exampi::global::interface->save(target);
+      target.close();
 
       exampi::global::epoch++;
      
@@ -41,7 +42,7 @@ class Checkpoint : public exampi::i::Checkpoint
     {
       if(exampi::global::epoch == 0) // first init
       {
-    	std::cout << "In init checkpoint load\n";
+    	//std::cout << "In init checkpoint load\n";
         exampi::global::transport->init();
         exampi::global::progress->init();
         return 0;
@@ -51,7 +52,7 @@ class Checkpoint : public exampi::i::Checkpoint
         // get a file.  this is actually nontrivial b/c of shared filesystems; we'll salt for now
         std::stringstream filename;
         filename << exampi::global::epoch << "." << exampi::global::rank << ".cp";
-        std::ifstream target(filename.str(), std::ofstream::binary);
+        std::ifstream target(filename.str(), std::ifstream::in);
 
         // save the global datatype map
         //target.write(&typecount, sizeof(uint32_t));
@@ -60,9 +61,10 @@ class Checkpoint : public exampi::i::Checkpoint
          // i.save(target);
         }
         std::cout << "In re-init\n";
-        exampi::global::progress->load(target);
-        //exampi::global::transport->load(target);
+        //exampi::global::progress->load(target);
+        exampi::global::transport->load(target);
         //exampi::global::interface->save(target);
+        target.close();
       }
       return MPI_REVERT;
     }

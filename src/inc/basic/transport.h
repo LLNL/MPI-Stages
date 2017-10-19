@@ -3,6 +3,7 @@
 
 #include <basic.h>
 #include "basic/udp.h"
+#include <sstream>
 
 namespace exampi {
 namespace basic {
@@ -68,11 +69,22 @@ class Transport : public exampi::i::Transport
       return 0;
     }
 
-    virtual int save(std::ostream &t)
+    /*std::vector<std::string> split(std::vector<std::string> vec, std::string line) {
+    	vec.clear();
+    	std::size_t delim = line.find_first_of("|");
+    	std::string key = line.substr(0, delim);
+    	vec.push_back(key);
+    	std::string val = line.substr(delim+1);
+    	vec.push_back(val);
+    	return vec;
+    }*/
+
+    virtual int save(std::ofstream& t)
     {
       // save endpoints
-      size_t epsz = endpoints.size();
-      t.write(reinterpret_cast<char *>(&epsz), sizeof(size_t));
+      int epsz = endpoints.size();
+      //std::cout << "size: " << epsz << "\n";
+      t.write(reinterpret_cast<char *>(&epsz), sizeof(int));
       for(auto i : endpoints)
       {
         auto key = i.first;
@@ -83,13 +95,14 @@ class Transport : public exampi::i::Transport
       return 0;
     }
 
-    virtual int load(std::istream &t)
+    virtual int load(std::ifstream& t)
     {
       // load endpoints
       size_t epsz;
       int rank;
       udp::Address addr;
       t.read(reinterpret_cast<char *>(&epsz), sizeof(size_t));
+      //std::cout << "size: " << epsz << "\n";
       while(epsz)
       {
         t.read(reinterpret_cast<char *>(&rank), sizeof(rank));
