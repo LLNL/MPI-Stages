@@ -50,7 +50,7 @@ int main(int argc, char** argv)
   printf("%d: Entering do loop...\n",rank);
 #endif
 
-  do
+  while (1)
   {
 #ifdef DEBUG
     printf("%d: About to MPI_Recv...\n", rank);
@@ -72,13 +72,25 @@ int main(int argc, char** argv)
     printf("%d: About to MPI_Send...\n", rank);
 #endif
 
-    if((rank == 0 && smallmessage[0])||(rank > 0)) /* don't leave a dangling message in the network */
-      MPI_Send(smallmessage, ARRAY_LEN, MPI_INT, (rank+1)%size, TAG, MPI_COMM_WORLD); /* forward around the logical ring */
+    MPI_Send(smallmessage, ARRAY_LEN, MPI_INT, (rank+1)%size, TAG, MPI_COMM_WORLD); /* forward around the logical ring */
 
-  } while(smallmessage[0] > 0);
+    if (smallmessage[0] == 0) {
+#ifdef DEBUG
+    	printf("%d: Exiting loop\n", rank);
+#endif
+    	break;
+    }
+
+  }
+  if (rank == 0) {
+	  MPI_Recv(smallmessage, ARRAY_LEN, MPI_INT, (rank-1+size)%size, TAG, MPI_COMM_WORLD, &status);
+	  #ifdef DEBUG
+	      printf("%d:  smallmessage[0] is now %d\n", rank, smallmessage[0]);
+	  #endif
+  }
 
 #ifdef DEBUG
-  printf("%d: Exiting loop\n", rank);
+  printf("%d: Exiting\n", rank);
 #endif
   
   MPI_Finalize();
