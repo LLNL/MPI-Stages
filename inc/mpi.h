@@ -38,8 +38,11 @@ typedef struct
     int MPI_ERROR;
 } MPI_Status;
 
-const int	MPI_SUCCESS = 0; /* this is the default error class for success */
-const int MPI_REVERT = 100;  /* Need to revert to a checkpoint epoch */
+#define MPI_SUCCESS 0 /* this is the default error class for success */
+#define MPI_REVERT 100  /* Need to revert to a checkpoint epoch */
+#define MPIX_TRY_REINIT 101
+#define MPIX_SUCCESS_RECOVERY 102
+#define MPIX_SUCCESS_RESTART 103
 /* other error classes not defined yet */
 
 
