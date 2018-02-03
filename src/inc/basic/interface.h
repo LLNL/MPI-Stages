@@ -39,6 +39,7 @@ class Interface : public exampi::i::Interface
       (*argv)++;
       (*argc)--;
       
+      exampi::global::rank = rank;
       int st = exampi::global::checkpoint->load();
 #if 0
       exampi::global::rank = rank;
@@ -46,6 +47,8 @@ class Interface : public exampi::i::Interface
       exampi::global::progress->init();
       //exampi::global::progress->barrier();
 #endif
+      exampi::global::progress->barrier();
+
       std::cout << "Finished MPI_Init with code: " << st << "\n";
       return st;
     }

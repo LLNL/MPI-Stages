@@ -9,6 +9,7 @@
 #include <set>
 #include <memory>
 #include <algorithm>
+#include <sigHandler.h>
 #include "basic/transport.h"
 
 namespace exampi {
@@ -166,7 +167,6 @@ class Progress : public exampi::i::Progress
     std::thread matchThread;
     bool alive;
 
-
     void addEndpoints()
     {
       int size = std::stoi((*exampi::global::config)["size"]);
@@ -217,6 +217,8 @@ class Progress : public exampi::i::Progress
         if(result == matchList->end())
         {
           std::cout << "WARNING:  Failed to match incoming msg\n";
+          //r->array = {const_cast<void *>(buf), &(exampi::global::datatypes[datatype]), szcount};
+          //exampi::global::transport->receive((*r)->getIovecs(), 0);
         }
         else
         {
@@ -266,7 +268,20 @@ class Progress : public exampi::i::Progress
 
     virtual void barrier()
     {
-      
+    	std::stringstream filename;
+    	filename << "pid." << exampi::global::rank << ".txt";
+    	std::ofstream t(filename.str());
+    	t << ::getpid();
+    	t.close();
+
+    	sigHandler signal;
+    	signal.setSignalToHandle(SIGUSR1);
+    	int parent_pid = std::stoi((*exampi::global::config)["ppid"]);
+    	kill(parent_pid, SIGUSR1);
+
+    	while(signal.isSignalSet() != 1) {
+    		sleep(1);
+    	}
     }
 
     virtual std::future<MPI_Status> postSend(UserArray array, Endpoint dest, int tag)
@@ -304,6 +319,11 @@ class Progress : public exampi::i::Progress
 
     virtual int load(std::istream &t)
     {
+      std::cout << "In progress load";
+      alive = true;
+      sendThread = std::thread{sendThreadProc, &alive, &outbox};
+      //recvThread = std::thread{recvThreadProc, &alive, &inbox};
+      matchThread = std::thread{matchThreadProc, &alive, &matchList, &matchLock};
       return MPI_SUCCESS;
     }
 
