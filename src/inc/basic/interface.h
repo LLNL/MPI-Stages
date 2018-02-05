@@ -148,72 +148,28 @@ class Interface : public exampi::i::Interface
       return MPI_SUCCESS;
     }
 
-    virtual int MPI_Barrier(MPI_Comm comm) {
-    	return 0;
-    }
-    /*virtual int MPI_Barrier(MPI_Comm comm) {
-    	int size = exampi::global::worldSize;
-    	int rank = exampi::global::rank;
-    	MPI_Status status;
-    	int i, m1, m2, maxiter;
-    	unsigned int mask = 1;
+	virtual int MPI_Barrier(MPI_Comm comm) {
+		int rank, size;
+		MPI_Status status;
+        int coll_tag = 0;
 
-    	for (i = 0, maxiter = size; maxiter > 0; i++, maxiter >>= 1) {
-    		m1 = mask << i;
-    		m2 = mask << (i + 1);
-    		if ((rank % m2 == 0) && (rank + m1 < size))
-    			MPI_Recv((void *)0, 0, MPI_INT, rank + m1, COLL_BARRIER_TRAP_TAG, comm, &status);
-    		else if (rank % m2 == m1)
-    			MPI_Send((void *)0, 0, MPI_INT, rank - m1, COLL_BARRIER_TRAP_TAG, comm);
-    	}
+		MPI_Comm_rank(comm, &rank);
+		MPI_Comm_size(comm, &size);
 
-    	for (maxiter = i; maxiter >= 0; maxiter--) {
-    		m1 = mask << maxiter;
-    		m2 = mask << (maxiter + 1);
-    		if ((rank % m2 == 0) && (rank + m1 < size))
-    			MPI_Send((void *)0, 0, MPI_INT, rank + m1, COLL_BARRIER_REL_TAG, comm);
-    		else if (rank % m2 == m1)
-    			MPI_Recv((void *)0, 0, MPI_INT, rank - m1, COLL_BARRIER_REL_TAG, comm, &status);
-    	}
+		if (rank == 0) {
+			MPI_Send((void *) 0, 0, MPI_INT, (rank + 1) % size, coll_tag, comm);
+			MPI_Recv((void *) 0, 0, MPI_INT, (rank + size - 1) % size, coll_tag, comm, &status);
+			MPI_Send((void *) 0, 0, MPI_INT, (rank + 1) % size, coll_tag, comm);
+			MPI_Recv((void *) 0, 0, MPI_INT, (rank + size - 1) % size, coll_tag, comm, &status);
+		} else {
+			MPI_Recv((void *) 0, 0, MPI_INT, (rank + size - 1) % size, coll_tag, comm, &status);
+			MPI_Send((void *) 0, 0, MPI_INT, (rank + 1) % size, coll_tag, comm);
+			MPI_Recv((void *) 0, 0, MPI_INT, (rank + size - 1) % size, coll_tag, comm, &status);
+			MPI_Send((void *) 0, 0, MPI_INT, (rank + 1) % size, coll_tag, comm);
+		}
 
-    	return 0;
-    }*/
-
-    /*virtual int MPI_Barrier(MPI_Comm comm) {
-    	int rank, size, i;
-
-        MPI_Request *req;
-    	MPI_Status *status;
-
-
-    	MPI_Comm_rank(comm, &rank);
-    	MPI_Comm_size(comm, &size);
-
-    	req = (MPI_Request *)malloc(sizeof(MPI_Request)*(size-1));
-    	status = (MPI_Status *)malloc(sizeof(MPI_Status)*(size-1));
-
-    	if (rank == 0) {
-    	  for (i=1; i<size; i++)
-    	     MPI_Irecv((void *)0, 0, MPI_INT, i, 0, comm, &req[i-1]);
-
-    	  MPI_Wait(&req[0], &status);
-    	  MPI_Wait(&req[1], &status);
-    	  MPI_Wait(&req[2], &status);
-
-    	  for (i=1; i<size; i++)
-    	     MPI_Isend((void *)0, 0, MPI_INT, i, 0, comm, &req[i-1]);
-
-    	  MPI_Wait(&req[0], &status);
-    	  MPI_Wait(&req[1], &status);
-    	  MPI_Wait(&req[2], &status);
-    	}
-    	else {
-    	  MPI_Send((void *)0, 0, MPI_INT, 0, 0, comm);
-    	  MPI_Recv((void *)0, 0, MPI_INT, 0, 0, comm, &status[0]);
-    	}
-
-    	return 0;
-    }*/
+		return MPI_SUCCESS;
+	}
 };
 
 
