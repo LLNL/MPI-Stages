@@ -168,7 +168,7 @@ int MPI_Start(MPI_Request *);
 int MPI_Startall(int, MPI_Request *);
 int MPI_Wait(MPI_Request *, MPI_Status *);
 int MPI_Waitall(int, MPI_Request *, MPI_Status *);
-int MPI_Wtime(void);
+double MPI_Wtime(void);
 
 // TODO:  Haven't cleared this for PMPI api yet
 int MPI_Checkpoint(int *);
@@ -233,7 +233,7 @@ int PMPI_Start(MPI_Request *);
 int PMPI_Startall(int, MPI_Request *);
 int PMPI_Wait(MPI_Request *, MPI_Status *);
 int PMPI_Waitall(int, MPI_Request *, MPI_Status *);
-int PMPI_Wtime(void);
+double PMPI_Wtime(void);
 int PMPI_Checkpoint(int *);
 int PMPI_Epoch(int *);
 

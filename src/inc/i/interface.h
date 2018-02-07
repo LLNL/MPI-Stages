@@ -23,6 +23,7 @@ class Interface
     virtual int MPI_Checkpoint(int *savedEpoch) = 0;
     virtual int MPI_Epoch(int *epoch) = 0;
     virtual int MPI_Barrier(MPI_Comm comm) = 0;
+    virtual double MPI_Wtime(void) = 0;
 
     //virtual int MPIX_Checkpoint(MPI_Comm comm) = 0;
 };
