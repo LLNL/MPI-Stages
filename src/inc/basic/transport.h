@@ -3,7 +3,7 @@
 
 #include <basic.h>
 #include "basic/udp.h"
-#include <sstream>
+//#include "basic/tcp.h"
 
 namespace exampi {
 namespace basic {
@@ -12,15 +12,16 @@ class Transport : public exampi::i::Transport
 {
   private:
     std::string address;
-    std::unordered_map<int,udp::Address> endpoints;
+    std::unordered_map<int,Address> endpoints;
     uint16_t port;
-    udp::Socket recvSocket;
+    udp::Socket recvocket;
+    int tcpSock;
   public:
     Transport() : endpoints(), recvSocket() {;};
 
     virtual void init()
     {
-      recvSocket.bindPort(8080);
+    	recvSocket.bindPort(8080);
     }
 
     virtual void init(std::istream &t)
@@ -32,7 +33,7 @@ class Transport : public exampi::i::Transport
     {
       uint16_t port = std::stoi(opts[1]);
       // TODO:  see basic/udp.h; need move constructor to avoid copy here
-      udp::Address addr(opts[0], port);
+      Address addr(opts[0], port);
 
       std::cout << "\tAssigning " << rank << " to " << opts[0] << ":" << port << "\n";
       endpoints[rank] = addr;
@@ -57,6 +58,7 @@ class Transport : public exampi::i::Transport
       udp::Message msg(iov);
 
       std::cout << debug() << "basic::Transport::receive, constructed msg, calling msg.receive" << std::endl;
+      //msg.receive(recvSocket, tcpSock); /*For TCP transport*/
       msg.receive(recvSocket);
       std::cout << debug() << "basic::Transport::receive returning" << std::endl;
       return std::promise<int>().get_future();
@@ -65,6 +67,7 @@ class Transport : public exampi::i::Transport
     virtual int peek(std::vector<struct iovec> iov, MPI_Comm comm)
     {
       udp::Message msg(iov);
+      //msg.peek(recvSocket, tcpSock); /*For TCP transport*/
       msg.peek(recvSocket);
       return 0;
     }
@@ -100,7 +103,7 @@ class Transport : public exampi::i::Transport
       // load endpoints
       size_t epsz;
       int rank;
-      udp::Address addr;
+      Address addr;
       t.read(reinterpret_cast<char *>(&epsz), sizeof(size_t));
       //std::cout << "size: " << epsz << "\n";
       while(epsz)
