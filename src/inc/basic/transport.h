@@ -14,7 +14,7 @@ class Transport : public exampi::i::Transport
     std::string address;
     std::unordered_map<int,Address> endpoints;
     uint16_t port;
-    udp::Socket recvocket;
+    udp::Socket recvSocket;
     int tcpSock;
   public:
     Transport() : endpoints(), recvSocket() {;};
@@ -82,7 +82,7 @@ class Transport : public exampi::i::Transport
     	return vec;
     }*/
 
-    virtual int save(std::ofstream& t)
+    virtual int save(std::ostream& t)
     {
       // save endpoints
       int epsz = endpoints.size();
@@ -98,7 +98,7 @@ class Transport : public exampi::i::Transport
       return 0;
     }
 
-    virtual int load(std::ifstream& t)
+    virtual int load(std::istream& t)
     {
       // load endpoints
       size_t epsz;
