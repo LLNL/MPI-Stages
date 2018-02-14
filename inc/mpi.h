@@ -40,7 +40,7 @@ typedef struct
 
 #define MPI_SUCCESS 0 /* this is the default error class for success */
 #define MPI_REVERT 100  /* Need to revert to a checkpoint epoch */
-#define MPIX_TRY_REINIT 101
+#define MPIX_TRY_RELOAD 101
 #define MPIX_SUCCESS_RECOVERY 102
 #define MPIX_SUCCESS_RESTART 103
 /* other error classes not defined yet */
@@ -128,6 +128,8 @@ MPI_OP_NULL too.
 #define MPI_COMM_NULL     ((MPI_Comm)0)
 #define MPI_COMM_WORLD    ((MPI_Comm)1)
 
+#define MPI_ERRORS_RETURN ((MPI_Errhandler)0)
+
 /* Core MPI API */
 
 int MPI_Abort(MPI_Comm, int);
@@ -140,6 +142,7 @@ int MPIX_Checkpoint(MPI_Comm);
 int MPI_Comm_create(MPI_Comm, MPI_Group, MPI_Comm *);
 int MPI_Comm_create_group(MPI_Comm, MPI_Group, int, MPI_Comm *);
 int MPI_Comm_rank(MPI_Comm, int *);
+int MPI_Comm_set_errhandler(MPI_Comm, MPI_Errhandler);
 int MPI_Comm_size(MPI_Comm, int *);
 int MPI_Comm_split(MPI_Comm, int, int, MPI_Comm *);
 int MPI_Finalize(void);
@@ -205,6 +208,7 @@ int PMPIX_Checkpoint(MPI_Comm);
 int PMPI_Comm_create(MPI_Comm, MPI_Group, MPI_Comm *);
 int PMPI_Comm_create_group(MPI_Comm, MPI_Group, int, MPI_Comm *);
 int PMPI_Comm_rank(MPI_Comm, int *);
+int PMPI_Comm_set_handler(MPI_Comm, MPI_Errhandler);
 int PMPI_Comm_size(MPI_Comm, int *);
 int PMPI_Comm_split(MPI_Comm, int, int, MPI_Comm *);
 int PMPI_Finalize(void);

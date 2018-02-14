@@ -3,6 +3,7 @@
 
 #include <basic.h>
 #include <time.h>
+#include <errHandler.h>
 #include "basic/progress.h"
 
 namespace exampi {
@@ -50,7 +51,8 @@ public:
 		exampi::global::progress->init();
 //exampi::global::progress->barrier();
 #endif
-		exampi::global::progress->barrier();
+		if (exampi::global::epoch == 0)
+			exampi::global::progress->barrier();
 
 		std::cout << "Finished MPI_Init with code: " << st << "\n";
 		return st;
@@ -184,6 +186,12 @@ public:
 		wtime += t.tv_nsec/1.0e+9;
 
 		return wtime;
+	}
+
+	virtual int MPI_Comm_set_errhandler(MPI_Comm comm, MPI_Errhandler err) {
+		errHandler handler;
+		handler.setErrToHandle(SIGUSR2);
+		return MPI_SUCCESS;
 	}
 };
 
