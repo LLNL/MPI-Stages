@@ -3,7 +3,7 @@
 #include "mpi.h"
 
 #define ARRAY_LEN 4 
-#define TIMES_AROUND_LOOP 10
+#define TIMES_AROUND_LOOP 5
 #define TAG 0
 
 #define DEBUG
@@ -42,7 +42,7 @@ int main(int argc, char** argv)
   if(rank == 0)
   {
     // sf:  adding sleep to fix lack of barrier
-    usleep(500000);
+    //usleep(500000);
     MPI_Send(smallmessage, ARRAY_LEN, MPI_INT, (rank+1)%size, TAG, MPI_COMM_WORLD); /* inject initial message to ring  */
   }
 

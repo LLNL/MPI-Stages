@@ -19,7 +19,7 @@ int main(int argc, char** argv)
 {
   int abort = 0;
   int done = 0;
-  int recoveru_code;
+  int recovery_code;
   int code = MPI_SUCCESS;
   int fault_epoch = 0;
 
