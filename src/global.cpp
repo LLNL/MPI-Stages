@@ -1,5 +1,5 @@
-#include <ExaMPI.h>
-#include <datatype.h>
+#include <global.h>
+
 #include <basic/interface.h>
 #include <basic/progress.h>
 #include <basic/transport.h>
