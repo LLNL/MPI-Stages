@@ -131,7 +131,11 @@ class Request
       //context = dword[6];
     }
 
-    struct iovec getHeaderIovec() { return {hdr, HeaderSize};}
+    struct iovec getHeaderIovec() {
+    	pack();
+    	struct iovec iov = {hdr, HeaderSize};
+    	return iov;
+    }
 
     std::vector<struct iovec> getHeaderIovecs()
     {
@@ -154,7 +158,6 @@ class Request
       iov.push_back(array.getIovec());
       return iov;
     }
-
 };
 
 class Progress : public exampi::i::Progress
@@ -203,41 +206,47 @@ class Progress : public exampi::i::Progress
 
     static void matchThreadProc(bool *alive, std::list<std::unique_ptr<Request>> *matchList, std::mutex *matchLock)
     {
-      std::cout << debug() << "Launching matchThreadProc(...)\n";
-      while(*alive)
-      {
-        std::unique_ptr<Request> r = make_unique<Request>();
-        std::cout << debug() << "matchThread:  made request, about to peek...\n";
-        exampi::global::transport->peek(r->getHeaderIovecs(), 0);
-        std::cout << debug() << "matchThread:  received\n";
-        matchLock->lock();
-        int t = r->tag;
-        auto result = std::find_if(matchList->begin(), matchList->end(),
-            [t](const std::unique_ptr<Request> &i) -> bool { return i->tag == t; });
-        if(result == matchList->end())
-        {
-          std::cout << "WARNING:  Failed to match incoming msg\n";
-          //r->array = {const_cast<void *>(buf), &(exampi::global::datatypes[datatype]), szcount};
-          //exampi::global::transport->receive((*r)->getIovecs(), 0);
-        }
-        else
-        {
-          std::cout << debug() << "matchThread:  matched, about to receive remainder\n";
-          std::cout << debug() << "\tTarget array is " << (*result)->array.toString() << "\n";
-          std::cout << debug() << "\tDatatype says extent is " << (*result)->array.datatype->getExtent() << "\n";
-          exampi::global::transport->receive((*result)->getIovecs(), 0); 
-          (*result)->unpack();
-          (*result)->completionPromise.set_value({
-              .count = 0,
-              .cancelled = 0,
-              .MPI_SOURCE = (*result)->source,
-              .MPI_TAG = (*result)->tag,
-              .MPI_ERROR = MPI_SUCCESS
-              });
-          matchList->erase(result);
-        }
-        matchLock->unlock();
-      }
+    	std::cout << debug() << "Launching matchThreadProc(...)\n";
+    	while(*alive)
+    	{
+    		std::unique_ptr<Request> r = make_unique<Request>();
+    		std::cout << debug() << "matchThread:  made request, about to peek...\n";
+    		exampi::global::transport->peek(r->getHeaderIovecs(), 0);
+    		r->unpack();
+
+    			std::cout << debug() << "matchThread:  received\n";
+    			matchLock->lock();
+    			int t = r->tag;
+    			auto result = std::find_if(matchList->begin(), matchList->end(),
+    					[t](const std::unique_ptr<Request> &i) -> bool { return i->tag == t; });
+    			if(result == matchList->end())
+    			{
+    				std::cout << "WARNING:  Failed to match incoming msg\n";
+    				if (t == MPIX_CLEANUP_TAG) {
+    					exampi::global::transport->cleanUp(0);
+    					exampi::global::progress->stop();
+    				}
+    			}
+    			else
+    			{
+    				std::cout << debug() << "matchThread:  matched, about to receive remainder\n";
+    				std::cout << debug() << "\tTarget array is " << (*result)->array.toString() << "\n";
+    				std::cout << debug() << "\tDatatype says extent is " << (*result)->array.datatype->getExtent() << "\n";
+    				exampi::global::transport->receive((*result)->getIovecs(), 0);
+    				(*result)->unpack();
+    				(*result)->completionPromise.set_value({
+    					.count = 0,
+    							.cancelled = 0,
+								.MPI_SOURCE = (*result)->source,
+								.MPI_TAG = (*result)->tag,
+								.MPI_ERROR = MPI_SUCCESS
+    				});
+    				matchList->erase(result);
+    			}
+
+
+    		matchLock->unlock();
+    	}
     }
   public:
     Progress() {;}
@@ -261,10 +270,23 @@ class Progress : public exampi::i::Progress
 
     virtual int stop()
     {
-      alive = false;
+      for (auto& r : matchList) {
+    	  (r)->unpack();
+    	  (r)->completionPromise.set_value({
+    		  .count = 0,
+    		  .cancelled = 0,
+    		  .MPI_SOURCE = (r)->source,
+			  .MPI_TAG = (r)->tag,
+			  .MPI_ERROR = MPIX_TRY_RELOAD
+    	      });
+      }
+      matchList.clear();
       return 0;
     }
 
+    virtual void cleanUp(){
+    	exampi::global::interface->MPI_Send((void *) 0, 0, MPI_INT, exampi::global::rank, MPIX_CLEANUP_TAG, MPI_COMM_WORLD);
+    }
 
     virtual void barrier()
     {
@@ -282,6 +304,7 @@ class Progress : public exampi::i::Progress
     	while(signal.isSignalSet() != 1) {
     		sleep(1);
     	}
+    	signal.setSignalToZero();
     }
 
     virtual std::future<MPI_Status> postSend(UserArray array, Endpoint dest, int tag)
@@ -317,12 +340,11 @@ class Progress : public exampi::i::Progress
       return MPI_SUCCESS;
     }
 
-    virtual int load(std::istream &t)
+    virtual int load()
     {
       std::cout << "In progress load";
       alive = true;
       sendThread = std::thread{sendThreadProc, &alive, &outbox};
-      //recvThread = std::thread{recvThreadProc, &alive, &inbox};
       matchThread = std::thread{matchThreadProc, &alive, &matchList, &matchLock};
       return MPI_SUCCESS;
     }

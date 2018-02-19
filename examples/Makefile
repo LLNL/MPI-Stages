@@ -1,4 +1,4 @@
-dirs = hello ring $(wildcard collectives/*) check
+dirs = hello ring $(wildcard collectives/*) check pseudo
 
 export basedir = $(realpath ..)
 export libdir = $(basedir)/src

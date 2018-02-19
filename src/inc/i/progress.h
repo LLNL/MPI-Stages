@@ -16,8 +16,9 @@ class Progress
     virtual std::future<MPI_Status> postSend(UserArray array, Endpoint dest, int tag) = 0;
     virtual std::future<MPI_Status> postRecv(UserArray array, int tag) = 0;
     virtual int save(std::ostream &t) = 0;
-    virtual int load(std::istream &t) = 0;
-
+    virtual int load() = 0;
+    virtual int stop() = 0;
+    virtual void cleanUp() = 0;
 };
 
 }} // ::exampi::i

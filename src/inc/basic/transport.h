@@ -64,6 +64,34 @@ class Transport : public exampi::i::Transport
       return std::promise<int>().get_future();
     }
 
+    virtual int cleanUp(MPI_Comm comm) {
+    	std::cout << debug() << "basic::Transport::receive(...)" << std::endl;
+    	char buffer[2];
+    	struct sockaddr_storage src_addr;
+
+    	struct iovec iov[1];
+    	iov[0].iov_base=buffer;
+    	iov[0].iov_len=sizeof(buffer);
+
+    	struct msghdr message;
+    	message.msg_name=&src_addr;
+    	message.msg_namelen=sizeof(src_addr);
+    	message.msg_iov=iov;
+    	message.msg_iovlen=1;
+    	message.msg_control=0;
+    	message.msg_controllen=0;
+
+
+    	std::cout << debug() << "basic::Transport::receive, constructed msg, calling msg.receive" << std::endl;
+
+    	std::cout << debug() << "basic::Transport::udp::recv\n";
+
+    	recvmsg(recvSocket.getFd(), &message, MSG_WAITALL);
+    	std::cout << debug() << "basic::Transport::udp::recv exiting\n";
+    	std::cout << debug() << "basic::Transport::receive returning" << std::endl;
+    	return 0;
+    }
+
     virtual int peek(std::vector<struct iovec> iov, MPI_Comm comm)
     {
       udp::Message msg(iov);
@@ -100,11 +128,12 @@ class Transport : public exampi::i::Transport
 
     virtual int load(std::istream& t)
     {
+    	init();
       // load endpoints
-      size_t epsz;
+      int epsz;
       int rank;
       Address addr;
-      t.read(reinterpret_cast<char *>(&epsz), sizeof(size_t));
+      t.read(reinterpret_cast<char *>(&epsz), sizeof(int));
       //std::cout << "size: " << epsz << "\n";
       while(epsz)
       {

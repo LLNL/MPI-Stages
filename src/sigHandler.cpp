@@ -21,6 +21,10 @@ void sigHandler::setSignal(int unused)
     is_signalSet = 1;
 }
 
+void sigHandler::setSignalToZero() {
+    is_signalSet = 0;
+}
+
 int sigHandler::isSignalSet()
 {
     return is_signalSet;

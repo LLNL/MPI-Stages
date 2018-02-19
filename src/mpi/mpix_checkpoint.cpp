@@ -1,13 +1,14 @@
 #include <ExaMPI.h>
+#include <mpi.h>
 #include "basic.h"
 #include "basic/interface.h"
 
 extern "C"
 {
-#pragma weak MPI_Checkpoint = PMPI_Checkpoint
+#pragma weak MPIX_Checkpoint = PMPIX_Checkpoint
 
-int PMPI_Checkpoint(int *p) {
-	exampi::global::interface->MPI_Checkpoint(p);
+int PMPIX_Checkpoint(void) {
+	exampi::global::interface->MPIX_Checkpoint();
     //(*p) = exampi::global::epoch;
   //delete exampi::basic::Interface::global;
 	return MPI_SUCCESS;

@@ -43,6 +43,7 @@ typedef struct
 #define MPIX_TRY_RELOAD 101
 #define MPIX_SUCCESS_RECOVERY 102
 #define MPIX_SUCCESS_RESTART 103
+#define MPIX_CLEANUP_TAG 1
 /* other error classes not defined yet */
 
 
@@ -138,7 +139,6 @@ int MPI_Allreduce(void *, void *, int, MPI_Datatype, MPI_Op, MPI_Comm);
 int MPI_Alltoall(void *, int, MPI_Datatype, void *, int, MPI_Datatype, MPI_Comm);
 int MPI_Barrier(MPI_Comm);
 int MPI_Bcast(void *, int, MPI_Datatype, int, MPI_Comm);
-int MPIX_Checkpoint(MPI_Comm);
 int MPI_Comm_create(MPI_Comm, MPI_Group, MPI_Comm *);
 int MPI_Comm_create_group(MPI_Comm, MPI_Group, int, MPI_Comm *);
 int MPI_Comm_rank(MPI_Comm, int *);
@@ -174,8 +174,9 @@ int MPI_Waitall(int, MPI_Request *, MPI_Status *);
 double MPI_Wtime(void);
 
 // TODO:  Haven't cleared this for PMPI api yet
-int MPI_Checkpoint(int *);
-int MPI_Epoch(int *);
+int MPIX_Checkpoint(void);
+int MPIX_Load_checkpoint(void);
+int MPIX_Get_fault_epoch(int *);
 
 #if 0
 int MPI_Get_processor_name( char *name, int *resultlen );
@@ -204,7 +205,6 @@ int PMPI_Allreduce(void *, void *, int, MPI_Datatype, MPI_Op, MPI_Comm);
 int PMPI_Alltoall(void *, int, MPI_Datatype, void *, int, MPI_Datatype, MPI_Comm);
 int PMPI_Barrier(MPI_Comm);
 int PMPI_Bcast(void *, int, MPI_Datatype, int, MPI_Comm);
-int PMPIX_Checkpoint(MPI_Comm);
 int PMPI_Comm_create(MPI_Comm, MPI_Group, MPI_Comm *);
 int PMPI_Comm_create_group(MPI_Comm, MPI_Group, int, MPI_Comm *);
 int PMPI_Comm_rank(MPI_Comm, int *);
@@ -238,8 +238,9 @@ int PMPI_Startall(int, MPI_Request *);
 int PMPI_Wait(MPI_Request *, MPI_Status *);
 int PMPI_Waitall(int, MPI_Request *, MPI_Status *);
 double PMPI_Wtime(void);
-int PMPI_Checkpoint(int *);
-int PMPI_Epoch(int *);
+int PMPIX_Checkpoint(void);
+int PMPIX_Load_checkpoint(void);
+int PMPIX_Get_fault_epoch(int *);
 
 #if 0
 int PMPI_Get_processor_name( char *name, int *resultlen );

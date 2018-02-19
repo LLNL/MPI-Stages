@@ -13,7 +13,7 @@ int PMPI_Irecv(void *buf, int count, MPI_Datatype datatype, int dest, int tag, M
 {
 	int rc = exampi::global::interface->MPI_Irecv(buf, count, datatype, dest, tag, comm, request);
   (void)rc;
-	return MPI_SUCCESS;
+	return rc;
 }
 
 }

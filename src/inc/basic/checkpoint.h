@@ -51,7 +51,7 @@ class Checkpoint : public exampi::i::Checkpoint
       {
         // get a file.  this is actually nontrivial b/c of shared filesystems; we'll salt for now
         std::stringstream filename;
-        filename << exampi::global::epoch << "." << exampi::global::rank << ".cp";
+        filename << exampi::global::epoch - 1 << "." << exampi::global::rank << ".cp";
         std::ifstream target(filename.str(), std::ifstream::in);
 
         // save the global datatype map
@@ -61,12 +61,13 @@ class Checkpoint : public exampi::i::Checkpoint
          // i.save(target);
         }
         std::cout << "In re-init\n";
-        //exampi::global::progress->load(target);
+        exampi::global::progress->load();
         exampi::global::transport->load(target);
+        exampi::global::progress->barrier();
         //exampi::global::interface->save(target);
         target.close();
       }
-      return MPI_REVERT;
+      return MPIX_SUCCESS_RESTART;
     }
 };
 

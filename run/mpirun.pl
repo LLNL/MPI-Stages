@@ -159,7 +159,11 @@ until($done)
             #say { $nodes{$h}{sock} } "!kill";
             if ($nodes{$h}{rank} == $r) {
                 SendCmd($rnodes, $h, "!run");
-                last;
+                #last;
+            }
+            else
+            {
+                SendCmd($rnodes, $h, "!err");
             }
         }
       }

@@ -16,6 +16,7 @@ class Transport
   virtual int peek(std::vector<struct iovec> iov, MPI_Comm comm) = 0;
   virtual int save(std::ostream &r) = 0;
   virtual int load(std::istream &r) = 0;
+  virtual int cleanUp(MPI_Comm comm) = 0;
 };
 
 }} // ::exampi::i

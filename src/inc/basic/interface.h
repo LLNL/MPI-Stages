@@ -82,6 +82,11 @@ public:
 				szcount }, tag).get();
 		std::cout << debug() << "Finished MPI_Recv: " << mpiStatusString(st)
 				<< "\n";
+
+		if (st.MPI_ERROR == MPIX_TRY_RELOAD) {
+			memmove(status, &st, sizeof(MPI_Status));
+			return MPIX_TRY_RELOAD;
+		}
 		memmove(status, &st, sizeof(MPI_Status));
 		return 0;
 	}
@@ -140,13 +145,24 @@ public:
 		return 0;
 	}
 
-	virtual int MPI_Checkpoint(int *savedEpoch) {
-		*savedEpoch = exampi::global::epoch;
+	virtual int MPIX_Checkpoint() {
 		exampi::global::checkpoint->save();
 		return MPI_SUCCESS;
 	}
 
-	virtual int MPI_Epoch(int *epoch) {
+	virtual int MPIX_Load_checkpoint() {
+		sigHandler signal;
+		signal.setSignalToHandle(SIGUSR1);
+		int parent_pid = std::stoi((*exampi::global::config)["ppid"]);
+		kill(parent_pid, SIGUSR1);
+
+		while(signal.isSignalSet() != 1) {
+		    sleep(1);
+		}
+		return MPIX_SUCCESS_RECOVERY;
+	}
+
+	virtual int MPIX_Get_fault_epoch(int *epoch) {
 		*epoch = exampi::global::epoch;
 		return MPI_SUCCESS;
 	}

@@ -74,6 +74,10 @@ while(1)  # main serve loop
         if ($cmd eq "!com") {
             kill USR1 => $childpid;
         }
+        elsif ($cmd eq "!err")
+        {
+            kill USR2 => $childpid;
+        }
         elsif($cmd eq "!run")
         {
           print "Launching!\n";
