@@ -22,6 +22,10 @@ void errHandler::setErr(int unused)
 	exampi::global::progress->cleanUp();
 }
 
+void errHandler::setErrToZero() {
+    is_errSet = 0;
+}
+
 int errHandler::isErrSet()
 {
     return is_errSet;

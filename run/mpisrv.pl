@@ -23,9 +23,10 @@ sub sigusr1_handler {
     
     my $pidfile = "pid.$state{rank}.txt";
     open(my $pidfh, "<", $pidfile) or die "Can't read pid";
+    $pidfh->autoflush(1);
     $childpid = <$pidfh>;
     chomp $childpid;
-    
+    close $pidfh;
     my $barrier = 500;
     print $incoming "$barrier\n";
 }
@@ -44,7 +45,7 @@ die "Couldn't create listening socket; $!" unless $listen;
 my $pid;
 my $childfh;
 my $parentfh;
-
+my lepoch;
 my $done;
 
 while(1)  # main serve loop
@@ -74,12 +75,19 @@ while(1)  # main serve loop
         if ($cmd eq "!com") {
             kill USR1 => $childpid;
         }
-        elsif ($cmd eq "!err")
+        elsif ($cmd =~ m/!err/)
         {
             kill USR2 => $childpid;
+            $lepoch = substr $cmd, 4;
+            my $epochname = "mpirun.$state{rank}.epoch.tmp";
+            open(my $epochconfig, ">", $epochname) or die "Couldn't create temporary epoch file";
+            $epochconfig->autoflush(1);
+            print $epochconfig "$lepoch\n";
+            close $epochconfig;
         }
-        elsif($cmd eq "!run")
+        elsif($cmd =~ m/!run/)
         {
+          $lepoch = substr $cmd, 4;
           print "Launching!\n";
           socketpair($childfh, $parentfh, AF_UNIX, SOCK_STREAM, PF_UNSPEC)
             or die "Couldn't socketpair ($!); fatal";
@@ -101,10 +109,19 @@ while(1)  # main serve loop
             $config->autoflush(1);
             print $config "ppid:$parentpid\n" . join("\n", split(/;/, $state{configstr}));
             close $config;
-            open(my $epochconfig, ">", $epochname) or die "Couldn't create temporary epoch file";
-            $epochconfig->autoflush(1);
-            print $epochconfig "0\n"; 
-            close $config;
+              if ($state{epoch} == 0) {
+                  open(my $epochconfig, ">", $epochname) or die "Couldn't create temporary epoch file";
+                  $epochconfig->autoflush(1);
+                  print $epochconfig "$state{epoch}\n";
+              }
+              else {
+                  open(my $epochconfig, ">", $epochname) or die "Couldn't create temporary epoch file";
+                  $epochconfig->autoflush(1);
+                  print $epochconfig "$lepoch\n";
+                  $state{epoch} = $lepoch;
+              }
+            
+            close $epochconfig;
 
             my @args = ("$configname", "$state{rank}", "$epochname", "$state{epoch}", "$state{bin}");
             push(@args, @ARGV);

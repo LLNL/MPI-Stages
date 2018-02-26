@@ -30,11 +30,15 @@ class Checkpoint : public exampi::i::Checkpoint
       //exampi::global::interface->save(target);
       target.close();
 
-      exampi::global::epoch++;
-     
-      std::ofstream ef(exampi::global::epochConfig);
-      ef << exampi::global::epoch;
-      ef.close();
+      errHandler handler;
+      if (handler.isErrSet() != 1) {
+    	  exampi::global::epoch++;
+
+    	        std::ofstream ef(exampi::global::epochConfig);
+    	        ef << exampi::global::epoch;
+    	        ef.close();
+      }
+
 
     } 
 
@@ -66,6 +70,9 @@ class Checkpoint : public exampi::i::Checkpoint
         exampi::global::progress->barrier();
         //exampi::global::interface->save(target);
         target.close();
+        std::ifstream ef(exampi::global::epochConfig);
+        ef >> exampi::global::epoch;
+        ef.close();
       }
       return MPIX_SUCCESS_RESTART;
     }

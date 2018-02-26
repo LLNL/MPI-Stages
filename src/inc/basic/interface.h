@@ -17,7 +17,7 @@ private:
 
 public:
 	Interface() :
-			rank(0) {
+		rank(0) {
 	}
 	;
 	virtual int MPI_Init(int *argc, char ***argv) {
@@ -49,7 +49,7 @@ public:
 		exampi::global::rank = rank;
 		exampi::global::transport->init();
 		exampi::global::progress->init();
-//exampi::global::progress->barrier();
+		//exampi::global::progress->barrier();
 #endif
 		if (exampi::global::epoch == 0)
 			exampi::global::progress->barrier();
@@ -64,12 +64,17 @@ public:
 
 	virtual int MPI_Send(const void* buf, int count, MPI_Datatype datatype,
 			int dest, int tag, MPI_Comm comm) {
+		errHandler handler;
+		if (handler.isErrSet()) {
+			handler.setErrToZero();
+			return MPIX_TRY_RELOAD;
+		}
 		size_t szcount = count;
 		MPI_Status st = exampi::global::progress->postSend( {
-				const_cast<void *>(buf), &(exampi::global::datatypes[datatype]),
-				szcount }, { dest, comm }, tag).get();
+			const_cast<void *>(buf), &(exampi::global::datatypes[datatype]),
+					szcount }, { dest, comm }, tag).get();
 		std::cout << debug() << "Finished MPI_Send: " << mpiStatusString(st)
-				<< "\n";
+						<< "\n";
 		return 0;
 	}
 
@@ -78,10 +83,10 @@ public:
 		//exampi::global::progress->recv_data(buf, count, datatype, source, tag, comm, status);
 		size_t szcount = count;
 		MPI_Status st = exampi::global::progress->postRecv( {
-				const_cast<void *>(buf), &(exampi::global::datatypes[datatype]),
-				szcount }, tag).get();
+			const_cast<void *>(buf), &(exampi::global::datatypes[datatype]),
+					szcount }, tag).get();
 		std::cout << debug() << "Finished MPI_Recv: " << mpiStatusString(st)
-				<< "\n";
+						<< "\n";
 
 		if (st.MPI_ERROR == MPIX_TRY_RELOAD) {
 			memmove(status, &st, sizeof(MPI_Status));
@@ -97,7 +102,7 @@ public:
 		// have to move construct the future; i'll fix this later with a pool in progress
 		std::future<MPI_Status> *f = new std::future<MPI_Status>();
 		(*f) = exampi::global::progress->postSend( { const_cast<void *>(buf),
-				&(exampi::global::datatypes[datatype]), szcount },
+			&(exampi::global::datatypes[datatype]), szcount },
 				{ dest, comm }, tag);
 		(*request) = reinterpret_cast<MPI_Request>(f);
 
@@ -110,7 +115,7 @@ public:
 		size_t szcount = count;
 		std::future<MPI_Status> *f = new std::future<MPI_Status>();
 		(*f) = exampi::global::progress->postRecv( { const_cast<void *>(buf),
-				&(exampi::global::datatypes[datatype]), szcount }, tag);
+			&(exampi::global::datatypes[datatype]), szcount }, tag);
 		(*request) = reinterpret_cast<MPI_Request>(f);
 		return 0;
 	}
@@ -146,6 +151,11 @@ public:
 	}
 
 	virtual int MPIX_Checkpoint() {
+		errHandler handler;
+		if (handler.isErrSet()) {
+			handler.setErrToZero();
+			return MPIX_TRY_RELOAD;
+		}
 		exampi::global::checkpoint->save();
 		return MPI_SUCCESS;
 	}
@@ -157,12 +167,23 @@ public:
 		kill(parent_pid, SIGUSR1);
 
 		while(signal.isSignalSet() != 1) {
-		    sleep(1);
+			sleep(1);
 		}
+
+		std::ifstream ef(exampi::global::epochConfig);
+		ef >> exampi::global::epoch;
+		ef.close();
+
 		return MPIX_SUCCESS_RECOVERY;
 	}
 
 	virtual int MPIX_Get_fault_epoch(int *epoch) {
+		errHandler handler;
+		if (handler.isErrSet()) {
+			handler.setErrToZero();
+			return MPIX_TRY_RELOAD;
+		}
+
 		*epoch = exampi::global::epoch;
 		return MPI_SUCCESS;
 	}

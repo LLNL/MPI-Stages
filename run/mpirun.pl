@@ -154,16 +154,28 @@ until($done)
           
         print "Relaunching process...\n";
         #SendAllCmd($rnodes, "!kill");
+        my $lepoch = 2**31 - 1;
+        foreach my $h (keys %nodes) {
+            my $epochname = "mpirun.$nodes{$h}{rank}.epoch.tmp";
+            open(my $epochfh, "<", $epochname);
+            $epochfh->autoflush(1);
+            my $ep = <$epochfh>;
+            chomp $ep;
+            if ($ep < $lepoch) {
+                $lepoch = $ep;
+            }
+            close $epochfh;
+        }
         foreach my $h (keys %nodes)
         {
             #say { $nodes{$h}{sock} } "!kill";
             if ($nodes{$h}{rank} == $r) {
-                SendCmd($rnodes, $h, "!run");
+                SendCmd($rnodes, $h, "!run$lowest");
                 #last;
             }
             else
             {
-                SendCmd($rnodes, $h, "!err");
+                SendCmd($rnodes, $h, "!err$lowest");
             }
         }
       }

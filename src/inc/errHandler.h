@@ -15,6 +15,7 @@ public:
     bool setErrToHandle(int sig);
     static int isErrSet();
     static void setErr(int unused);
+    static void setErrToZero();
 
 private:
     volatile static std::sig_atomic_t is_errSet;
