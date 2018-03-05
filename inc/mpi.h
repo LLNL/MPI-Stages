@@ -38,7 +38,12 @@ typedef struct
     int MPI_ERROR;
 } MPI_Status;
 
-const int	MPI_SUCCESS = 0; /* this is the default error class for success */
+#define MPI_SUCCESS 0 /* this is the default error class for success */
+#define MPI_REVERT 100  /* Need to revert to a checkpoint epoch */
+#define MPIX_TRY_RELOAD 101
+#define MPIX_SUCCESS_RECOVERY 102
+#define MPIX_SUCCESS_RESTART 103
+#define MPIX_CLEANUP_TAG 1
 /* other error classes not defined yet */
 
 
@@ -77,7 +82,6 @@ const int	MPI_SUCCESS = 0; /* this is the default error class for success */
 
 
 /* Built-in collective ops go here: */
-
 
 /* The basic set:
 
@@ -125,18 +129,20 @@ MPI_OP_NULL too.
 #define MPI_COMM_NULL     ((MPI_Comm)0)
 #define MPI_COMM_WORLD    ((MPI_Comm)1)
 
+#define MPI_ERRORS_RETURN ((MPI_Errhandler)0)
+
 /* Core MPI API */
 
 int MPI_Abort(MPI_Comm, int);
 int MPI_Allgather(void *, int, MPI_Datatype, void *, int, MPI_Datatype, MPI_Comm);
-int MPI_Allreduce(void *, void *, int, MPI_Datatype, MPI_Op, MPI_Comm);
+int MPI_Allreduce(const void *, void *, int, MPI_Datatype, MPI_Op, MPI_Comm);
 int MPI_Alltoall(void *, int, MPI_Datatype, void *, int, MPI_Datatype, MPI_Comm);
 int MPI_Barrier(MPI_Comm);
 int MPI_Bcast(void *, int, MPI_Datatype, int, MPI_Comm);
-int MPIX_Checkpoint(MPI_Comm);
 int MPI_Comm_create(MPI_Comm, MPI_Group, MPI_Comm *);
 int MPI_Comm_create_group(MPI_Comm, MPI_Group, int, MPI_Comm *);
 int MPI_Comm_rank(MPI_Comm, int *);
+int MPI_Comm_set_errhandler(MPI_Comm, MPI_Errhandler);
 int MPI_Comm_size(MPI_Comm, int *);
 int MPI_Comm_split(MPI_Comm, int, int, MPI_Comm *);
 int MPI_Finalize(void);
@@ -154,7 +160,7 @@ int MPI_Irecv(void *, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
 int MPI_Isend(void *, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
 int MPI_Recv(void* buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm, MPI_Status *status);
 int MPI_Recv_init(void *, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
-int MPI_Reduce(void *, void *, int, MPI_Datatype, MPI_Op, int, MPI_Comm);
+int MPI_Reduce(const void *, void *, int, MPI_Datatype, MPI_Op, int, MPI_Comm);
 int MPI_Scatter(void *, int, MPI_Datatype, void *, int, MPI_Datatype, int, MPI_Comm);
 int MPI_Send(const void *, int, MPI_Datatype, int, int, MPI_Comm);
 int MPI_Send_init(void *, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
@@ -164,8 +170,13 @@ int MPIX_Session_finalize(MPIX_Session *);
 int MPI_Start(MPI_Request *);
 int MPI_Startall(int, MPI_Request *);
 int MPI_Wait(MPI_Request *, MPI_Status *);
-int MPI_Waitall(int, MPI_Request *, MPI_Status *);
-int MPI_Wtime(void);
+int MPI_Waitall(int, MPI_Request [], MPI_Status []);
+double MPI_Wtime(void);
+
+// TODO:  Haven't cleared this for PMPI api yet
+int MPIX_Checkpoint(void);
+int MPIX_Load_checkpoint(void);
+int MPIX_Get_fault_epoch(int *);
 
 #if 0
 int MPI_Get_processor_name( char *name, int *resultlen );
@@ -190,14 +201,14 @@ int PMPI_Errhandler_free(MPI_Errhandler *errhandler);
 
 int PMPI_Abort(MPI_Comm, int);
 int PMPI_Allgather(void *, int, MPI_Datatype, void *, int, MPI_Datatype, MPI_Comm);
-int PMPI_Allreduce(void *, void *, int, MPI_Datatype, MPI_Op, MPI_Comm);
+int PMPI_Allreduce(const void *, void *, int, MPI_Datatype, MPI_Op, MPI_Comm);
 int PMPI_Alltoall(void *, int, MPI_Datatype, void *, int, MPI_Datatype, MPI_Comm);
 int PMPI_Barrier(MPI_Comm);
 int PMPI_Bcast(void *, int, MPI_Datatype, int, MPI_Comm);
-int PMPIX_Checkpoint(MPI_Comm);
 int PMPI_Comm_create(MPI_Comm, MPI_Group, MPI_Comm *);
 int PMPI_Comm_create_group(MPI_Comm, MPI_Group, int, MPI_Comm *);
 int PMPI_Comm_rank(MPI_Comm, int *);
+int PMPI_Comm_set_handler(MPI_Comm, MPI_Errhandler);
 int PMPI_Comm_size(MPI_Comm, int *);
 int PMPI_Comm_split(MPI_Comm, int, int, MPI_Comm *);
 int PMPI_Finalize(void);
@@ -215,7 +226,7 @@ int PMPI_Irecv(void *, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
 int PMPI_Isend(void *, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
 int PMPI_Recv(void* buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm, MPI_Status *status);
 int PMPI_Recv_init(void *, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
-int PMPI_Reduce(void *, void *, int, MPI_Datatype, MPI_Op, int, MPI_Comm);
+int PMPI_Reduce(const void *, void *, int, MPI_Datatype, MPI_Op, int, MPI_Comm);
 int PMPI_Scatter(void *, int, MPI_Datatype, void *, int, MPI_Datatype, int, MPI_Comm);
 int PMPI_Send(const void *, int, MPI_Datatype, int, int, MPI_Comm);
 int PMPI_Send_init(void *, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
@@ -225,8 +236,11 @@ int PMPIX_Session_finalize(MPIX_Session *);
 int PMPI_Start(MPI_Request *);
 int PMPI_Startall(int, MPI_Request *);
 int PMPI_Wait(MPI_Request *, MPI_Status *);
-int PMPI_Waitall(int, MPI_Request *, MPI_Status *);
-int PMPI_Wtime(void);
+int PMPI_Waitall(int, MPI_Request [], MPI_Status []);
+double PMPI_Wtime(void);
+int PMPIX_Checkpoint(void);
+int PMPIX_Load_checkpoint(void);
+int PMPIX_Get_fault_epoch(int *);
 
 #if 0
 int PMPI_Get_processor_name( char *name, int *resultlen );

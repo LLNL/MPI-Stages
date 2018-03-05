@@ -11,7 +11,7 @@ extern "C"
 
 int PMPI_Wait(MPI_Request *request, MPI_Status *status)
 {
-	int rc = exampi::global::interface->MPI_Wait(request, status);
+	exampi::global::interface->MPI_Wait(request, status);
 	return MPI_SUCCESS;
 }
 

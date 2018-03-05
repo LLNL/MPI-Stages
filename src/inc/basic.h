@@ -9,6 +9,7 @@
 */
 
 #include <ExaMPI.h>
+#include <global.h>
 #include <UDPSocket.h>
 #include <config.h>
 #include <fstream>

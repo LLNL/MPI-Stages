@@ -12,7 +12,8 @@ extern "C"
 int PMPI_Irecv(void *buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm, MPI_Request *request)
 {
 	int rc = exampi::global::interface->MPI_Irecv(buf, count, datatype, dest, tag, comm, request);
-	return MPI_SUCCESS;
+  (void)rc;
+	return rc;
 }
 
 }
