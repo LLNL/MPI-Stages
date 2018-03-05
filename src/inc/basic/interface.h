@@ -4,6 +4,7 @@
 #include <basic.h>
 #include <time.h>
 #include <errHandler.h>
+#include <funcType.h>
 #include "basic/progress.h"
 
 namespace exampi {
@@ -74,7 +75,7 @@ public:
 			const_cast<void *>(buf), &(exampi::global::datatypes[datatype]),
 					szcount }, { dest, comm }, tag).get();
 		std::cout << debug() << "Finished MPI_Send: " << mpiStatusString(st)
-						<< "\n";
+								<< "\n";
 		return 0;
 	}
 
@@ -86,7 +87,7 @@ public:
 			const_cast<void *>(buf), &(exampi::global::datatypes[datatype]),
 					szcount }, tag).get();
 		std::cout << debug() << "Finished MPI_Recv: " << mpiStatusString(st)
-						<< "\n";
+								<< "\n";
 
 		if (st.MPI_ERROR == MPIX_TRY_RELOAD) {
 			memmove(status, &st, sizeof(MPI_Status));
@@ -124,7 +125,24 @@ public:
 		std::future<MPI_Status> *f =
 				reinterpret_cast<std::future<MPI_Status> *>(*request);
 		(*status) = f->get();
-		return 0;
+		return MPI_SUCCESS;
+	}
+
+	virtual int MPI_Waitall(int count, MPI_Request array_of_requests[], MPI_Status array_of_statuses[]) {
+		if (array_of_statuses) {
+			for (int i = 0; i < count; i++) {
+				array_of_statuses[i].MPI_ERROR = MPI_Wait(array_of_requests + i, array_of_statuses + i);
+				if (array_of_statuses[i].MPI_ERROR)
+					return -1;
+			}
+		} else {
+			for (int i = 0; i < count; i++) {
+				int rc = MPI_Wait(array_of_requests + i, nullptr);
+				if (rc)
+					return rc;
+			}
+		}
+		return MPI_SUCCESS;
 	}
 
 	virtual int MPI_Bcast(void *buf, int count, MPI_Datatype datatype, int root,
@@ -229,6 +247,67 @@ public:
 		errHandler handler;
 		handler.setErrToHandle(SIGUSR2);
 		return MPI_SUCCESS;
+	}
+
+	virtual int MPI_Reduce(const void *s_buf, void *r_buf, int count, MPI_Datatype type, MPI_Op op, int root, MPI_Comm comm) {
+		int mask, comm_size, peer, peer_rank, peer_rel_rank, rc;
+		int rank, rel_rank;
+
+		MPI_Status status;
+		Datatype *datatype;
+		size_t bufsize;
+		void *buf;
+
+		if (count == 0) return MPI_SUCCESS;
+
+		size_t szcount = count;
+		datatype = &(exampi::global::datatypes[type]);
+		bufsize = datatype->getExtent() * szcount;
+		memcpy(r_buf, s_buf, bufsize);
+
+		buf = malloc((size_t) bufsize);
+
+		funcType::const_iterator iter = functions.find(op);
+
+		rank = exampi::global::rank;
+		comm_size = exampi::global::worldSize;
+		if (comm_size == 1) return MPI_SUCCESS;
+
+		rel_rank = (rank - root + comm_size) % comm_size;
+
+		for (mask = 1; mask < comm_size; mask <<= 1) {
+			peer_rel_rank = rel_rank ^ mask;
+			if (peer_rel_rank >= comm_size) continue;
+			peer_rank = (peer_rel_rank + root) % comm_size;
+			if (peer_rank == root) {
+				peer = root;
+			}
+			else {
+				peer = peer_rank;
+			}
+			if (rel_rank < peer_rel_rank) {
+				rc = MPI_Recv(buf, count, type, peer, 0, comm, &status);
+				if (rc == MPIX_TRY_RELOAD) return rc;
+				(*iter->second)(buf, r_buf, &count, &type);
+			}
+			else {
+				rc = MPI_Send(r_buf, count, type, peer, 0, comm);
+				if (rc == MPIX_TRY_RELOAD) return rc;
+				break;
+			}
+		}
+		free(buf);
+		return MPI_SUCCESS;
+	}
+
+	virtual int MPI_Allreduce(const void *s_buf, void *r_buf, int count, MPI_Datatype type, MPI_Op op, MPI_Comm comm) {
+		int rc = MPI_Reduce(s_buf, r_buf, count, type, op, 0, comm);
+		if (rc != MPI_SUCCESS) {
+			return rc;
+		}
+		rc = MPI_Bcast(r_buf, count, type, 0, comm);
+
+		return rc;
 	}
 };
 

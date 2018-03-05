@@ -81,7 +81,7 @@ int main_loop(int epoch, int *done) {
 		Application_Checkpoint_Read(epoch - 1, rank, smallmessage);
 		if (rank == 0)
 			++smallmessage[0];
-		r = 20;
+		//r = 20;
 	}
 	else {
 		smallmessage[0] = 0;
