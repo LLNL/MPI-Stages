@@ -309,6 +309,11 @@ public:
 
 		return rc;
 	}
+
+	virtual int MPI_Abort(MPI_Comm comm, int errorcode) {
+		exit(-1);
+		return errorcode;
+	}
 };
 
 } // namespace basic

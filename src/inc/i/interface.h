@@ -29,6 +29,7 @@ class Interface
     virtual int MPI_Comm_set_errhandler(MPI_Comm comm, MPI_Errhandler err) = 0;
     virtual int MPI_Reduce(const void *s_buf, void *r_buf, int count, MPI_Datatype type, MPI_Op op, int root, MPI_Comm comm) = 0;
     virtual int MPI_Allreduce(const void *s_buf, void *r_buf, int count, MPI_Datatype type, MPI_Op op, MPI_Comm comm) = 0;
+    virtual int MPI_Abort(MPI_Comm comm, int errorcode) = 0;
     //virtual int MPIX_Checkpoint(MPI_Comm comm) = 0;
 };
 

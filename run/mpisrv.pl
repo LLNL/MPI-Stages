@@ -102,7 +102,7 @@ while(1)  # main serve loop
           else  # child
           {
             close $childfh;
-
+            setpgrp(0, 0);
             my $configname = "mpirun.$state{rank}.config.tmp";
             my $epochname = "mpirun.$state{rank}.epoch.tmp";
             open(my $config, ">", $configname) or die "Couldn't create temporary file";
@@ -157,8 +157,11 @@ while(1)  # main serve loop
           close $epochfh;
           waitpid($pid, 0);
         }
-          #elsif($cmd eq "!kill")
-          #{
+          elsif($cmd eq "!kill")
+          {
+              close $incoming;
+              kill -9, $pid;
+              exit(0);
           # whatever you say
           #say "Got request to terminate program :(";
           #kill 9, $pid;
@@ -172,7 +175,7 @@ while(1)  # main serve loop
           #say $incoming $result;
           #say $incoming $lastepoch;
           #close $epochfh;
-          #}
+          }
         elsif($cmd eq "!done")
         {
           # k

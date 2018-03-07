@@ -104,6 +104,7 @@ SendAllCmd($rnodes, "!run");
 
 my $live = scalar keys %nodes;
 my $done = 0;
+my $isAbort = 1;
 my $latest = 1e9;
 print "Starting wait on $live nodes...\n";
 until($done)
@@ -151,33 +152,40 @@ until($done)
         print "\t Signal $sig\n";
         print "\t Status $st\n";
         print "\t Rank $r\n";
-          
-        print "Relaunching process...\n";
-        #SendAllCmd($rnodes, "!kill");
-        my $lepoch = 2**31 - 1;
-        foreach my $h (keys %nodes) {
-            my $epochname = "mpirun.$nodes{$h}{rank}.epoch.tmp";
-            open(my $epochfh, "<", $epochname);
-            $epochfh->autoflush(1);
-            my $ep = <$epochfh>;
-            chomp $ep;
-            if ($ep < $lepoch) {
-                $lepoch = $ep;
-            }
-            close $epochfh;
-        }
-        foreach my $h (keys %nodes)
-        {
-            #say { $nodes{$h}{sock} } "!kill";
-            if ($nodes{$h}{rank} == $r) {
-                SendCmd($rnodes, $h, "!run$lowest");
-                #last;
-            }
-            else
-            {
-                SendCmd($rnodes, $h, "!err$lowest");
-            }
-        }
+        
+          if ($st == 255) {
+              $isAbort = 0;
+              $live = 0;
+              SendAllCmd($rnodes, "!kill");
+          }
+          else {
+              print "Relaunching process...\n";
+              #SendAllCmd($rnodes, "!kill");
+              my $lepoch = 2**31 - 1;
+              foreach my $h (keys %nodes) {
+                  my $epochname = "mpirun.$nodes{$h}{rank}.epoch.tmp";
+                  open(my $epochfh, "<", $epochname);
+                  $epochfh->autoflush(1);
+                  my $ep = <$epochfh>;
+                  chomp $ep;
+                  if ($ep < $lepoch) {
+                      $lepoch = $ep;
+                  }
+                  close $epochfh;
+              }
+              foreach my $h (keys %nodes)
+              {
+                  #say { $nodes{$h}{sock} } "!kill";
+                  if ($nodes{$h}{rank} == $r) {
+                      SendCmd($rnodes, $h, "!run$lowest");
+                      #last;
+                  }
+                  else
+                  {
+                      SendCmd($rnodes, $h, "!err$lowest");
+                  }
+              }
+          }
       }
     }
   }
@@ -194,6 +202,8 @@ until($done)
     #
     #}
 }
+if ($isAbort) {
+    SendAllCmd($rnodes, "!done");
+}
 
-SendAllCmd($rnodes, "!done");
 print "Finished!  Exiting...\n";
