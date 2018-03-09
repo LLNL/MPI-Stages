@@ -124,7 +124,8 @@ while(1)  # main serve loop
             close $epochconfig;
 
             my @args = ("$configname", "$state{rank}", "$epochname", "$state{epoch}", "$state{bin}");
-            push(@args, @ARGV);
+            my @arglist = split(/;/, $state{argstr});
+            push(@args, @arglist);
             print "Launching $state{bin} as rank $state{rank}\n";
             my $bin = $state{bin};  # can't use hash in system args??
             my $result = system $bin @args;

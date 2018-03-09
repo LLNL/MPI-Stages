@@ -31,6 +31,11 @@ sub SendAllCmd
 }
 
 my ($bin) = @ARGV;
+my $numArgs = $#ARGV;
+my $argstr;
+if ($numArgs > 1) {
+    $argstr = join(";", @ARGV[1..$#ARGV]);
+}
 my $MPISOCKET = 4422;
 
 my $sel = IO::Select->new();
@@ -83,7 +88,7 @@ foreach my $h (keys %nodes)
 }
 
 print "Sending basic init...\n";
-SendAllCmd($rnodes, "bin\n$bin\nepoch\n$epoch\nconfigstr\n$configstr");
+SendAllCmd($rnodes, "bin\n$bin\nepoch\n$epoch\nconfigstr\n$configstr\nargstr\n$argstr");
 foreach my $h (keys %nodes)
 {
   #say { $nodes{$h}{sock} } "bin\n$bin";
