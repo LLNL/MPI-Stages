@@ -16,6 +16,9 @@ sub SendCmd
   my $haddr = shift;
   my $str = shift;
   print "SendCmd to $haddr:  $str\n";
+    if ($str =~ m/bin/) {
+        $str .= "%" . $$hr{$haddr}{rank};
+    }
   print {$$hr{$haddr}{sock}} "$str\n";
 }
 
@@ -88,18 +91,18 @@ foreach my $h (keys %nodes)
 }
 
 print "Sending basic init...\n";
-SendAllCmd($rnodes, "bin\n$bin\nepoch\n$epoch\nconfigstr\n$configstr\nargstr\n$argstr");
-foreach my $h (keys %nodes)
-{
+SendAllCmd($rnodes, "bin\n$bin%$epoch%$argstr");
+#foreach my $h (keys %nodes)
+#{
   #say { $nodes{$h}{sock} } "bin\n$bin";
   #say { $nodes{$h}{sock} } "rank\n$nodes{$h}{rank}";
   #say { $nodes{$h}{sock} } "epoch\n$epoch";
   #say { $nodes{$h}{sock} } "configstr\n$configstr";
-  SendCmd($rnodes, $h, "rank\n$nodes{$h}{rank}");
-}
+  #SendCmd($rnodes, $h, "rank\n$nodes{$h}{rank}");
+#}
 
-print "Launching...\n";
-SendAllCmd($rnodes, "!run");
+#print "Launching...\n";
+#SendAllCmd($rnodes, "!run");
 #foreach my $h (keys %nodes)
 #{
 #  SendCmd()
@@ -125,7 +128,7 @@ until($done)
       print "Got response; now $live live\n";
       my $return = <$s>;
       chomp $return;
-      if ($return == 500) {
+      if ($return eq "barrier") {
           say "In barrier for MPI_Init";
           if ($live == 0) {
               $live = scalar keys %nodes;
@@ -133,6 +136,13 @@ until($done)
           }
           next;
       }
+        elsif ($return eq "run") {
+            if ($live == 0) {
+                $live = scalar keys %nodes;
+                SendAllCmd($rnodes, "!run");
+            }
+            next;
+        }
       my $lastepoch = <$s>;
       chomp $lastepoch;
       my $r = <$s>;

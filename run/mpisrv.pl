@@ -27,8 +27,7 @@ sub sigusr1_handler {
     $childpid = <$pidfh>;
     chomp $childpid;
     close $pidfh;
-    my $barrier = 500;
-    print $incoming "$barrier\n";
+    print $incoming "barrier\n";
 }
 
 my $listen = new IO::Socket::INET (
@@ -42,10 +41,38 @@ $listen->autoflush(1);
 my $sel = IO::Select->new();
 die "Couldn't create listening socket; $!" unless $listen;
 
+open(my $hostsfh, "<", "MPIHOSTS") or die "Can't read MPIHOSTS";
+my @hosts = <$hostsfh>;
+chomp @hosts;
+my $sz = scalar @hosts;
+my $nextrank = 0;
+my $host;
+my %nodes;
+
+my %config;
+$config{"size"} = "$sz";
+print "Generating node table...\n";
+foreach $host (@hosts)
+{
+    print "\tAssigning $nextrank to $host\n";
+    $nodes{$host}{rank} = $nextrank;
+    $nextrank += 1;
+}
+
+print "Generating config string...\n";
+my @configlist = ("size:$sz");
+foreach my $k (keys %nodes)
+{
+    print "Registering $nodes{$k}{rank}:$k\n";
+    push (@configlist, "$nodes{$k}{rank}:$k");
+}
+my $configstr = join(";",@configlist);
+
+
 my $pid;
 my $childfh;
 my $parentfh;
-my lepoch;
+my $lepoch;
 my $done;
 
 while(1)  # main serve loop
@@ -107,21 +134,21 @@ while(1)  # main serve loop
             my $epochname = "mpirun.$state{rank}.epoch.tmp";
             open(my $config, ">", $configname) or die "Couldn't create temporary file";
             $config->autoflush(1);
-            print $config "ppid:$parentpid\n" . join("\n", split(/;/, $state{configstr}));
+            print $config "ppid:$parentpid\n" . join("\n", split(/;/, $configstr));
             close $config;
               if ($state{epoch} == 0) {
                   open(my $epochconfig, ">", $epochname) or die "Couldn't create temporary epoch file";
                   $epochconfig->autoflush(1);
                   print $epochconfig "$state{epoch}\n";
+                  close $epochconfig;
               }
               else {
                   open(my $epochconfig, ">", $epochname) or die "Couldn't create temporary epoch file";
                   $epochconfig->autoflush(1);
                   print $epochconfig "$lepoch\n";
                   $state{epoch} = $lepoch;
+                  close $epochconfig;
               }
-            
-            close $epochconfig;
 
             my @args = ("$configname", "$state{rank}", "$epochname", "$state{epoch}", "$state{bin}");
             my @arglist = split(/;/, $state{argstr});
@@ -185,9 +212,18 @@ while(1)  # main serve loop
         }
         else  # just do a state update
         {
-          $state{$cmd} = <$s>;
-          chomp $state{$cmd};
+            my $status = <$s>;
+            chomp $status;
+            if ($status =~ m/%/) {
+                my @statuslist = split(/%/, $status);
+                $state{"bin"} = $statuslist[0];
+                $state{"epoch"} = $statuslist[1];
+                $state{"argstr"} = $statuslist[2];
+                $state{"rank"} = $statuslist[3];
+            }
+          
           print "Got update $cmd = $state{$cmd}\n";
+          print $incoming "run\n";
         }
         print "Done with cmd, about to read from socket again...\n";
       }
