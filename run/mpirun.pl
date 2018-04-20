@@ -192,12 +192,12 @@ until($done)
               {
                   #say { $nodes{$h}{sock} } "!kill";
                   if ($nodes{$h}{rank} == $r) {
-                      SendCmd($rnodes, $h, "!run$lowest");
+                      SendCmd($rnodes, $h, "!run$lepoch");
                       #last;
                   }
                   else
                   {
-                      SendCmd($rnodes, $h, "!err$lowest");
+                      SendCmd($rnodes, $h, "!err$lepoch");
                   }
               }
           }
