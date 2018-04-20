@@ -1,7 +1,7 @@
 binname = allreduce
 
 all:
-	$(CC) $(CFLAGS) allreduce.c
+	$(CC) $(CFLAGS) -std=c99 allreduce.c
 	$(CCPP) $(LDFLAGS) -o $(binname) allreduce.o -lexampi
 
 clean:
