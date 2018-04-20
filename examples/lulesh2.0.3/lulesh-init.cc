@@ -735,7 +735,7 @@ void InitMeshDecomp(Int_t numRanks, Int_t myRank,
    return;
 }
 
-void write(Domain& locDom, struct cmdLineOpts &opts, int rank, int epoch) {
+void write(int epoch, int rank, Domain& locDom, struct cmdLineOpts &opts) {
 	std::ofstream t;
 	char buf[20];
 	sprintf(buf, "check_%d_%d", rank, epoch);
@@ -1081,7 +1081,7 @@ void write(Domain& locDom, struct cmdLineOpts &opts, int rank, int epoch) {
 	t.close();
 }
 
-void read(Domain& locDom, struct cmdLineOpts &opts, int rank, int epoch) {
+void read(int epoch, int rank, Domain& locDom, struct cmdLineOpts &opts) {
 	std::ifstream t;
 	char buf[20];
 	sprintf(buf, "check_%d_%d", rank, epoch);

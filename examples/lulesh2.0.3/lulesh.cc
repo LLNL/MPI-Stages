@@ -2752,11 +2752,12 @@ int LagrangeLeapFrog(Domain& domain)
 
 
 /******************************************/
-void Application_Checkpoint_Read(Domain& locDom, struct cmdLineOpts &opts, int rank, int epoch) {
-	read(domain, opts, rank, epoch);
+void Application_Checkpoint_Read(int epoch, int rank, Domain& domain, struct cmdLineOpts &opts) {
+   read(epoch, rank, domain, opts);
 }
-void Application_Checkpoint_Write(Domain& locDom, struct cmdLineOpts &opts, int rank, int epoch) {
-	write(domain, opts, rank, epoch);
+
+void Application_Checkpoint_Write(int epoch, int rank, Domain& domain, struct cmdLineOpts &opts) {
+   write(epoch, rank, domain, opts);
 }
 /******************************************/
 
@@ -2830,7 +2831,7 @@ int main_loop(int argc, char **argv, int epoch, int *done)
 
    if (argc == 0) {
 	   locDom = new Domain();
-	   Application_Checkpoint_Read(*locDom, opts, myRank, epoch);
+	   Application_Checkpoint_Read(epoch - 1, myRank, *locDom, opts);
 	   printf("Domain value %d %lf %lf", locDom->cycle(), locDom->time(), locDom->stoptime());
 	   printf("Recovered time %lf", MPI_Wtime());
 	   exit(0);

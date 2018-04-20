@@ -143,8 +143,8 @@ class Domain {
    //
    // ALLOCATION
    //
-   friend void write(Domain& locDom, struct cmdLineOpts &opts, int rank, int epoch);
-   friend void read(Domain& locDom, struct cmdLineOpts &opts, int rank, int epoch);
+   friend void read(int epoch, int rank, Domain& domain, struct cmdLineOpts &opts);
+   friend void write(int epoch, int rank, Domain& domain, struct cmdLineOpts &opts);
 
    void AllocateNodePersistent(Int_t numNode) // Node-centered
    {
