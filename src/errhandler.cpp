@@ -26,6 +26,10 @@ void errHandler::setErrToZero() {
     is_errSet = 0;
 }
 
+void errHandler::setErrToOne() {
+    is_errSet = 1;
+}
+
 int errHandler::isErrSet()
 {
     return is_errSet;
