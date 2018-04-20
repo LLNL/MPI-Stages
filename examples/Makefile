@@ -1,4 +1,4 @@
-dirs = hello ring $(wildcard collectives/*) check pseudo waitall
+dirs = hello ring $(wildcard collectives/*) check pseudo waitall lulesh2.0.3
 
 export basedir = $(realpath ..)
 export libdir = $(basedir)/src
