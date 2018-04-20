@@ -94,6 +94,7 @@ public:
 	int source;
 	MPI_Comm comm;
 	UserArray array;
+	struct iovec temp;
 	Endpoint endpoint;
 	MPI_Status status; // maybe not needed --sf
 	std::promise<MPI_Status> completionPromise;
@@ -144,13 +145,25 @@ public:
 		iov.push_back(array.getIovec());
 		return iov;
 	}
+
+	std::vector<struct iovec> getTempIovecs() {
+		std::vector<struct iovec> iov;
+		iov.push_back(getHeaderIovec());
+		char tempBuff[65000];
+		temp.iov_base = tempBuff;
+		temp.iov_len = sizeof(tempBuff);
+		iov.push_back(temp);
+		return iov;
+	}
 };
 
 class Progress: public exampi::i::Progress {
 private:
 	AsyncQueue<Request> outbox;
 	std::list<std::unique_ptr<Request>> matchList;
+	std::list<std::unique_ptr<Request>> unexpectedList;
 	std::mutex matchLock;
+	std::mutex unexpectedLock;
 	std::thread sendThread;
 	std::thread matchThread;
 	bool alive;
@@ -185,7 +198,8 @@ private:
 
 	static void matchThreadProc(bool *alive,
 			std::list<std::unique_ptr<Request>> *matchList,
-			std::mutex *matchLock) {
+			std::list<std::unique_ptr<Request>> *unexpectedList,
+			std::mutex *matchLock, std::mutex *unexpectedLock) {
 		std::cout << debug() << "Launching matchThreadProc(...)\n";
 		while (*alive) {
 			std::unique_ptr<Request> r = make_unique<Request>();
@@ -195,18 +209,30 @@ private:
 			r->unpack();
 
 			std::cout << debug() << "matchThread:  received\n";
+			unexpectedLock->lock();
 			matchLock->lock();
 			int t = r->tag;
+			int s = r->source;
 			auto result =
 					std::find_if(matchList->begin(), matchList->end(),
-							[t](const std::unique_ptr<Request> &i) -> bool {return i->tag == t;});
+							[t, s](const std::unique_ptr<Request> &i) -> bool {return (i->tag == t && i->source == s);});
 			if (result == matchList->end()) {
+				matchLock->unlock();
 				std::cout << "WARNING:  Failed to match incoming msg\n";
 				if (t == MPIX_CLEANUP_TAG) {
 					exampi::global::transport->cleanUp(0);
 					exampi::global::progress->stop();
+					unexpectedLock->unlock();
+				}
+				else {
+					std::cout << debug() << "\tUnexpected message\n";
+					std::unique_ptr<Request> tmp = make_unique<Request>();
+					exampi::global::transport->receive(tmp->getTempIovecs(), 0);
+					unexpectedList.push_back(std::move(tmp));
+					unexpectedLock->unlock();
 				}
 			} else {
+				unexpectedLock->unlock();
 				std::cout << debug()
 								<< "matchThread:  matched, about to receive remainder\n";
 				std::cout << debug() << "\tTarget array is "
@@ -219,9 +245,10 @@ private:
 					.cancelled = 0, .MPI_SOURCE = (*result)->source,
 					.MPI_TAG = (*result)->tag, .MPI_ERROR = MPI_SUCCESS });
 				matchList->erase(result);
+				matchLock->unlock();
 			}
 
-			matchLock->unlock();
+			//matchLock->unlock();
 		}
 	}
 public:
@@ -234,8 +261,8 @@ public:
 		alive = true;
 		sendThread = std::thread { sendThreadProc, &alive, &outbox };
 		//recvThread = std::thread{recvThreadProc, &alive, &inbox};
-		matchThread = std::thread { matchThreadProc, &alive, &matchList,
-			&matchLock };
+		matchThread = std::thread { matchThreadProc, &alive, &matchList, &unexpectedList,
+			&matchLock, &unexpectedLock };
 		return 0;
 	}
 
@@ -253,17 +280,23 @@ public:
 						MPIX_TRY_RELOAD });
 		}
 		matchList.clear();
+		unexpectedList.clear();
 		return 0;
 	}
 
 	virtual void cleanUp() {
-		if (matchList.size() > 0) {
+		matchLock.lock();
+		int size = matchList.size();
+		matchLock.unlock();
+		if (size > 0) {
 			errHandler handler;
 			handler.setErrToZero();
 			exampi::global::interface->MPI_Send((void *) 0, 0, MPI_INT,
 					exampi::global::rank, MPIX_CLEANUP_TAG, MPI_COMM_WORLD);
+			handler.setErrToOne();
 		}
 	}
+
 
 	virtual void barrier() {
 		std::stringstream filename;
@@ -271,6 +304,7 @@ public:
 		std::ofstream t(filename.str());
 		t << ::getpid();
 		t.close();
+
 
 		sigHandler signal;
 		signal.setSignalToHandle(SIGUSR1);
@@ -297,15 +331,43 @@ public:
 		return result;
 	}
 
-	virtual std::future<MPI_Status> postRecv(UserArray array, int tag) {
+	virtual std::future<MPI_Status> postRecv(UserArray array, Endpoint source, int tag) {
 		std::cout << debug() << "\tbasic::Interface::postRecv(...)\n";
+
 		std::unique_ptr<Request> r = make_unique<Request>();
 		r->op = Op::Receive;
+		r->source = source.rank;
 		r->array = array;
-		r->endpoint.invalid();
+		r->endpoint = source;
 		r->tag = tag;
+		int s = source.rank;
 		auto result = r->completionPromise.get_future();
-		matchList.push_back(std::move(r));
+
+		unexpectedLock.lock();
+		matchLock.lock();
+			auto res = std::find_if(unexpectedList->begin(), unexpectedList->end(),
+							[tag,s](const std::unique_ptr<Request> &i) -> bool {i->unpack();return i->tag == tag && i->source == s;});
+			if (res == unexpectedList->end()) {
+				unexpectedLock.unlock();
+				matchList.push_back(std::move(r));
+				matchLock.unlock();
+			}
+			else {
+				matchLock.unlock();
+				std::cout << "Found match in unexpectedList\n";
+				(*res)->unpack();
+				//memcpy(array.ptr, )
+				memcpy(array.getIovec().iov_base, (*res)->temp.iov_base, array.getIovec().iov_len);
+
+				(r)->completionPromise.set_value( { .count = 0, .cancelled = 0,
+					.MPI_SOURCE = (*res)->source, .MPI_TAG = (*res)->tag, .MPI_ERROR =
+					MPI_SUCCESS});
+				unexpectedList.erase(res);
+				unexpectedLock.unlock();
+
+			}
+
+
 		return result;
 	}
 
@@ -318,8 +380,8 @@ public:
 		std::cout << "In progress load";
 		alive = true;
 		sendThread = std::thread { sendThreadProc, &alive, &outbox };
-		matchThread = std::thread { matchThreadProc, &alive, &matchList,
-			&matchLock };
+		matchThread = std::thread { matchThreadProc, &alive, &matchList, &unexpectedList,
+			&matchLock, &unexpectedLock };
 		return MPI_SUCCESS;
 	}
 

@@ -90,20 +90,25 @@ class AsyncQueue
   protected:
     ListType data;
     PromiseListType promises;
-    std::mutex putLock;
-    std::mutex getLock;
+    std::mutex promiseLock;
+    std::mutex dataLock;
+    std::condition_variable pcond;
 
     void test()
     {
       std::cout << debug() << "\tAQ:  testing\n";
+      std::unique_lock<std::mutex> lock(promiseLock);
+      pcond.wait(lock, [&](){return (promises.size() > 0 && data.size() > 0);})
       if(promises.size() > 0)
         if(data.size() > 0)
         {
           std::cout << debug() << "\tAQ:  data and promises, advancing\n";
           promises.front()->set_value(std::move(data.front()));
           promises.pop_front();
-          data.pop_front();
+          if (!data.empty())
+        	  data.pop_front();
         }
+      lock.unlock();
       std::cout << debug() << "\tAQ:  done testing\n";
     }
   public:
@@ -115,10 +120,13 @@ class AsyncQueue
     std::future<DataType> promise()
     { 
       std::cout << debug() << "\tAQ: Promise requested.  data(" << data.size() << ") promises(" << promises.size() << ")\n";
+      std::unique_lock<std::mutex> lock(promiseLock);
       promises.push_back(make_unique<PromiseType>());
       std::cout << debug() << "\tAQ: Promise pushed; about to get_future...\n";
       auto result = promises.back()->get_future();
-      test();
+      lock.unlock();
+      pcond.notify_all();
+      //test();
       return result;
     }
 

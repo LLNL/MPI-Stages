@@ -82,6 +82,11 @@ public:
 	virtual int MPI_Recv(void *buf, int count, MPI_Datatype datatype,
 			int source, int tag, MPI_Comm comm, MPI_Status *status) {
 		//exampi::global::progress->recv_data(buf, count, datatype, source, tag, comm, status);
+		errHandler handler;
+		if (handler.isErrSet()) {
+			handler.setErrToZero();
+			return MPIX_TRY_RELOAD;
+		}
 		size_t szcount = count;
 		MPI_Status st = exampi::global::progress->postRecv( {
 			const_cast<void *>(buf), &(exampi::global::datatypes[datatype]),
@@ -90,6 +95,7 @@ public:
 								<< "\n";
 
 		if (st.MPI_ERROR == MPIX_TRY_RELOAD) {
+			handler.setErrToZero();
 			memmove(status, &st, sizeof(MPI_Status));
 			return MPIX_TRY_RELOAD;
 		}
@@ -99,6 +105,11 @@ public:
 
 	virtual int MPI_Isend(const void *buf, int count, MPI_Datatype datatype,
 			int dest, int tag, MPI_Comm comm, MPI_Request *request) {
+		errHandler handler;
+		if (handler.isErrSet()) {
+			handler.setErrToZero();
+			return MPIX_TRY_RELOAD;
+		}
 		size_t szcount = count;
 		// have to move construct the future; i'll fix this later with a pool in progress
 		std::future<MPI_Status> *f = new std::future<MPI_Status>();
@@ -112,28 +123,41 @@ public:
 
 	virtual int MPI_Irecv(void *buf, int count, MPI_Datatype datatype,
 			int source, int tag, MPI_Comm comm, MPI_Request *request) {
+		errHandler handler;
+		if (handler.isErrSet()) {
+			handler.setErrToZero();
+			return MPIX_TRY_RELOAD;
+		}
 		//exampi::global::progress->recv_data(buf, count, datatype, source, tag, comm, status);
 		size_t szcount = count;
 		std::future<MPI_Status> *f = new std::future<MPI_Status>();
 		(*f) = exampi::global::progress->postRecv( { const_cast<void *>(buf),
-			&(exampi::global::datatypes[datatype]), szcount }, tag);
+			&(exampi::global::datatypes[datatype]), szcount }, {source, comm}, tag);
 		(*request) = reinterpret_cast<MPI_Request>(f);
 		return 0;
 	}
 
 	virtual int MPI_Wait(MPI_Request *request, MPI_Status *status) {
+		errHandler handler;
+		if (handler.isErrSet()) {
+			handler.setErrToZero();
+			return MPIX_TRY_RELOAD;
+		}
 		std::future<MPI_Status> *f =
 				reinterpret_cast<std::future<MPI_Status> *>(*request);
 		(*status) = f->get();
+
 		return MPI_SUCCESS;
 	}
 
 	virtual int MPI_Waitall(int count, MPI_Request array_of_requests[], MPI_Status array_of_statuses[]) {
 		if (array_of_statuses) {
 			for (int i = 0; i < count; i++) {
-				array_of_statuses[i].MPI_ERROR = MPI_Wait(array_of_requests + i, array_of_statuses + i);
-				if (array_of_statuses[i].MPI_ERROR)
-					return -1;
+				if (array_of_request[i]) {
+					array_of_statuses[i].MPI_ERROR = MPI_Wait(array_of_requests + i, array_of_statuses + i);
+					if (array_of_statuses[i].MPI_ERROR)
+						return -1;
+				}
 			}
 		} else {
 			for (int i = 0; i < count; i++) {
@@ -192,7 +216,7 @@ public:
 		ef >> exampi::global::epoch;
 		ef.close();
 
-		return MPIX_SUCCESS_RECOVERY;
+		return MPI_SUCCESS_RECOVERY;
 	}
 
 	virtual int MPIX_Get_fault_epoch(int *epoch) {
@@ -210,26 +234,49 @@ public:
 		int rank, size;
 		MPI_Status status;
 		int coll_tag = 0;
-
+		int rc;
 		MPI_Comm_rank(comm, &rank);
 		MPI_Comm_size(comm, &size);
 
 		if (rank == 0) {
-			MPI_Send((void *) 0, 0, MPI_INT, (rank + 1) % size, coll_tag, comm);
-			MPI_Recv((void *) 0, 0, MPI_INT, (rank + size - 1) % size, coll_tag,
+			rc = MPI_Send((void *) 0, 0, MPI_INT, (rank + 1) % size, coll_tag, comm);
+			if (rc == MPIX_TRY_RELOAD) {
+				return MPIX_TRY_RELOAD;
+			}
+			rc = MPI_Recv((void *) 0, 0, MPI_INT, (rank + size - 1) % size, coll_tag,
 					comm, &status);
-			MPI_Send((void *) 0, 0, MPI_INT, (rank + 1) % size, coll_tag, comm);
-			MPI_Recv((void *) 0, 0, MPI_INT, (rank + size - 1) % size, coll_tag,
+			if (rc == MPIX_TRY_RELOAD) {
+				return MPIX_TRY_RELOAD;
+			}
+			rc = MPI_Send((void *) 0, 0, MPI_INT, (rank + 1) % size, coll_tag, comm);
+			if (rc == MPIX_TRY_RELOAD) {
+				return MPIX_TRY_RELOAD;
+			}
+			rc = MPI_Recv((void *) 0, 0, MPI_INT, (rank + size - 1) % size, coll_tag,
 					comm, &status);
+			if (rc == MPIX_TRY_RELOAD) {
+				return MPIX_TRY_RELOAD;
+			}
 		} else {
-			MPI_Recv((void *) 0, 0, MPI_INT, (rank + size - 1) % size, coll_tag,
+			rc = MPI_Recv((void *) 0, 0, MPI_INT, (rank + size - 1) % size, coll_tag,
 					comm, &status);
-			MPI_Send((void *) 0, 0, MPI_INT, (rank + 1) % size, coll_tag, comm);
-			MPI_Recv((void *) 0, 0, MPI_INT, (rank + size - 1) % size, coll_tag,
+			if (rc == MPIX_TRY_RELOAD) {
+				return MPIX_TRY_RELOAD;
+			}
+			rc = MPI_Send((void *) 0, 0, MPI_INT, (rank + 1) % size, coll_tag, comm);
+			if (rc == MPIX_TRY_RELOAD) {
+				return MPIX_TRY_RELOAD;
+			}
+			rc = MPI_Recv((void *) 0, 0, MPI_INT, (rank + size - 1) % size, coll_tag,
 					comm, &status);
-			MPI_Send((void *) 0, 0, MPI_INT, (rank + 1) % size, coll_tag, comm);
+			if (rc == MPIX_TRY_RELOAD) {
+				return MPIX_TRY_RELOAD;
+			}
+			rc = MPI_Send((void *) 0, 0, MPI_INT, (rank + 1) % size, coll_tag, comm);
+			if (rc == MPIX_TRY_RELOAD) {
+				return MPIX_TRY_RELOAD;
+			}
 		}
-
 		return MPI_SUCCESS;
 	}
 
@@ -250,6 +297,11 @@ public:
 	}
 
 	virtual int MPI_Reduce(const void *s_buf, void *r_buf, int count, MPI_Datatype type, MPI_Op op, int root, MPI_Comm comm) {
+		errHandler handler;
+				if (handler.isErrSet()) {
+					handler.setErrToZero();
+					return MPIX_TRY_RELOAD;
+				}
 		int mask, comm_size, peer, peer_rank, peer_rel_rank, rc;
 		int rank, rel_rank;
 
@@ -291,6 +343,7 @@ public:
 				(*iter->second)(buf, r_buf, &count, &type);
 			}
 			else {
+				usleep(500000);
 				rc = MPI_Send(r_buf, count, type, peer, 0, comm);
 				if (rc == MPIX_TRY_RELOAD) return rc;
 				break;
@@ -301,6 +354,11 @@ public:
 	}
 
 	virtual int MPI_Allreduce(const void *s_buf, void *r_buf, int count, MPI_Datatype type, MPI_Op op, MPI_Comm comm) {
+		errHandler handler;
+				if (handler.isErrSet()) {
+					handler.setErrToZero();
+					return MPIX_TRY_RELOAD;
+				}
 		int rc = MPI_Reduce(s_buf, r_buf, count, type, op, 0, comm);
 		if (rc != MPI_SUCCESS) {
 			return rc;

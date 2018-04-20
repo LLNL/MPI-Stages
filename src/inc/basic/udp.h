@@ -45,11 +45,14 @@ class Message
     {
       hdr.msg_control = NULL;
       hdr.msg_controllen = 0;
+      hdr.msg_name = NULL;
+      hdr.msg_namelen = 0;
     }
 
     void addBuf(exampi::i::Buf *b) { iov.push_back(b->iov()); }
     void updateHeader()
     {
+    	std::cout << "length of message" << iov[1].iov_len << " header "<< iov[0].iov_len << "\n";
       hdr.msg_iov = iov.data();
       hdr.msg_iovlen = iov.size();
     }
@@ -71,13 +74,16 @@ class Message
       std::cout << "\tbasic::Transport::udp::send\n"
                 << "\t\t" << hdr.msg_iovlen << " iovecs\n"
                 << "\t\t" << str << "\n";
-      sendmsg(sock.getFd(), &hdr, 0); 
+
+      ssize_t length = sendmsg(sock.getFd(), &hdr, 0);
+      std::cout << "Send to UDP " << length << "\n";
     }
     void receive(Socket &sock) 
     { 
       std::cout << debug() << "basic::Transport::udp::recv\n";
       updateHeader(); 
-      recvmsg(sock.getFd(), &hdr, MSG_WAITALL); 
+      ssize_t length = recvmsg(sock.getFd(), &hdr, MSG_WAITALL);
+      std::cout << "Received from UDP " << length << "\n";
       std::cout << debug() << "basic::Transport::udp::recv exiting\n";
     }
     void peek(Socket &sock)
