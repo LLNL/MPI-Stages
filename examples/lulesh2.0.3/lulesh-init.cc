@@ -10,6 +10,8 @@
 #include <string.h>
 #include <limits.h>
 #include <cstdlib>
+#include <iostream>
+#include <fstream>
 #include "lulesh.h"
 
 /////////////////////////////////////////////////////////////////////
@@ -1071,9 +1073,9 @@ void write(int epoch, int rank, Domain& locDom, struct cmdLineOpts &opts) {
 	t.write(reinterpret_cast<char *>(&locDom.m_planeMax), sizeof(int));
 
 	//Size of comm send/recv buffer
-	t.write(reinterpret_cast<char *>(&locDom.commBuffSize), sizeof(int));
-	t.write(reinterpret_cast<char *>(locDom.commDataSend), sizeof(double) * locDom.commBuffSize);
-	t.write(reinterpret_cast<char *>(locDom.commDataRecv), sizeof(double) * locDom.commBuffSize);
+	t.write(reinterpret_cast<char *>(&locDom.commBufSize), sizeof(int));
+	t.write(reinterpret_cast<char *>(locDom.commDataSend), sizeof(double) * locDom.commBufSize);
+	t.write(reinterpret_cast<char *>(locDom.commDataRecv), sizeof(double) * locDom.commBufSize);
 
 	//struct
 	t.write(reinterpret_cast<char *>(&opts), sizeof(opts));
@@ -1527,11 +1529,11 @@ void read(int epoch, int rank, Domain& locDom, struct cmdLineOpts &opts) {
 
 	Index_t comm_buf_size;
 	t.read(reinterpret_cast<char *>(&comm_buf_size), sizeof(int));
-	locDom.commBuffSize = comm_buf_size;
-	locDom.commDataSend = new Real_t[locDom.commBuffSize];
-	t.read(reinterpret_cast<char *>(locDom.commDataSend), sizeof(double) * locDom.commBuffSize);
-	locDom.commDataRecv = new Real_t[locDom.commBuffSize];
-	t.read(reinterpret_cast<char *>(locDom.commDataRecv), sizeof(double) * locDom.commBuffSize);
+	locDom.commBufSize = comm_buf_size;
+	locDom.commDataSend = new Real_t[locDom.commBufSize];
+	t.read(reinterpret_cast<char *>(locDom.commDataSend), sizeof(double) * locDom.commBufSize);
+	locDom.commDataRecv = new Real_t[locDom.commBufSize];
+	t.read(reinterpret_cast<char *>(locDom.commDataRecv), sizeof(double) * locDom.commBufSize);
 
 	//struct
 	t.read(reinterpret_cast<char *>(&opts), sizeof(opts));

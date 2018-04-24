@@ -5,6 +5,7 @@
 
 #include <mpi.h>
 #include <string.h>
+#include <stdlib.h>
 
 /* Comm Routines */
 

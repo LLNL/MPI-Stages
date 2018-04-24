@@ -32,9 +32,6 @@
 
 #define MPIX_SAFE_CALL(__operation,__predicate,__label) {int __code = __operation; if(__code != MPI_SUCCESS) {__predicate; goto __label;}}
 
-int Application_Checkpoint_Read(int epoch, int rank, Domain locDom, struct cmdLineOpts opts);
-int Application_Checkpoint_Write(int epoch, int rank, Domain locDom, struct cmdLineOpts opts);
-
 int main_loop(int argc, char** argv, int restart_iteration, int *done);
 
 // Precision specification

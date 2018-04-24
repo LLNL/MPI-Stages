@@ -2814,7 +2814,7 @@ int main_loop(int argc, char **argv, int epoch, int *done)
    struct cmdLineOpts opts;
    Int_t failure = 0;
    double start;
-   timeval start;
+   timeval start1;
 
 #if USE_MPI
    int code = MPI_SUCCESS;
@@ -2898,7 +2898,7 @@ int main_loop(int argc, char **argv, int epoch, int *done)
 	      start = MPI_Wtime();
 	   #else
 
-	      gettimeofday(&start, NULL) ;
+	      gettimeofday(&start1, NULL) ;
 	   #endif
    }
 
@@ -2934,7 +2934,7 @@ int main_loop(int argc, char **argv, int epoch, int *done)
 #else
    timeval end;
    gettimeofday(&end, NULL) ;
-   elapsed_time = (double)(end.tv_sec - start.tv_sec) + ((double)(end.tv_usec - start.tv_usec))/1000000 ;
+   elapsed_time = (double)(end.tv_sec - start1.tv_sec) + ((double)(end.tv_usec - start1.tv_usec))/1000000 ;
 #endif
    double elapsed_timeG;
 #if USE_MPI
