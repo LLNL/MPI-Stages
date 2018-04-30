@@ -41,34 +41,7 @@ $listen->autoflush(1);
 my $sel = IO::Select->new();
 die "Couldn't create listening socket; $!" unless $listen;
 
-open(my $hostsfh, "<", "MPIHOSTS") or die "Can't read MPIHOSTS";
-my @hosts = <$hostsfh>;
-chomp @hosts;
-my $sz = scalar @hosts;
-my $nextrank = 0;
-my $host;
-my %nodes;
-
-my %config;
-$config{"size"} = "$sz";
-print "Generating node table...\n";
-foreach $host (@hosts)
-{
-    print "\tAssigning $nextrank to $host\n";
-    $nodes{$host}{rank} = $nextrank;
-    $nextrank += 1;
-}
-
-print "Generating config string...\n";
-my @configlist = ("size:$sz");
-foreach my $k (keys %nodes)
-{
-    print "Registering $nodes{$k}{rank}:$k\n";
-    push (@configlist, "$nodes{$k}{rank}:$k");
-}
-my $configstr = join(";",@configlist);
-
-
+my $configstr;
 my $pid;
 my $childfh;
 my $parentfh;
@@ -215,11 +188,40 @@ while(1)  # main serve loop
             my $status = <$s>;
             chomp $status;
             if ($status =~ m/%/) {
+                #my $filename;
                 my @statuslist = split(/%/, $status);
                 $state{"bin"} = $statuslist[0];
                 $state{"epoch"} = $statuslist[1];
                 $state{"argstr"} = $statuslist[2];
                 $state{"rank"} = $statuslist[3];
+                #$filename = $statuslist[4];
+                
+                open(my $hostsfh, "<", "MPIHOSTS") or die "Can't read MPIHOSTS";
+                my @hosts = <$hostsfh>;
+                chomp @hosts;
+                my $sz = scalar @hosts;
+                my $nextrank = 0;
+                my $host;
+                my %nodes;
+                
+                my %config;
+                $config{"size"} = "$sz";
+                print "Generating node table...\n";
+                foreach $host (@hosts)
+                {
+                    print "\tAssigning $nextrank to $host\n";
+                    $nodes{$host}{rank} = $nextrank;
+                    $nextrank += 1;
+                }
+                
+                print "Generating config string...\n";
+                my @configlist = ("size:$sz");
+                foreach my $k (keys %nodes)
+                {
+                    print "Registering $nodes{$k}{rank}:$k\n";
+                    push (@configlist, "$nodes{$k}{rank}:$k");
+                }
+                $configstr = join(";",@configlist);
             }
           
           print "Got update $cmd = $state{$cmd}\n";

@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include <list>
+#include <memory>
 #include <iomanip>
 #include <cstdint>
 #include <cstring>
@@ -24,6 +25,8 @@
 
 #include <config.h>
 #include <datatype.h>
+#include <comm.h>
+#include <group.h>
 
 #include <map>
 #include <array.h>
@@ -44,6 +47,8 @@ namespace global {
   extern exampi::i::Transport *transport;
   extern std::unordered_map<MPI_Datatype, exampi::Datatype> datatypes;
   extern exampi::i::Checkpoint *checkpoint;
+  extern std::list<exampi::Comm> communicators;
+  extern std::list<std::shared_ptr<exampi::Group>> groups;
 
 }} // exampi::i
 #endif

@@ -10,6 +10,7 @@
 #include <memory>
 #include <algorithm>
 #include <sigHandler.h>
+#include <comm.h>
 #include "basic/transport.h"
 
 namespace exampi {
@@ -110,7 +111,7 @@ public:
 		dword[3] = 0x0;  // align/reserved
 		dword[4] = source;
 		dword[5] = tag;
-		dword[6] = 0x00C0FFEE; // context; not yet
+		dword[6] = comm; // context; not yet
 		dword[7] = 0xAABBCCDD;  // CRC
 	}
 
@@ -118,7 +119,7 @@ public:
 		uint32_t *dword = (uint32_t *) hdr;
 		source = dword[4];
 		tag = dword[5];
-		//context = dword[6];
+		comm = dword[6];
 	}
 
 	struct iovec getHeaderIovec() {
@@ -167,17 +168,22 @@ private:
 	std::thread sendThread;
 	std::thread matchThread;
 	bool alive;
+	std::shared_ptr<Group> group;
+	exampi::Comm communicator;
 
 	void addEndpoints() {
 		int size = std::stoi((*exampi::global::config)["size"]);
 		std::vector < std::string > elem;
+		std::list<int> rankList;
 		for (int i = 0; i < size; i++) {
 			elem.clear();
+			rankList.push_back(i);
 			std::string rank = std::to_string(i);
 			elem.push_back((*exampi::global::config)[rank]);
 			elem.push_back("8080");
 			exampi::global::transport->addEndpoint(i, elem);
 		}
+		group = std::make_shared<Group>(rankList);
 	}
 
 	static void sendThreadProc(bool *alive, AsyncQueue<Request> *outbox) {
@@ -213,9 +219,11 @@ private:
 			matchLock->lock();
 			int t = r->tag;
 			int s = r->source;
+			int c = r->comm;
+			std::cout << "Context " << c << std::endl;
 			auto result =
 					std::find_if(matchList->begin(), matchList->end(),
-							[t, s](const std::unique_ptr<Request> &i) -> bool {return (i->tag == t && i->source == s);});
+							[t, s, c](const std::unique_ptr<Request> &i) -> bool {return (i->tag == t && i->source == s && i->comm == c);});
 			if (result == matchList->end()) {
 				matchLock->unlock();
 				std::cout << "WARNING:  Failed to match incoming msg\n";
@@ -228,7 +236,7 @@ private:
 					std::cout << debug() << "\tUnexpected message\n";
 					std::unique_ptr<Request> tmp = make_unique<Request>();
 					exampi::global::transport->receive(tmp->getTempIovecs(), 0);
-					unexpectedList.push_back(std::move(tmp));
+					unexpectedList->push_back(std::move(tmp));
 					unexpectedLock->unlock();
 				}
 			} else {
@@ -263,11 +271,17 @@ public:
 		//recvThread = std::thread{recvThreadProc, &alive, &inbox};
 		matchThread = std::thread { matchThreadProc, &alive, &matchList, &unexpectedList,
 			&matchLock, &unexpectedLock };
+
+		exampi::global::groups.push_back(group);
+		communicator = Comm(true, group, group);
+		communicator.setRank(exampi::global::rank);
+		communicator.set_context(0, 1);
+		exampi::global::communicators.push_back(communicator);
 		return 0;
 	}
 
 	virtual int init(std::istream &t) {
-		// nothing to restore (currently only valid if no pending comm.)
+
 		init();
 		return 0;
 	}
@@ -326,6 +340,7 @@ public:
 		r->array = array;
 		r->endpoint = dest;
 		r->tag = tag;
+		r->comm = dest.comm;
 		auto result = r->completionPromise.get_future();
 		outbox.put(std::move(r));
 		return result;
@@ -340,14 +355,16 @@ public:
 		r->array = array;
 		r->endpoint = source;
 		r->tag = tag;
+		r->comm = source.comm;
 		int s = source.rank;
+		int c = source.comm;
 		auto result = r->completionPromise.get_future();
 
 		unexpectedLock.lock();
 		matchLock.lock();
-			auto res = std::find_if(unexpectedList->begin(), unexpectedList->end(),
-							[tag,s](const std::unique_ptr<Request> &i) -> bool {i->unpack();return i->tag == tag && i->source == s;});
-			if (res == unexpectedList->end()) {
+			auto res = std::find_if(unexpectedList.begin(), unexpectedList.end(),
+							[tag,s, c](const std::unique_ptr<Request> &i) -> bool {i->unpack();return i->tag == tag && i->source == s && i->comm == c;});
+			if (res == unexpectedList.end()) {
 				unexpectedLock.unlock();
 				matchList.push_back(std::move(r));
 				matchLock.unlock();
@@ -372,16 +389,64 @@ public:
 	}
 
 	virtual int save(std::ostream &t) {
-		// Assuming no pending comm, nothing to do
+		std::cout << "In progress save\n";
+		int commsz = exampi::global::communicators.size();
+
+		t.write(reinterpret_cast<char *>(&commsz), sizeof(int));
+		for(auto c : exampi::global::communicators)
+		{
+		    t.write(reinterpret_cast<char *>(&c.rank), sizeof(int));
+		    t.write(reinterpret_cast<char *>(&c.local_pt2pt), sizeof(int));
+		    t.write(reinterpret_cast<char *>(&c.local_coll), sizeof(int));
+		    t.write(reinterpret_cast<char *>(&c.isintra), sizeof(bool));
+		    int sz = (c.local)->getProcessList().size();
+		    t.write(reinterpret_cast<char *>(&sz), sizeof(int));
+		    std::list<int> ranks = (c.local)->getProcessList();
+		    for (auto i : ranks) {
+		    	t.write(reinterpret_cast<char *>(&i), sizeof(int));
+		    }
+		 }
+
 		return MPI_SUCCESS;
 	}
 
-	virtual int load() {
-		std::cout << "In progress load";
+	virtual int load(std::istream& t) {
+		std::cout << "In progress load\n";
 		alive = true;
 		sendThread = std::thread { sendThreadProc, &alive, &outbox };
 		matchThread = std::thread { matchThreadProc, &alive, &matchList, &unexpectedList,
 			&matchLock, &unexpectedLock };
+
+		int commsz, grpsize;
+		int r, p2p, coll;
+		bool intra;
+		std::shared_ptr<Group> grp;
+		t.read(reinterpret_cast<char *>(&commsz), sizeof(int));
+
+		while(commsz)
+		{
+			Comm com;
+		    t.read(reinterpret_cast<char *>(&r), sizeof(int));
+		    com.rank = r;
+		    t.read(reinterpret_cast<char *>(&p2p), sizeof(int));
+		    com.local_pt2pt = p2p;
+		    t.read(reinterpret_cast<char *>(&coll), sizeof(int));
+		    com.local_coll = coll;
+		    t.read(reinterpret_cast<char *>(&intra), sizeof(bool));
+		    com.isintra = intra;
+		    t.read(reinterpret_cast<char *>(&grpsize), sizeof(int));
+		    std::list<int> ranks;
+		    for (int i = 0; i < grpsize; i++) {
+		    	int x;
+		    	t.read(reinterpret_cast<char *>(&x), sizeof(int));
+		    	ranks.push_back(x);
+		    }
+		    grp = std::make_shared<Group>(ranks);
+		    com.local = grp;
+		    com.remote = grp;
+		    exampi::global::communicators.push_back(com);
+		    commsz--;
+		}
 		return MPI_SUCCESS;
 	}
 

@@ -90,7 +90,7 @@ public:
 		size_t szcount = count;
 		MPI_Status st = exampi::global::progress->postRecv( {
 			const_cast<void *>(buf), &(exampi::global::datatypes[datatype]),
-					szcount }, tag).get();
+					szcount }, {source, comm}, tag).get();
 		std::cout << debug() << "Finished MPI_Recv: " << mpiStatusString(st)
 								<< "\n";
 
@@ -153,7 +153,7 @@ public:
 	virtual int MPI_Waitall(int count, MPI_Request array_of_requests[], MPI_Status array_of_statuses[]) {
 		if (array_of_statuses) {
 			for (int i = 0; i < count; i++) {
-				if (array_of_request[i]) {
+				if (array_of_requests[i]) {
 					array_of_statuses[i].MPI_ERROR = MPI_Wait(array_of_requests + i, array_of_statuses + i);
 					if (array_of_statuses[i].MPI_ERROR)
 						return -1;
@@ -171,25 +171,59 @@ public:
 
 	virtual int MPI_Bcast(void *buf, int count, MPI_Datatype datatype, int root,
 			MPI_Comm comm) {
+		int rc;
 		if (exampi::global::rank == root) {
 			for (int i = 0; i < exampi::global::worldSize; i++)
-				if (i != root)
-					MPI_Send(buf, count, datatype, i, 0, 0);
+				if (i != root) {
+					rc = MPI_Send(buf, count, datatype, i, 0, comm);
+					if (rc != MPI_SUCCESS)
+						return MPIX_TRY_RELOAD;
+				}
 		} else {
 			MPI_Status st;
-			MPI_Recv(buf, count, datatype, root, 0, 0, &st);
+			rc = MPI_Recv(buf, count, datatype, root, 0, comm, &st);
+			if (rc != MPI_SUCCESS)
+				return MPIX_TRY_RELOAD;
 		}
 		return MPI_SUCCESS;
 	}
 
 	virtual int MPI_Comm_rank(MPI_Comm comm, int *r) {
-		*r = rank;
+		int id = comm / 2;
+
+	    std::list<exampi::Comm>::iterator it = exampi::global::communicators.begin();
+		std::advance(it, id);
+
+		*r = (*it).getRank();
 		return 0;
 	}
 
 	virtual int MPI_Comm_size(MPI_Comm comm, int *r) {
-		*r = std::stoi((*exampi::global::config)["size"]);
+		int id = comm / 2;
+		std::list<exampi::Comm>::iterator it = exampi::global::communicators.begin();
+		std::advance(it, id);
+
+		*r = (*it).get_local_group()->getProcessList().size();
+		//*r = std::stoi((*exampi::global::config)["size"]);
 		return 0;
+	}
+
+	virtual int MPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm) {
+		int rc;
+		int id = comm / 2;
+		std::list<exampi::Comm>::iterator it = exampi::global::communicators.begin();
+		std::advance(it, id);
+		int coll_context;
+		rc = (*it).get_next_context(newcomm, &coll_context);
+		if (rc != MPI_SUCCESS) {
+			return MPIX_TRY_RELOAD;
+		}
+		Comm communicator;
+		communicator = Comm(true, (*it).get_local_group(), (*it).get_remote_group());
+		communicator.setRank((*it).getRank());
+		communicator.set_context(*newcomm, coll_context);
+		exampi::global::communicators.push_back(communicator);
+		return MPI_SUCCESS;
 	}
 
 	virtual int MPIX_Checkpoint() {
@@ -216,7 +250,7 @@ public:
 		ef >> exampi::global::epoch;
 		ef.close();
 
-		return MPI_SUCCESS_RECOVERY;
+		return MPIX_SUCCESS_RECOVERY;
 	}
 
 	virtual int MPIX_Get_fault_epoch(int *epoch) {

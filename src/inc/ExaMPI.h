@@ -98,7 +98,7 @@ class AsyncQueue
     {
       std::cout << debug() << "\tAQ:  testing\n";
       std::unique_lock<std::mutex> lock(promiseLock);
-      pcond.wait(lock, [&](){return (promises.size() > 0 && data.size() > 0);})
+      pcond.wait(lock, [&](){return (promises.size() > 0 && data.size() > 0);});
       if(promises.size() > 0)
         if(data.size() > 0)
         {

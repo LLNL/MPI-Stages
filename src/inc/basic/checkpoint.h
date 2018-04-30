@@ -25,7 +25,7 @@ class Checkpoint : public exampi::i::Checkpoint
         //i.save(target);
       }
 
-      //exampi::global::progress->save(target);
+      exampi::global::progress->save(target);
       exampi::global::transport->save(target);
       //exampi::global::interface->save(target);
       target.close();
@@ -65,7 +65,7 @@ class Checkpoint : public exampi::i::Checkpoint
          // i.save(target);
         }
         std::cout << "In re-init\n";
-        exampi::global::progress->load();
+        exampi::global::progress->load(target);
         exampi::global::transport->load(target);
         exampi::global::progress->barrier();
         //exampi::global::interface->save(target);
