@@ -14,6 +14,7 @@ int main(int argc, char** argv)
   int rank, size;
   int smallmessage[ARRAY_LEN];
   MPI_Status status;
+  MPI_Comm newcomm;
 
 #ifdef DEBUG
   printf("Entering main...\n");
@@ -23,8 +24,9 @@ int main(int argc, char** argv)
   printf("About to init...\n");
 #endif
   MPI_Init(&argc, &argv);
-  MPI_Comm_size(MPI_COMM_WORLD, &size);
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  MPI_Comm_dup(MPI_COMM_WORLD, &newcomm);
+  MPI_Comm_size(newcomm, &size);
+  MPI_Comm_rank(newcomm, &rank);
 
 #ifdef DEBUG
   printf("%d: Size=%d, rank=%d\n", rank, size, rank);
@@ -43,7 +45,7 @@ int main(int argc, char** argv)
   {
     // sf:  adding sleep to fix lack of barrier
     //usleep(500000);
-    MPI_Send(smallmessage, ARRAY_LEN, MPI_INT, (rank+1)%size, TAG, MPI_COMM_WORLD); /* inject initial message to ring  */
+    MPI_Send(smallmessage, ARRAY_LEN, MPI_INT, (rank+1)%size, TAG, newcomm); /* inject initial message to ring  */
   }
 
 #ifdef DEBUG
@@ -56,7 +58,7 @@ int main(int argc, char** argv)
     printf("%d: About to MPI_Recv...\n", rank);
 #endif
 
-    MPI_Recv(smallmessage, ARRAY_LEN, MPI_INT, (rank-1+size)%size, TAG, MPI_COMM_WORLD, &status);
+    MPI_Recv(smallmessage, ARRAY_LEN, MPI_INT, (rank-1+size)%size, TAG, newcomm, &status);
 #ifdef DEBUG
     printf("%d:  smallmessage[0] is now %d\n", rank, smallmessage[0]);
 #endif
@@ -72,7 +74,7 @@ int main(int argc, char** argv)
     printf("%d: About to MPI_Send...\n", rank);
 #endif
 
-    MPI_Send(smallmessage, ARRAY_LEN, MPI_INT, (rank+1)%size, TAG, MPI_COMM_WORLD); /* forward around the logical ring */
+    MPI_Send(smallmessage, ARRAY_LEN, MPI_INT, (rank+1)%size, TAG, newcomm); /* forward around the logical ring */
 
     if (smallmessage[0] == 0) {
 #ifdef DEBUG
@@ -83,7 +85,7 @@ int main(int argc, char** argv)
 
   }
   if (rank == 0) {
-	  MPI_Recv(smallmessage, ARRAY_LEN, MPI_INT, (rank-1+size)%size, TAG, MPI_COMM_WORLD, &status);
+	  MPI_Recv(smallmessage, ARRAY_LEN, MPI_INT, (rank-1+size)%size, TAG, newcomm, &status);
 	  #ifdef DEBUG
 	      printf("%d:  smallmessage[0] is now %d\n", rank, smallmessage[0]);
 	  #endif

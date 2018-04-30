@@ -1,41 +1,101 @@
 #include <stdio.h>
 #include <unistd.h>
-#include <time.h>
 #include <stdlib.h>
 #include "mpi.h"
 
-int main(int argc, char** argv) 
+#define ARRAY_LEN 4
+#define TIMES_AROUND_LOOP 5
+#define TAG 0
+
+#define DEBUG
+
+int Application_Checkpoint_Read(int rank, int smallmessage[]);
+void Application_Checkpoint_Write(int rank, int smallmessage[]);
+
+int main(int argc, char** argv)
 {
-  srand(time(NULL));
+	int i;
+	int rank, size;
+	int smallmessage[ARRAY_LEN];
+	MPI_Status status;
+	char fname[10];
+	int r = 2;
 
-  int data = 0;
-  int epoch, i;
-  int rank, size;
-  int r = 5;
-  int st = MPI_Init(&argc, &argv);
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  MPI_Comm_size(MPI_COMM_WORLD, &size);
-  if(st == MPI_REVERT)
-  {
-    MPIX_Get_fault_epoch(&epoch);
-    printf("Got MPI_REVERT; epoch = %d\n",epoch);
-    // "restore" our data to that epoch
-    data = epoch + 1;
-    r = 0;
-  }
-  //MPI_Barrier(MPI_COMM_WORLD);
-  while(data < 10)
-  {
-    printf("data = %d\n", data);
-    //usleep(100000);
-    //int r = rand() % 100;
-    if(data == r && rank == 0) // bad luck, partner; your time's run out
-      exit(123);
-    data++;
-    MPIX_Checkpoint();
-  }
+	MPI_Init(&argc, &argv);
+	MPI_Comm_size(MPI_COMM_WORLD, &size);
+	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-  printf("All done!\n");
-  MPI_Finalize();
-  return 0;
+	printf("%d: Size=%d, rank=%d\n", rank, size, rank);
+    sprintf(fname, "check_%d", rank);
+	if( access( fname, F_OK ) != -1 ) {
+
+		Application_Checkpoint_Read(rank, smallmessage);
+		printf("Recovered time %lf", MPI_Wtime());
+				if (rank == 0)
+					++smallmessage[0];
+				r = 20;
+	} else {
+
+		smallmessage[0] = 0;
+				for (i = 1; i < ARRAY_LEN; i++) {
+					smallmessage[i] = 0;
+				}
+	}
+
+	if (rank == 0) {
+		MPI_Send(smallmessage, ARRAY_LEN, MPI_INT, (rank + 1) % size, TAG, MPI_COMM_WORLD);
+	}
+
+	while (1) {
+		printf("%d: About to MPI_Recv...\n", rank);
+		MPI_Recv(smallmessage, ARRAY_LEN, MPI_INT, (rank - 1 + size) % size, TAG, MPI_COMM_WORLD, &status);
+		printf("%d:  smallmessage[0] is now %d\n", rank, smallmessage[0]);
+
+		Application_Checkpoint_Write(rank, smallmessage);
+
+		if (rank == 0) {
+			++smallmessage[0];
+		}
+		printf("%d: About to MPI_Send...\n", rank);
+
+		MPI_Send(smallmessage, ARRAY_LEN, MPI_INT, (rank + 1) % size, TAG, MPI_COMM_WORLD);
+		if (smallmessage[0] == r && rank == 0) {
+			printf("Failure time %lf", MPI_Wtime());
+			MPI_Abort(MPI_COMM_WORLD, -1);
+		}
+		if (smallmessage[0] == TIMES_AROUND_LOOP) {
+			break;
+		}
+	}
+	if (rank == 0) {
+		MPI_Recv(smallmessage, ARRAY_LEN, MPI_INT, (rank - 1 + size) % size, TAG, MPI_COMM_WORLD, &status);
+		printf("%d:  smallmessage[0] is now %d\n", rank, smallmessage[0]);
+	}
+	printf("%d: Exiting\n", rank);
+	MPI_Finalize();
+	return 0;
+}
+
+int Application_Checkpoint_Read(int rank, int smallmessage[]) {
+	FILE *fp;
+	char buf[10];
+	sprintf(buf, "check_%d", rank);
+	if ((fp = fopen(buf, "rb")) == NULL) {
+		printf("ERROR: Opening File");
+	}
+	fread(smallmessage, sizeof(int), ARRAY_LEN, fp);
+	fclose(fp);
+	return 0;
+}
+
+void Application_Checkpoint_Write(int rank, int smallmessage[]) {
+	FILE *fp;
+	char buf[10];
+	sprintf(buf, "check_%d", rank);
+	if ((fp = fopen(buf, "wb")) == NULL) {
+		printf("ERROR: Opening File\n");
+	}
+
+	fwrite(smallmessage, sizeof(int), ARRAY_LEN, fp);
+	fclose(fp);
 }
