@@ -178,6 +178,8 @@ double MPI_Wtime(void);
 int MPIX_Checkpoint(void);
 int MPIX_Load_checkpoint(void);
 int MPIX_Get_fault_epoch(int *);
+int MPIX_Serialize(MPI_Comm);
+int MPIX_Deserialize(MPI_Comm *);
 
 #if 0
 int MPI_Get_processor_name( char *name, int *resultlen );
@@ -243,6 +245,8 @@ double PMPI_Wtime(void);
 int PMPIX_Checkpoint(void);
 int PMPIX_Load_checkpoint(void);
 int PMPIX_Get_fault_epoch(int *);
+int PMPIX_Serialize(MPI_Comm);
+int PMPIX_Deserialize(MPI_Comm *);
 
 #if 0
 int PMPI_Get_processor_name( char *name, int *resultlen );

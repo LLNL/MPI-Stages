@@ -10,8 +10,8 @@
 #define DEBUG
 #define MPIX_SAFE_CALL(__operation,__predicate,__label) {int __code = __operation; if(__code != MPI_SUCCESS) {__predicate; goto __label;}}
 
-int Application_Checkpoint_Read(int epoch, int rank, int *r, int *size, int *context, int smallmessage[]);
-void Application_Checkpoint_Write(int epoch, int rank, int size, int context, int smallmessage[]);
+int Application_Checkpoint_Read(int epoch, int rank, int *r, int *size, int smallmessage[]);
+void Application_Checkpoint_Write(int epoch, int rank, int size, int smallmessage[]);
 
 int main_loop(int restart_iteration, int *done);
 
@@ -54,7 +54,8 @@ int main_loop(int epoch, int *done) {
 
 	if (epoch > 0) {
 		MPIX_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &crank), code = MPIX_TRY_RELOAD, fail_return);
-		Application_Checkpoint_Read(epoch - 1, crank, &rank, &size, &newcomm, smallmessage);
+		Application_Checkpoint_Read(epoch - 1, crank, &rank, &size, smallmessage);
+		MPIX_SAFE_CALL(MPIX_Deserialize(&newcomm), code = MPIX_TRY_RELOAD, fail_return);
 		printf("%d: Size=%d, rank=%d\n", rank, size, rank);
 		if (rank == 0)
 			++smallmessage[0];
@@ -62,6 +63,7 @@ int main_loop(int epoch, int *done) {
 	}
 	else {
 		MPIX_SAFE_CALL(MPI_Comm_dup(MPI_COMM_WORLD, &newcomm), code = MPIX_TRY_RELOAD, fail_return);
+		//MPIX_SAFE_CALL(MPIX_Serialize(newcomm), code = MPIX_TRY_RELOAD, fail_return);
 		MPIX_SAFE_CALL(MPI_Comm_size(newcomm, &size), code = MPIX_TRY_RELOAD, fail_return);
 		MPIX_SAFE_CALL(MPI_Comm_rank(newcomm, &rank), code = MPIX_TRY_RELOAD, fail_return);
 		printf("%d: Size=%d, rank=%d\n", rank, size, rank);
@@ -81,8 +83,9 @@ int main_loop(int epoch, int *done) {
 		printf("%d:  smallmessage[0] is now %d\n", rank, smallmessage[0]);
 
 		MPIX_SAFE_CALL(MPIX_Get_fault_epoch(&epoch), code = MPIX_TRY_RELOAD, fail_return);
-		Application_Checkpoint_Write(epoch, rank, size, newcomm, smallmessage);
+		Application_Checkpoint_Write(epoch, rank, size, smallmessage);
 		MPIX_SAFE_CALL(MPIX_Checkpoint(), code = MPIX_TRY_RELOAD, fail_return);
+		MPIX_SAFE_CALL(MPIX_Serialize(newcomm), code = MPIX_TRY_RELOAD, fail_return);
 
 
 		if (rank == 0) {
@@ -114,7 +117,7 @@ int main_loop(int epoch, int *done) {
 	return MPIX_TRY_RELOAD;
 }
 
-int Application_Checkpoint_Read(int epoch, int rank, int *r, int *size, int *context, int smallmessage[]) {
+int Application_Checkpoint_Read(int epoch, int rank, int *r, int *size, int smallmessage[]) {
 	FILE *fp;
 	char buf[10];
 	sprintf(buf, "check_%d_%d", epoch, rank);
@@ -122,14 +125,13 @@ int Application_Checkpoint_Read(int epoch, int rank, int *r, int *size, int *con
 		printf("ERROR: Opening File");
 	}
 	fread(smallmessage, sizeof(int), ARRAY_LEN, fp);
-	fread(&r, sizeof(int), 1, fp);
-	fread(&size, sizeof(int), 1, fp);
-	fread(&context, sizeof(int), 1, fp);
+	fread(r, sizeof(int), 1, fp);
+	fread(size, sizeof(int), 1, fp);
 	fclose(fp);
 	return 0;
 }
 
-void Application_Checkpoint_Write(int epoch, int rank, int size, int context, int smallmessage[]) {
+void Application_Checkpoint_Write(int epoch, int rank, int size, int smallmessage[]) {
 	FILE *fp;
 	char buf[10];
 	sprintf(buf, "check_%d_%d", epoch, rank);
@@ -138,9 +140,7 @@ void Application_Checkpoint_Write(int epoch, int rank, int size, int context, in
 	}
 
 	fwrite(smallmessage, sizeof(int), ARRAY_LEN, fp);
-
 	fwrite(&rank, sizeof(int), 1, fp);
 	fwrite(&size, sizeof(int), 1, fp);
-	fwrite(&context, sizeof(int), 1, fp);
 	fclose(fp);
 }

@@ -73,7 +73,7 @@ public:
 	//
 	// [future version only]
 	//
-protected:
+//protected:
 	bool isintra;
 	std::shared_ptr<Group> local;
 	std::shared_ptr<Group> remote;

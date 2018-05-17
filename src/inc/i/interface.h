@@ -21,6 +21,8 @@ class Interface
     virtual int MPI_Comm_rank(MPI_Comm comm, int *r) = 0;
     virtual int MPI_Comm_size(MPI_Comm comm, int *r) = 0;
     virtual int MPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm) = 0;
+    virtual int MPIX_Serialize(MPI_Comm comm) = 0;
+    virtual int MPIX_Deserialize(MPI_Comm *comm) = 0;
 
     virtual int MPIX_Checkpoint(void) = 0;
     virtual int MPIX_Load_checkpoint(void) = 0;

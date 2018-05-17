@@ -28,7 +28,7 @@ exampi::i::Interface *interface = new exampi::basic::Interface();
 exampi::i::Progress  *progress = new exampi::basic::Progress();
 exampi::i::Transport *transport = new exampi::basic::Transport();
 exampi::i::Checkpoint *checkpoint = new exampi::basic::Checkpoint();
-std::list<exampi::Comm> communicators;
+std::vector<exampi::Comm> communicators;
 std::list<std::shared_ptr<exampi::Group>> groups;
 
 std::unordered_map<MPI_Datatype, exampi::Datatype> datatypes =

@@ -70,10 +70,12 @@ public:
 			handler.setErrToZero();
 			return MPIX_TRY_RELOAD;
 		}
+		Comm c = exampi::global::communicators.at(comm);
+		int context = c.get_context_id_pt2pt();
 		size_t szcount = count;
 		MPI_Status st = exampi::global::progress->postSend( {
 			const_cast<void *>(buf), &(exampi::global::datatypes[datatype]),
-					szcount }, { dest, comm }, tag).get();
+					szcount }, { dest, context }, tag).get();
 		std::cout << debug() << "Finished MPI_Send: " << mpiStatusString(st)
 								<< "\n";
 		return 0;
@@ -87,10 +89,12 @@ public:
 			handler.setErrToZero();
 			return MPIX_TRY_RELOAD;
 		}
+		Comm c = exampi::global::communicators.at(comm);
+		int context = c.get_context_id_pt2pt();
 		size_t szcount = count;
 		MPI_Status st = exampi::global::progress->postRecv( {
 			const_cast<void *>(buf), &(exampi::global::datatypes[datatype]),
-					szcount }, {source, comm}, tag).get();
+					szcount }, {source, context}, tag).get();
 		std::cout << debug() << "Finished MPI_Recv: " << mpiStatusString(st)
 								<< "\n";
 
@@ -110,12 +114,14 @@ public:
 			handler.setErrToZero();
 			return MPIX_TRY_RELOAD;
 		}
+		Comm c = exampi::global::communicators.at(comm);
+		int context = c.get_context_id_pt2pt();
 		size_t szcount = count;
 		// have to move construct the future; i'll fix this later with a pool in progress
 		std::future<MPI_Status> *f = new std::future<MPI_Status>();
 		(*f) = exampi::global::progress->postSend( { const_cast<void *>(buf),
 			&(exampi::global::datatypes[datatype]), szcount },
-				{ dest, comm }, tag);
+				{ dest, context }, tag);
 		(*request) = reinterpret_cast<MPI_Request>(f);
 
 		return 0;
@@ -128,11 +134,13 @@ public:
 			handler.setErrToZero();
 			return MPIX_TRY_RELOAD;
 		}
+		Comm c = exampi::global::communicators.at(comm);
+		int context = c.get_context_id_pt2pt();
 		//exampi::global::progress->recv_data(buf, count, datatype, source, tag, comm, status);
 		size_t szcount = count;
 		std::future<MPI_Status> *f = new std::future<MPI_Status>();
 		(*f) = exampi::global::progress->postRecv( { const_cast<void *>(buf),
-			&(exampi::global::datatypes[datatype]), szcount }, {source, comm}, tag);
+			&(exampi::global::datatypes[datatype]), szcount }, {source, context}, tag);
 		(*request) = reinterpret_cast<MPI_Request>(f);
 		return 0;
 	}
@@ -189,40 +197,122 @@ public:
 	}
 
 	virtual int MPI_Comm_rank(MPI_Comm comm, int *r) {
-		int id = comm / 2;
+		Comm c = exampi::global::communicators.at(comm);
+		//int id = comm / 2;
 
-	    std::list<exampi::Comm>::iterator it = exampi::global::communicators.begin();
-		std::advance(it, id);
+	    //std::list<exampi::Comm>::iterator it = exampi::global::communicators.begin();
+		//std::advance(it, id);
 
-		*r = (*it).getRank();
+		*r = (c).getRank();
 		return 0;
 	}
 
 	virtual int MPI_Comm_size(MPI_Comm comm, int *r) {
-		int id = comm / 2;
-		std::list<exampi::Comm>::iterator it = exampi::global::communicators.begin();
-		std::advance(it, id);
+		Comm c = exampi::global::communicators.at(comm);
+		//int id = comm / 2;
+		//std::list<exampi::Comm>::iterator it = exampi::global::communicators.begin();
+		//std::advance(it, id);
 
-		*r = (*it).get_local_group()->getProcessList().size();
+		*r = (c).get_local_group()->getProcessList().size();
 		//*r = std::stoi((*exampi::global::config)["size"]);
 		return 0;
 	}
 
 	virtual int MPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm) {
 		int rc;
-		int id = comm / 2;
-		std::list<exampi::Comm>::iterator it = exampi::global::communicators.begin();
-		std::advance(it, id);
+		Comm c = exampi::global::communicators.at(comm);
+		//int id = comm / 2;
+		//std::list<exampi::Comm>::iterator it = exampi::global::communicators.begin();
+		//std::advance(it, id);
 		int coll_context;
-		rc = (*it).get_next_context(newcomm, &coll_context);
+		int p2p_context;
+		rc = (c).get_next_context(&p2p_context, &coll_context);
 		if (rc != MPI_SUCCESS) {
 			return MPIX_TRY_RELOAD;
 		}
 		Comm communicator;
-		communicator = Comm(true, (*it).get_local_group(), (*it).get_remote_group());
-		communicator.setRank((*it).getRank());
-		communicator.set_context(*newcomm, coll_context);
+		communicator = Comm(true, (c).get_local_group(), (c).get_remote_group());
+		communicator.setRank((c).getRank());
+		communicator.set_context(p2p_context, coll_context);
 		exampi::global::communicators.push_back(communicator);
+		auto it = std::find_if(exampi::global::communicators.begin(), exampi::global::communicators.end(),
+											[communicator](const Comm &i) -> bool {return i.local_pt2pt == communicator.local_pt2pt;});
+		if (it == exampi::global::communicators.end()) {
+			return MPIX_TRY_RELOAD;
+		}
+		else {
+			*newcomm = std::distance(exampi::global::communicators.begin(), it);
+		}
+		return MPI_SUCCESS;
+	}
+
+	virtual int MPIX_Serialize(MPI_Comm comm) {
+		Comm c = exampi::global::communicators.at(comm);
+		std::stringstream filename;
+		filename << exampi::global::epoch - 1 << "." << exampi::global::rank << ".cp";
+		std::ofstream t(filename.str(), std::ofstream::out | std::ofstream::app);
+
+		//t.write(reinterpret_cast<char *>(&c.rank), sizeof(int));
+		t.write(reinterpret_cast<char *>(&c.local_pt2pt), sizeof(int));
+		//t.write(reinterpret_cast<char *>(&c.local_coll), sizeof(int));
+		//t.write(reinterpret_cast<char *>(&c.isintra), sizeof(bool));
+		//int sz = (c.local)->getProcessList().size();
+	    //t.write(reinterpret_cast<char *>(&sz), sizeof(int));
+	    //std::list<int> ranks = (c.local)->getProcessList();
+		//for (auto i : ranks) {
+		//	t.write(reinterpret_cast<char *>(&i), sizeof(int));
+		//}
+
+		t.close();
+
+		return MPI_SUCCESS;
+	}
+
+	virtual int MPIX_Deserialize(MPI_Comm *comm) {
+		std::stringstream filename;
+		filename << exampi::global::epoch - 1 << "." << exampi::global::rank << ".cp";
+	    std::ifstream t(filename.str(), std::ifstream::in);
+
+	    long long int pos;
+	    t.read(reinterpret_cast<char *>(&pos), sizeof(long long int));
+	    std::cout << "File size " << pos << std::endl;
+	    t.seekg(pos);
+
+		int grpsize;
+		int r, p2p, coll;
+		bool intra;
+		std::shared_ptr<Group> grp;
+		Comm com;
+		//t.read(reinterpret_cast<char *>(&r), sizeof(int));
+		//com.rank = r;
+		t.read(reinterpret_cast<char *>(&p2p), sizeof(int));
+		//com.local_pt2pt = p2p;
+		//t.read(reinterpret_cast<char *>(&coll), sizeof(int));
+		//com.local_coll = coll;
+		//t.read(reinterpret_cast<char *>(&intra), sizeof(bool));
+		//com.isintra = intra;
+		//t.read(reinterpret_cast<char *>(&grpsize), sizeof(int));
+		//std::list<int> ranks;
+		/*for (int i = 0; i < grpsize; i++) {
+			int x;
+			t.read(reinterpret_cast<char *>(&x), sizeof(int));
+			ranks.push_back(x);
+		}*/
+
+		t.close();
+		//grp = std::make_shared<Group>(ranks);
+		//com.local = grp;
+		//com.remote = grp;
+		std::cout << "handle value " << p2p << std::endl;
+
+		auto it = std::find_if(exampi::global::communicators.begin(), exampi::global::communicators.end(),
+									[p2p](const Comm &i) -> bool {return i.local_pt2pt == p2p;});
+		if (it == exampi::global::communicators.end()) {
+			return MPIX_TRY_RELOAD;
+		}
+		else {
+			*comm = std::distance(exampi::global::communicators.begin(), it);
+		}
 		return MPI_SUCCESS;
 	}
 
@@ -377,7 +467,6 @@ public:
 				(*iter->second)(buf, r_buf, &count, &type);
 			}
 			else {
-				usleep(500000);
 				rc = MPI_Send(r_buf, count, type, peer, 0, comm);
 				if (rc == MPIX_TRY_RELOAD) return rc;
 				break;

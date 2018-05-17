@@ -17,6 +17,10 @@ class Checkpoint : public exampi::i::Checkpoint
       filename << exampi::global::epoch << "." << exampi::global::rank << ".cp";
       std::ofstream target(filename.str(), std::ofstream::out);
 
+      long long int size = 0;
+      long long int begin = target.tellp();
+      target.write(reinterpret_cast<char *>(&size), sizeof(long long int));
+
       // save the global datatype map
       //uint32_t typecount = exampi::global::datatypes.size();
       //target.write(reinterpret_cast<char *>(&typecount), sizeof(uint32_t));
@@ -28,6 +32,12 @@ class Checkpoint : public exampi::i::Checkpoint
       exampi::global::progress->save(target);
       exampi::global::transport->save(target);
       //exampi::global::interface->save(target);
+      long long int end = target.tellp();
+      size = end - begin;
+      target.clear();
+      target.seekp(0, std::ofstream::beg);
+      std::cout << "File size during write " << size << std::endl;
+      target.write(reinterpret_cast<char *>(&size), sizeof(long long int));
       target.close();
 
       errHandler handler;
@@ -57,6 +67,9 @@ class Checkpoint : public exampi::i::Checkpoint
         std::stringstream filename;
         filename << exampi::global::epoch - 1 << "." << exampi::global::rank << ".cp";
         std::ifstream target(filename.str(), std::ifstream::in);
+
+        long long int pos;
+        target.read(reinterpret_cast<char *>(&pos), sizeof(long long int));
 
         // save the global datatype map
         //target.write(&typecount, sizeof(uint32_t));
