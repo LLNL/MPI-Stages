@@ -10,8 +10,8 @@ extern "C"
 
 int PMPI_Comm_size(MPI_Comm c, int *r)
 {
-  exampi::global::interface->MPI_Comm_size(c, r);
-  return MPI_SUCCESS;
+  int rc = exampi::global::interface->MPI_Comm_size(c, r);
+  return rc;
 }
 
 

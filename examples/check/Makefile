@@ -5,7 +5,7 @@ binname = check
 
 all:
 	$(CC) $(CFLAGS) check.c
-	$(CCPP) $(LDFLAGS) -o $(binname) check.o -lexampi
+	$(CCPP) $(LDFLAGS) -lrt -o $(binname) check.o -lexampi
 
 clean:
 	rm -f $(binname)

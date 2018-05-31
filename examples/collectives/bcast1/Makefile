@@ -5,7 +5,7 @@ binname = bcast1
 
 all:
 	$(CC) $(CFLAGS) bcast1.c
-	$(CCPP) $(LDFLAGS) -o $(binname) bcast1.o -lexampi
+	$(CCPP) $(LDFLAGS) -lrt -o $(binname) bcast1.o -lexampi
 
 clean:
 	rm -f $(binname)

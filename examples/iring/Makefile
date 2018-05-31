@@ -5,7 +5,7 @@ binname = iring
 
 all:
 	$(CC) $(CFLAGS) iring.c
-	$(CCPP) $(LDFLAGS) -o $(binname) iring.o -lexampi
+	$(CCPP) $(LDFLAGS) -lrt -o $(binname) iring.o -lexampi
 
 clean:
 	rm -f $(binname)

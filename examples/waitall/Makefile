@@ -2,7 +2,7 @@ binname = waitall
 
 all:
 	$(CC) $(CFLAGS) -std=c99 waitall.c
-	$(CCPP) $(LDFLAGS) -o $(binname) waitall.o -lexampi
+	$(CCPP) $(LDFLAGS) -lrt -o $(binname) waitall.o -lexampi
 
 clean:
 	rm -f $(binname)

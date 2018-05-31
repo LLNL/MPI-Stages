@@ -6,7 +6,7 @@ binname = hello
 all:
 	#gcc -c -ggdb -I$(incdir) hello.c 
 	$(CC) $(CFLAGS) hello.c
-	$(CCPP) $(LDFLAGS) -o $(binname) hello.o -lexampi
+	$(CCPP) $(LDFLAGS) -lrt -o $(binname) hello.o -lexampi
 	#g++    -pthread -ggdb -L$(libdir) -o $(binname) hello.o -lexampi
 
 clean:

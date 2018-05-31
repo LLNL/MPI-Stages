@@ -5,7 +5,7 @@ binname = abort
 
 all:
 	gcc -c -ggdb -I$(incdir) abort.c 
-	g++    -pthread -ggdb -L$(libdir) -o $(binname) abort.o -lexampi
+	g++    -pthread -ggdb -L$(libdir) -lrt -o $(binname) abort.o -lexampi
 
 clean:
 	rm -f $(binname)

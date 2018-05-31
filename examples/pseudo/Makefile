@@ -5,7 +5,7 @@ binname = ring-check
 
 all:
 	gcc -c -ggdb -I$(incdir) ring-check.c 
-	g++    -pthread -ggdb -L$(libdir) -o $(binname) ring-check.o -lexampi
+	g++    -pthread -ggdb -L$(libdir) -lrt -o $(binname) ring-check.o -lexampi
 
 clean:
 	rm -f $(binname)
