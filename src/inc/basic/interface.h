@@ -145,6 +145,25 @@ public:
 		return 0;
 	}
 
+	virtual int MPI_Sendrecv(const void *sendbuf, int sendcount, MPI_Datatype sendtype, int dest, int sendtag, void *recvbuf, int recvcount, MPI_Datatype recvtype, int source, int recvtag, MPI_Comm comm, MPI_Status *status) {
+		errHandler handler;
+		if (handler.isErrSet()) {
+			handler.setErrToZero();
+			return MPIX_TRY_RELOAD;
+		}
+		MPI_Request recvreq;
+		int rc = MPI_Irecv(recvbuf, recvcount, recvtype, source, recvtag, comm, &recvreq);
+		if (rc != MPI_SUCCESS) {
+			return MPIX_TRY_RELOAD;
+		}
+		rc = MPI_Send(sendbuf, sendcount, sendtype, dest, sendtag, comm);
+		if (rc != MPI_SUCCESS) {
+			return MPIX_TRY_RELOAD;
+		}
+		MPI_Wait(&recvreq, status);
+		return MPI_SUCCESS;
+	}
+
 	virtual int MPI_Wait(MPI_Request *request, MPI_Status *status) {
 		errHandler handler;
 		if (handler.isErrSet()) {
@@ -278,10 +297,10 @@ public:
 	    std::cout << "File size " << pos << std::endl;
 	    t.seekg(pos);
 
-		int grpsize;
-		int r, p2p, coll;
-		bool intra;
-		std::shared_ptr<Group> grp;
+		//int grpsize;
+		int p2p;
+		//bool intra;
+		//std::shared_ptr<Group> grp;
 		Comm com;
 		//t.read(reinterpret_cast<char *>(&r), sizeof(int));
 		//com.rank = r;
@@ -489,6 +508,23 @@ public:
 		rc = MPI_Bcast(r_buf, count, type, 0, comm);
 
 		return rc;
+	}
+
+	virtual int MPI_Get_count(MPI_Status *status, MPI_Datatype datatype, int *count) {
+		exampi::Datatype type = exampi::global::datatypes[datatype];
+		if (type.getExtent()) {
+			*count = status->count / type.getExtent();
+			if (status->count >= 0 && *count * type.getExtent() != static_cast<size_t>(status->count)) {
+				*count = MPI_UNDEFINED;
+			}
+		}
+		else if (status->count == 0) {
+			*count = 0;
+		}
+		else {
+			*count = MPI_UNDEFINED;
+		}
+		return MPI_SUCCESS;
 	}
 
 	virtual int MPI_Abort(MPI_Comm comm, int errorcode) {

@@ -50,7 +50,7 @@ class Transport : public exampi::i::Transport
       return std::promise<int>().get_future();
     }
 
-    virtual std::future<int> receive(std::vector<struct iovec> iov, MPI_Comm comm)
+    virtual std::future<int> receive(std::vector<struct iovec> iov, MPI_Comm comm, ssize_t *count)
     {
       std::cout << debug() << "basic::Transport::receive(...)" << std::endl;
       std::cout << debug() << "\tiov says size is " << iov.size() << std::endl;
@@ -59,7 +59,7 @@ class Transport : public exampi::i::Transport
 
       std::cout << debug() << "basic::Transport::receive, constructed msg, calling msg.receive" << std::endl;
       //msg.receive(recvSocket, tcpSock); /*For TCP transport*/
-      msg.receive(recvSocket);
+      *count = msg.receive(recvSocket);
       std::cout << debug() << "basic::Transport::receive returning" << std::endl;
       return std::promise<int>().get_future();
     }

@@ -78,13 +78,14 @@ class Message
       ssize_t length = sendmsg(sock.getFd(), &hdr, 0);
       std::cout << "Send to UDP " << length << "\n";
     }
-    void receive(Socket &sock) 
+    ssize_t receive(Socket &sock)
     { 
       std::cout << debug() << "basic::Transport::udp::recv\n";
       updateHeader(); 
       ssize_t length = recvmsg(sock.getFd(), &hdr, MSG_WAITALL);
       std::cout << "Received from UDP " << length << "\n";
       std::cout << debug() << "basic::Transport::udp::recv exiting\n";
+      return length;
     }
     void peek(Socket &sock)
     {

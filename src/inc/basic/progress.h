@@ -235,7 +235,9 @@ private:
 				else {
 					std::cout << debug() << "\tUnexpected message\n";
 					std::unique_ptr<Request> tmp = make_unique<Request>();
-					exampi::global::transport->receive(tmp->getTempIovecs(), 0);
+					ssize_t length;
+					exampi::global::transport->receive(tmp->getTempIovecs(), 0, &length);
+					tmp->status.count = length - 32;
 					unexpectedList->push_back(std::move(tmp));
 					unexpectedLock->unlock();
 				}
@@ -247,9 +249,10 @@ private:
 						<< (*result)->array.toString() << "\n";
 				std::cout << debug() << "\tDatatype says extent is "
 						<< (*result)->array.datatype->getExtent() << "\n";
-				exampi::global::transport->receive((*result)->getIovecs(), 0);
+				ssize_t length;
+				exampi::global::transport->receive((*result)->getIovecs(), 0, &length);
 				(*result)->unpack();
-				(*result)->completionPromise.set_value( { .count = 0,
+				(*result)->completionPromise.set_value( { .count = length - 32,
 					.cancelled = 0, .MPI_SOURCE = (*result)->source,
 					.MPI_TAG = (*result)->tag, .MPI_ERROR = MPI_SUCCESS });
 				matchList->erase(result);
@@ -375,8 +378,7 @@ public:
 				(*res)->unpack();
 				//memcpy(array.ptr, )
 				memcpy(array.getIovec().iov_base, (*res)->temp.iov_base, array.getIovec().iov_len);
-
-				(r)->completionPromise.set_value( { .count = 0, .cancelled = 0,
+				(r)->completionPromise.set_value( { .count = (*res)->status.count, .cancelled = 0,
 					.MPI_SOURCE = (*res)->source, .MPI_TAG = (*res)->tag, .MPI_ERROR =
 					MPI_SUCCESS});
 				unexpectedList.erase(res);

@@ -11,6 +11,8 @@ namespace exampi
 		  {std::make_pair(MPI_SUM, &internal_SUM_OP)},
 		  {std::make_pair(MPI_MAX, &internal_MAX_OP)},
 		  {std::make_pair(MPI_MIN, &internal_MIN_OP)},
+		  {std::make_pair(MPI_MAXLOC, &internal_MAX_LOC_OP)},
+		  {std::make_pair(MPI_MINLOC, &internal_MIN_LOC_OP)},
   };
 }
 

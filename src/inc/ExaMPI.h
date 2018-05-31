@@ -48,6 +48,7 @@ static inline std::string mpiStatusString(MPI_Status st)
   std::stringstream stream;
   stream << "MPI_Status{MPI_SOURCE=" << st.MPI_SOURCE
          << ", MPI_TAG = " << st.MPI_TAG 
+		 << ", COUNT = " << st.count
          << ", MPI_ERROR = " << st.MPI_ERROR << "}";
   return stream.str();
 }

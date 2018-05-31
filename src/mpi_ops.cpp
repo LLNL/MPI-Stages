@@ -13,6 +13,8 @@
 
 /* #include "ExaMPI.h" */
 /* #include "basic.h"*/
+#define INTERNAL_MAX(x, y)	(((y) > (x)) ? (y) : (x))
+#define INTERNAL_MIN(x, y)	(((x) > (y)) ? (y) : (x))
 
 extern "C" 
 {
@@ -53,6 +55,34 @@ namespace exampi
       inoutvec[i] += invec[i];
     }
   }
+
+  template <typename T>
+  void internal_max_loc_op_fn( T *invec, T *inoutvec, int *len)
+  {
+	  for (int i = 0; i < *len; ++i) {
+		  if (invec[i].val == inoutvec[i].val) {
+			  inoutvec[i].loc = INTERNAL_MIN(invec[i].loc, inoutvec[i].loc);
+		  }
+		  else if (invec[i].val > inoutvec[i].val) {
+			  inoutvec[i].val = invec[i].val;
+			  inoutvec[i].loc = invec[i].loc;
+		  }
+	  }
+  }
+
+  template <typename T>
+   void internal_min_loc_op_fn( T *invec, T *inoutvec, int *len)
+   {
+ 	  for (int i = 0; i < *len; ++i) {
+ 		  if (invec[i].val == inoutvec[i].val) {
+ 			  inoutvec[i].loc = INTERNAL_MIN(invec[i].loc, inoutvec[i].loc);
+ 		  }
+ 		  else if (invec[i].val < inoutvec[i].val) {
+ 			  inoutvec[i].val = invec[i].val;
+ 			  inoutvec[i].loc = invec[i].loc;
+ 		  }
+ 	  }
+   }
 
 
   void internal_MAX_OP(void *invec, void *inoutvec, int *len, MPI_Datatype *dt)
@@ -216,5 +246,50 @@ namespace exampi
       break;
     }
   }
+
+  void internal_MAX_LOC_OP(void *invec, void *inoutvec, int *len, MPI_Datatype *dt) {
+	  switch(*dt)
+	  {
+	  case MPI_DOUBLE_INT:
+		  internal_max_loc_op_fn<double_int_type>((double_int_type *)invec, (double_int_type *)inoutvec, len);
+		  break;
+
+	  case MPI_FLOAT_INT:
+		  internal_max_loc_op_fn<float_int_type>((float_int_type *)invec, (float_int_type *)inoutvec, len);
+		  break;
+
+	  case MPI_LONG_INT:
+		  internal_max_loc_op_fn<long_int_type>((long_int_type *)invec, (long_int_type *)inoutvec, len);
+		  break;
+	  case MPI_2INT:
+		  internal_max_loc_op_fn<int_int_type>((int_int_type *)invec, (int_int_type *)inoutvec, len);
+		  break;
+
+	  default:
+		  break;
+	  }
+  }
+
+  void internal_MIN_LOC_OP(void *invec, void *inoutvec, int *len, MPI_Datatype *dt) {
+  	  switch(*dt)
+  	  {
+  	  case MPI_DOUBLE_INT:
+  		  internal_min_loc_op_fn<double_int_type>((double_int_type *)invec, (double_int_type *)inoutvec, len);
+  		  break;
+
+  	  case MPI_FLOAT_INT:
+  		  internal_min_loc_op_fn<float_int_type>((float_int_type *)invec, (float_int_type *)inoutvec, len);
+  		  break;
+
+  	  case MPI_LONG_INT:
+  		  internal_min_loc_op_fn<long_int_type>((long_int_type *)invec, (long_int_type *)inoutvec, len);
+  		  break;
+  	  case MPI_2INT:
+  		  internal_min_loc_op_fn<int_int_type>((int_int_type *)invec, (int_int_type *)inoutvec, len);
+  		  break;
+  	  default:
+  		  break;
+  	  }
+    }
 
 }

@@ -10,6 +10,7 @@
 #define _MPI_H
 
 #include <stdint.h>
+#include <sys/types.h>
 
 #ifdef __cplusplus
 extern "C"
@@ -31,7 +32,7 @@ typedef void (*MPI_User_Function)( void *invec, void *inoutvec, int *len,
 
 typedef struct
 {
-    int count;
+    ssize_t count;
     int cancelled;
     int MPI_SOURCE;
     int MPI_TAG;
@@ -44,6 +45,7 @@ typedef struct
 #define MPIX_SUCCESS_RECOVERY 102
 #define MPIX_SUCCESS_RESTART 103
 #define MPIX_CLEANUP_TAG 1
+#define MPI_UNDEFINED -1
 /* other error classes not defined yet */
 
 
@@ -63,6 +65,36 @@ typedef struct
 #define MPI_UNSIGNED_LONG    ((MPI_Datatype)9)
 #define MPI_FLOAT            ((MPI_Datatype)10)
 #define MPI_DOUBLE           ((MPI_Datatype)11)
+
+#define MPI_FLOAT_INT       ((MPI_Datatype)64)
+#define MPI_LONG_INT        ((MPI_Datatype)65)
+#define MPI_DOUBLE_INT      ((MPI_Datatype)66)
+#define MPI_2INT            ((MPI_Datatype)67)
+
+typedef struct float_int_type float_int_type;
+typedef struct long_int_type long_int_type;
+typedef struct double_int_type double_int_type;
+typedef struct int_int_type	int_int_type
+
+struct float_int_type {
+	float val;
+	int loc;
+};
+
+struct long_int_type {
+	long val;
+	int loc;
+};
+
+struct double_int_type {
+	double val;
+	int loc;
+};
+
+struct int_int_type {
+	int val;
+	int loc;
+};
 
 
 #if 0 /* not supported yet */
@@ -109,6 +141,8 @@ MPI_OP_NULL too.
 #define MPI_MAX     ((MPI_Op)1)
 #define MPI_MIN     ((MPI_Op)2)
 #define MPI_SUM     ((MPI_Op)3)
+#define MPI_MAXLOC	((MPI_Op)4)
+#define MPI_MINLOC	((MPI_Op)5)
 
 
 #if 0 /* not in first release */
@@ -148,6 +182,7 @@ int MPI_Comm_size(MPI_Comm, int *);
 int MPI_Comm_split(MPI_Comm, int, int, MPI_Comm *);
 int MPI_Finalize(void);
 int MPI_Gather(void *, int, MPI_Datatype, void *, int, MPI_Datatype, int, MPI_Comm);
+int MPI_Get_count(MPI_Status *, MPI_Datatype, int *);
 int MPI_Group_create_session(MPIX_Session, char *, MPI_Group *);
 int MPI_Iallreduce(void *, void *, int, MPI_Datatype, MPI_Op, MPI_Comm, MPI_Request *);
 int MPI_Ibcast(void *, int, MPI_Datatype, int, MPI_Comm, MPI_Request *);  
@@ -164,6 +199,7 @@ int MPI_Recv_init(void *, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
 int MPI_Reduce(const void *, void *, int, MPI_Datatype, MPI_Op, int, MPI_Comm);
 int MPI_Scatter(void *, int, MPI_Datatype, void *, int, MPI_Datatype, int, MPI_Comm);
 int MPI_Send(const void *, int, MPI_Datatype, int, int, MPI_Comm);
+int MPI_Sendrecv(const void *, int, MPI_Datatype, int, int, void *, int, MPI_Datatype, int, int, MPI_Comm, MPI_Status *);
 int MPI_Send_init(void *, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
 int MPIX_Session_get_names(MPIX_Session, char **);
 int MPIX_Session_init(MPI_Info, MPI_Errhandler, MPIX_Session *);
@@ -217,6 +253,7 @@ int PMPI_Comm_size(MPI_Comm, int *);
 int PMPI_Comm_split(MPI_Comm, int, int, MPI_Comm *);
 int PMPI_Finalize(void);
 int PMPI_Gather(void *, int, MPI_Datatype, void *, int, MPI_Datatype, int, MPI_Comm);
+int PMPI_Get_count(MPI_Status *, MPI_Datatype, int *);
 int PMPI_Group_create_session(MPIX_Session, char *, MPI_Group *);
 int PMPI_Iallreduce(void *, void *, int, MPI_Datatype, MPI_Op, MPI_Comm, MPI_Request *);
 int PMPI_Ibcast(void *, int, MPI_Datatype, int, MPI_Comm, MPI_Request *);
@@ -233,6 +270,7 @@ int PMPI_Recv_init(void *, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *)
 int PMPI_Reduce(const void *, void *, int, MPI_Datatype, MPI_Op, int, MPI_Comm);
 int PMPI_Scatter(void *, int, MPI_Datatype, void *, int, MPI_Datatype, int, MPI_Comm);
 int PMPI_Send(const void *, int, MPI_Datatype, int, int, MPI_Comm);
+int PMPI_Sendrecv(const void *, int, MPI_Datatype, int, int, void *, int, MPI_Datatype, int, int, MPI_Comm, MPI_Status *);
 int PMPI_Send_init(void *, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
 int PMPIX_Session_get_names(MPIX_Session, char **);
 int PMPIX_Session_init(MPI_Info, MPI_Errhandler, MPIX_Session *);
