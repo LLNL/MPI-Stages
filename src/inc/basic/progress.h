@@ -97,6 +97,7 @@ public:
 	UserArray array;
 	struct iovec temp;
 	Endpoint endpoint;
+	int stage;
 	MPI_Status status; // maybe not needed --sf
 	std::promise<MPI_Status> completionPromise;
 
@@ -108,7 +109,7 @@ public:
 		word[2] = 42;  // message type
 		word[3] = 0x0; // function
 		dword[2] = 0x0;  // align
-		dword[3] = 0x0;  // align/reserved
+		dword[3] = stage;  // align/reserved
 		dword[4] = source;
 		dword[5] = tag;
 		dword[6] = comm; // context; not yet
@@ -117,6 +118,7 @@ public:
 
 	void unpack() {
 		uint32_t *dword = (uint32_t *) hdr;
+		stage = dword[3];
 		source = dword[4];
 		tag = dword[5];
 		comm = dword[6];
@@ -220,10 +222,12 @@ private:
 			int t = r->tag;
 			int s = r->source;
 			int c = r->comm;
+			int e = r->stage;
 			std::cout << "Context " << c << std::endl;
+
 			auto result =
 					std::find_if(matchList->begin(), matchList->end(),
-							[t, s, c](const std::unique_ptr<Request> &i) -> bool {return (i->tag == t && i->source == s && i->comm == c);});
+							[t, s, c, e](const std::unique_ptr<Request> &i) -> bool {return (i->tag == t && i->source == s && i->stage == e && i->comm == c);});
 			if (result == matchList->end()) {
 				matchLock->unlock();
 				std::cout << "WARNING:  Failed to match incoming msg\n";
@@ -233,13 +237,19 @@ private:
 					unexpectedLock->unlock();
 				}
 				else {
-					std::cout << debug() << "\tUnexpected message\n";
-					std::unique_ptr<Request> tmp = make_unique<Request>();
-					ssize_t length;
-					exampi::global::transport->receive(tmp->getTempIovecs(), 0, &length);
-					tmp->status.count = length - 32;
-					unexpectedList->push_back(std::move(tmp));
-					unexpectedLock->unlock();
+					if (e != exampi::global::epoch) {
+						unexpectedLock->unlock();
+						std::cout << "WARNING: Message from last stage (discarded)\n";
+					}
+					else {
+						std::cout << debug() << "\tUnexpected message\n";
+						std::unique_ptr<Request> tmp = make_unique<Request>();
+						ssize_t length;
+						exampi::global::transport->receive(tmp->getTempIovecs(), 0, &length);
+						tmp->status.count = length - 32;
+						unexpectedList->push_back(std::move(tmp));
+						unexpectedLock->unlock();
+					}
 				}
 			} else {
 				unexpectedLock->unlock();
@@ -340,6 +350,7 @@ public:
 		std::unique_ptr<Request> r = make_unique<Request>();
 		r->op = Op::Send;
 		r->source = exampi::global::rank;
+		r->stage = exampi::global::epoch;
 		r->array = array;
 		r->endpoint = dest;
 		r->tag = tag;
@@ -359,14 +370,16 @@ public:
 		r->endpoint = source;
 		r->tag = tag;
 		r->comm = source.comm;
+		r->stage = exampi::global::epoch;
 		int s = source.rank;
 		int c = source.comm;
+		int e = exampi::global::epoch;
 		auto result = r->completionPromise.get_future();
 
 		unexpectedLock.lock();
 		matchLock.lock();
 			auto res = std::find_if(unexpectedList.begin(), unexpectedList.end(),
-							[tag,s, c](const std::unique_ptr<Request> &i) -> bool {i->unpack();return i->tag == tag && i->source == s && i->comm == c;});
+							[tag,s, c, e](const std::unique_ptr<Request> &i) -> bool {i->unpack();return i->tag == tag && i->source == s && i->stage == e && i->comm == c;});
 			if (res == unexpectedList.end()) {
 				unexpectedLock.unlock();
 				matchList.push_back(std::move(r));
