@@ -133,6 +133,13 @@ namespace exampi
       internal_max_op_fn<double>((double *)invec, (double *)inoutvec, len);
       break;
 
+    case MPI_LONG_LONG_INT:
+      internal_max_op_fn<long long int>((long long int *)invec, (long long int *)inoutvec, len);
+      break;
+
+    case MPI_LONG_LONG:
+      internal_max_op_fn<long long>((long long *)invec, (long long *)inoutvec, len);
+      break;
 
     default:
       break;
@@ -187,6 +194,13 @@ namespace exampi
       internal_min_op_fn<double>((double *)invec, (double *)inoutvec, len);
       break;
 
+    case MPI_LONG_LONG_INT:
+      internal_min_op_fn<long long int>((long long int *)invec, (long long int *)inoutvec, len);
+      break;
+
+    case MPI_LONG_LONG:
+      internal_min_op_fn<long long>((long long *)invec, (long long *)inoutvec, len);
+      break;
 
     default:
       break;
@@ -241,6 +255,13 @@ namespace exampi
       internal_sum_op_fn<double>((double *)invec, (double *)inoutvec, len);
       break;
 
+    case MPI_LONG_LONG_INT:
+      internal_sum_op_fn<long long int>((long long int *)invec, (long long int *)inoutvec, len);
+      break;
+
+    case MPI_LONG_LONG:
+      internal_sum_op_fn<long long>((long long *)invec, (long long *)inoutvec, len);
+      break;
 
     default:
       break;

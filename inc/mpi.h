@@ -65,6 +65,8 @@ typedef struct
 #define MPI_UNSIGNED_LONG    ((MPI_Datatype)9)
 #define MPI_FLOAT            ((MPI_Datatype)10)
 #define MPI_DOUBLE           ((MPI_Datatype)11)
+#define MPI_LONG_LONG_INT	 ((MPI_Datatype)12)
+#define MPI_LONG_LONG		 ((MPI_Datatype)13)
 
 #define MPI_FLOAT_INT       ((MPI_Datatype)64)
 #define MPI_LONG_INT        ((MPI_Datatype)65)
@@ -74,7 +76,7 @@ typedef struct
 typedef struct float_int_type float_int_type;
 typedef struct long_int_type long_int_type;
 typedef struct double_int_type double_int_type;
-typedef struct int_int_type	int_int_type
+typedef struct int_int_type	int_int_type;
 
 struct float_int_type {
 	float val;
