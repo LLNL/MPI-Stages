@@ -114,6 +114,10 @@ my $live = scalar keys %nodes;
 my $done = 0;
 my $isAbort = 1;
 my $latest = 1e9;
+my $failed;
+my $lowestAgreement;
+my $isError = 0;
+
 print "Starting wait on $live nodes...\n";
 until($done)
 {
@@ -123,17 +127,52 @@ until($done)
     my @ready = $sel->can_read;
     foreach my $s (@ready)
     {
-        $s->autoflush(1);
+      $s->autoflush(1);
       $live--;
       print "Got response; now $live live\n";
       my $return = <$s>;
       chomp $return;
-      if ($return eq "barrier") {
+      if ($return eq "ack") {
+      	if ($live == 0) {
+      		$live = scalar keys %nodes;
+      		print "Relaunching process...\n";
+      		foreach my $h (keys %nodes) {
+      			if ($nodes{$h}{rank} == $failed) {
+      				SendCmd($rnodes, $h, "!run$lowestAgreement");
+      			}
+      		}
+      	}
+      next;
+      }
+     elsif ($return =~ m/nak/) {
+     	my $ep = substr $return, 4;
+     	if ($ep > $lowestAgreement) {
+     		$lowestAgreement = $ep;
+     	}
+     }
+      elsif ($return eq "barrier") {
           say "In barrier for MPI_Init";
-          if ($live == 0) {
+          if ($isError) {
+          	if ($live == ((scalar keys %nodes) - 1)) {
+          		foreach my $h (keys %nodes) {
+          			if ($nodes{$h}{rank} != $failed) {
+          				SendCmd($rnodes, $h, "!commit$lowestAgreement");
+          			}
+          			else {
+          				SendCmd($rnodes, $h, "!com");
+          			}
+          		}
+          		$isError = 0;
+          		$live = scalar keys %nodes;
+          	}
+          }
+          else {
+          	if ($live == 0) {
               $live = scalar keys %nodes;
               SendAllCmd($rnodes, "!com");
+            }
           }
+          
           next;
       }
         elsif ($return eq "run") {
@@ -167,39 +206,38 @@ until($done)
         print "\t Signal $sig\n";
         print "\t Status $st\n";
         print "\t Rank $r\n";
-        
+        $failed = $r;
           if ($st == 255) {
+          	 # MPI Stages and Reinit
               $isAbort = 0;
               $live = 0;
               SendAllCmd($rnodes, "!kill");
+             # End MPI Stages and Reinit
+             
+             # Checkpoint/restart
+             #$live--;
+             #foreach my $h (keys %nodes) {
+             #	if ($nodes{$h}{rank} != $r) {
+             #		SendCmd($rnodes, $h, "!kill");
+             #	}
+             #}
+             # End Checkpoint/restart
           }
           else {
-              print "Relaunching process...\n";
+              print "Generating Consensus...\n";
               #SendAllCmd($rnodes, "!kill");
-              my $lepoch = 2**31 - 1;
-              foreach my $h (keys %nodes) {
-                  my $epochname = "mpirun.$nodes{$h}{rank}.epoch.tmp";
-                  open(my $epochfh, "<", $epochname);
-                  $epochfh->autoflush(1);
-                  my $ep = <$epochfh>;
-                  chomp $ep;
-                  if ($ep < $lepoch) {
-                      $lepoch = $ep;
-                  }
-                  close $epochfh;
-              }
+            
               foreach my $h (keys %nodes)
               {
                   #say { $nodes{$h}{sock} } "!kill";
-                  if ($nodes{$h}{rank} == $r) {
-                      SendCmd($rnodes, $h, "!run$lepoch");
+                  if ($nodes{$h}{rank} != $r) {
+                      SendCmd($rnodes, $h, "!err$latest");
                       #last;
                   }
-                  else
-                  {
-                      SendCmd($rnodes, $h, "!err$lepoch");
-                  }
               }
+             $lowestAgreement = $latest;
+             $live = (scalar keys %nodes) - 1;
+             print "Waiting for Agreement...\n";
           }
       }
     }

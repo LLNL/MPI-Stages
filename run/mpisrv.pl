@@ -13,21 +13,46 @@ my $MPISOCKET = 4422;
 my %state;
 my $incoming;
 my $childpid;
+my $isError = 0;
+my $agreement;
+
+my $configstr;
+my $pid;
+my $childfh;
+my $parentfh;
+my $lepoch;
+my $done;
 
 $SIG{USR1} = \&sigusr1_handler;
 
 sub sigusr1_handler {
-    say "USR1 signal received";
-    
+    say "USR1 signal received";   
     print "From rank $state{rank}\n";
     
     my $pidfile = "pid.$state{rank}.txt";
     open(my $pidfh, "<", $pidfile) or die "Can't read pid";
     $pidfh->autoflush(1);
-    $childpid = <$pidfh>;
-    chomp $childpid;
-    close $pidfh;
-    print $incoming "barrier\n";
+    if ($isError) {
+    	my @lines = <$pidfh>;
+    	chomp @lines;
+    	$childpid = $lines[0];
+    	chomp $childpid;
+    	$agreement = $lines[1];
+    	chomp $agreement;
+    	close $pidfh;
+    	if ($agreement == $lepoch) {
+    		print $incoming "ack\n";
+    	}
+    	else {
+    		print $incoming "nak$agreement\n";
+    	}
+    }
+   else {
+   		$childpid = <$pidfh>;
+    	chomp $childpid;
+    	close $pidfh;
+    	print $incoming "barrier\n";
+   } 
 }
 
 my $listen = new IO::Socket::INET (
@@ -40,13 +65,6 @@ my $listen = new IO::Socket::INET (
 $listen->autoflush(1);
 my $sel = IO::Select->new();
 die "Couldn't create listening socket; $!" unless $listen;
-
-my $configstr;
-my $pid;
-my $childfh;
-my $parentfh;
-my $lepoch;
-my $done;
 
 while(1)  # main serve loop
 {
@@ -72,18 +90,24 @@ while(1)  # main serve loop
         print "Got command $cmd\n";
           my $parentpid = $$;
         # test for special commands
-        if ($cmd eq "!com") {
-            kill USR1 => $childpid;
-        }
-        elsif ($cmd =~ m/!err/)
-        {
-            kill USR2 => $childpid;
-            $lepoch = substr $cmd, 4;
-            my $epochname = "mpirun.$state{rank}.epoch.tmp";
+        if ($cmd =~ m/commit/) {
+        	$lepoch = substr $cmd, 7;
+        	my $epochname = "mpirun.$state{rank}.epoch.tmp";
             open(my $epochconfig, ">", $epochname) or die "Couldn't create temporary epoch file";
             $epochconfig->autoflush(1);
             print $epochconfig "$lepoch\n";
             close $epochconfig;
+            kill USR1 => $childpid;
+        }
+        elsif ($cmd eq "!com") {
+            kill USR1 => $childpid;
+        }
+        elsif ($cmd =~ m/!err/)
+        {
+        	$isError = 1;
+            kill USR2 => $childpid;
+            $lepoch = substr $cmd, 4;
+            
         }
         elsif($cmd =~ m/!run/)
         {
@@ -160,9 +184,16 @@ while(1)  # main serve loop
         }
           elsif($cmd eq "!kill")
           {
+          	 # MPI Stages and Reinit
               close $incoming;
               kill -9, $pid;
               exit(0);
+             # End MPI Stages and Reinit
+             
+             # Checkpoint/Restart
+             #kill USR2 => $childpid;
+             # End Checkpoint/restart
+             
           # whatever you say
           #say "Got request to terminate program :(";
           #kill 9, $pid;

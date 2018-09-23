@@ -312,6 +312,17 @@ public:
 	}
 
 	virtual void cleanUp() {
+		sigHandler handler;
+		handler.setSignalToHandle(SIGUSR1);
+		int parent_pid = std::stoi((*exampi::global::config)["ppid"]);
+		std::stringstream filename;
+		filename << "pid." << exampi::global::rank << ".txt";
+		std::ofstream t(filename.str());
+		t << ::getpid() << std::endl;
+		t << exampi::global::epoch << std::endl;
+		t.close();
+		kill(parent_pid, SIGUSR1);
+
 		matchLock.lock();
 		int size = matchList.size();
 		matchLock.unlock();
@@ -322,6 +333,9 @@ public:
 					exampi::global::rank, MPIX_CLEANUP_TAG, MPI_COMM_WORLD);
 			handler.setErrToOne();
 		}
+		/* Checkpoint/restart
+		 * exit(0);
+		 */
 	}
 
 

@@ -55,6 +55,11 @@ public:
 		if (exampi::global::epoch == 0)
 			exampi::global::progress->barrier();
 
+		/* Checkpoint/restart
+		 * errHandler handler;
+		 * handler.setErrToHandle(SIGUSR2);
+		 */
+
 		std::cout << "Finished MPI_Init with code: " << st << "\n";
 		return st;
 	}
@@ -347,9 +352,6 @@ public:
 
 	virtual int MPIX_Load_checkpoint() {
 		sigHandler signal;
-		signal.setSignalToHandle(SIGUSR1);
-		int parent_pid = std::stoi((*exampi::global::config)["ppid"]);
-		kill(parent_pid, SIGUSR1);
 
 		while(signal.isSignalSet() != 1) {
 			sleep(1);
