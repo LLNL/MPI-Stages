@@ -15,7 +15,7 @@ private:
 	std::unordered_map<int,Address> endpoints;
 	uint16_t port;
 	udp::Socket recvSocket;
-	int tcpSock;
+
 public:
 	Transport() : endpoints(), recvSocket() {;};
 
@@ -62,7 +62,7 @@ public:
 		udp::Message msg(iov);
 
 		std::cout << debug() << "basic::Transport::receive, constructed msg, calling msg.receive" << std::endl;
-		//msg.receive(recvSocket, tcpSock); /*For TCP transport*/
+
 		*count = msg.receive(recvSocket);
 		std::cout << debug() << "basic::Transport::receive returning" << std::endl;
 		return std::promise<int>().get_future();
@@ -99,7 +99,6 @@ public:
 	virtual int peek(std::vector<struct iovec> iov, MPI_Comm comm)
 	{
 		udp::Message msg(iov);
-		//msg.peek(recvSocket, tcpSock); /*For TCP transport*/
 		msg.peek(recvSocket);
 		return 0;
 	}

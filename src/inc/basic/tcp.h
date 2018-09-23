@@ -4,6 +4,7 @@
 #include <basic.h>
 #include <address.h>
 #include <netinet/tcp.h>
+#include <climits>
 
 namespace exampi {
 namespace basic {
@@ -11,98 +12,116 @@ namespace tcp {
 
 class Socket
 {
-  private:
-    int fd;
-  public:
-    Socket() {
-    	fd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-    	int nagle = 1;
-    	setsockopt(fd, IPPROTP_TCP, TCP_NODELAY, (cahr *)&nagle, sizeof(int));
-    }
-    ~Socket() { close(fd); }
-    void bindPort(uint16_t port)
-    {
-      sockaddr_in addr;
-      addr.sin_family = AF_INET;
-      addr.sin_port = htons(port);
-      addr.sin_addr.s_addr = INADDR_ANY;
+private:
+	int sd;
+public:
+	Socket() {
+		sd = socket(AF_INET, SOCK_STREAM, 0);
+		if (sd < 0) {
+			std::cout << "ERROR: creating listening socket\n";
+		}
+		int flag = 1;
+		setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &flag, sizeof(int));
+		int nagle = 1;
+		setsockopt(sd, IPPROTP_TCP, TCP_NODELAY, (cahr *)&nagle, sizeof(int));
+	}
 
-      if(bind(fd, (struct sockaddr*)&addr, sizeof(addr)) == -1)
-        std::cout << "WARNING:  Bind failed\n";
+	void bindPort(uint16_t port)
+	{
+		struct sockaddr_in inaddr;
+		inaddr.sin_family = AF_INET;
+		inaddr.sin_addr.s_addr = INADDR_ANY;
+		inaddr.sin_port = htons(port);
 
-      if (listen(fd, SOMAXCONN) == -1)
-    	  std::cout << "WARNING: Listen failed\n";
+		if (bind(sd, (struct sockaddr*)&inaddr, sizeof(inaddr)) < 0) {
+			std::cout << "ERROR: bind failed\n";
+		}
 
-    }
-    int getFd() { return fd; }
+		if (listen(sd, SOMAXCONN) < 0) {
+			std::cout << "ERROR: listening for connection\n";
+		}
+		int flags;
+		if ((flags = fcntl(sd, F_GETFL, 0)) < 0) {
+			std::cout << "ERROR: failed fcntl\n";
+		}
+		else {
+			flags |= O_NONBLOCK;
+			if (fcntl(sd, F_SETFL, flags) < 0) {
+				std::cout << "ERROR: failed fcntl non blocking\n";
+			}
+		}
+	}
+
+	int getFd() { return sd; }
+	void destroy() {
+		close(sd);
+	}
 };
 
-// WARNING:  This class creates a THIRD copy of the std::vector
-// Need to write a custom container and do move semantics
 class Message
 {
-  private:
-    struct msghdr hdr;
-    std::vector<struct iovec> iov;
-  public:
-    Message() : iov()
-    {
-      hdr.msg_control = NULL;
-      hdr.msg_controllen = 0;
-    }
+private:
+	struct msghdr hdr;
+	std::vector<struct iovec> iov;
+public:
+	Message() : iov()
+{
+		hdr.msg_control = NULL;
+		hdr.msg_controllen = 0;
+}
 
-    Message(std::vector<struct iovec> i) : iov(i)
-    {
-      hdr.msg_control = NULL;
-      hdr.msg_controllen = 0;
-    }
+	Message(std::vector<struct iovec> i) : iov(i)
+	{
+		hdr.msg_control = NULL;
+		hdr.msg_controllen = 0;
+		hdr.msg_name = NULL;
+		hdr.msg_namelen = 0;
+	}
 
-    void addBuf(exampi::i::Buf *b) { iov.push_back(b->iov()); }
-    void updateHeader()
-    {
-      hdr.msg_iov = iov.data();
-      hdr.msg_iovlen = iov.size();
-    }
-    void updateHeader(Address &addr)
-    {
-      updateHeader();
-      hdr.msg_name = addr.get();
-      hdr.msg_namelen = addr.size();
-    }
+	void addBuf(exampi::i::Buf *b) { iov.push_back(b->iov()); }
+	void updateHeader()
+	{
+		std::cout << "length of message" << iov[1].iov_len << " header "<< iov[0].iov_len << "\n";
+		hdr.msg_iov = iov.data();
+		hdr.msg_iovlen = iov.size();
+	}
+	void updateHeader(Address &addr)
+	{
+		updateHeader();
+		hdr.msg_name = addr.get();
+		hdr.msg_namelen = addr.size();
+	}
 
 
-    void send(Socket &sock, Address &addr)
-    {
-      updateHeader(addr);
+	void send(int &sock, Address &addr)
+	{
+		updateHeader(addr);
 
-      // debug output
-      char str[INET_ADDRSTRLEN];
-      inet_ntop(AF_INET, &(addr.get()->sin_addr), str, INET_ADDRSTRLEN);
-      if (connect (sock.getFd(), (struct sockaddr *) (addr.get()), sizeof(addr)) < 0)
-    	  std::cout << "WARNING: Connect failed\n";
-      std::cout << "\tbasic::Transport::tcp::send\n"
-                << "\t\t" << hdr.msg_iovlen << " iovecs\n"
-                << "\t\t" << str << "\n";
-      sendmsg(sock.getFd(), &hdr, 0);
-    }
-    void receive(Socket &sock, int tcpSock)
-    {
-      std::cout << debug() << "basic::Transport::tcp::recv\n";
-      updateHeader();
-      recvmsg(tcpSock, &hdr, MSG_WAITALL);
-      std::cout << debug() << "basic::Transport::tcp::recv exiting\n";
-    }
-    void peek(Socket &sock, int &tcpSock)
-    {
-    	updateHeader();
-    	sockaddr_in client;
-    	socklen_t clientlen;
-    	clientlen = sizeof(client);
-    	if ((tcpSock = accept(sock.getFd(), (struct sockaddr *) &client, &clientlen)) < 0)
-    	    std::cout << "WARNING: Accept failed\n";
+		// debug output
+		char str[INET_ADDRSTRLEN];
+		inet_ntop(AF_INET, &(addr.get()->sin_addr), str, INET_ADDRSTRLEN);
+		std::cout << "\tbasic::Transport::tcp::send\n"
+				<< "\t\t" << hdr.msg_iovlen << " iovecs\n"
+				<< "\t\t" << str << "\n";
 
-      recvmsg(tcpSock, &hdr, MSG_WAITALL | MSG_PEEK);
-    }
+		ssize_t length = sendmsg(sock, &hdr, 0);
+		std::cout << "Send to TCP " << length << "\n";
+	}
+	ssize_t receive(int &sock)
+	{
+		std::cout << debug() << "basic::Transport::tcp::recv\n";
+		updateHeader();
+		ssize_t length = recvmsg(sock, &hdr, MSG_WAITALL);
+		std::cout << "Received from TCP " << length << "\n";
+		std::cout << debug() << "basic::Transport::tcp::recv exiting\n";
+		return length;
+	}
+	ssize_t peek(int &sock)
+	{
+		updateHeader();
+		ssize_t len = recvmsg(sock, &hdr, MSG_PEEK);
+		return len;
+	}
 };
 }//tcp
 }//basic
