@@ -172,6 +172,8 @@ private:
 	bool alive;
 	std::shared_ptr<Group> group;
 	exampi::Comm communicator;
+	typedef std::unordered_map<std::string, pthread_t> ThreadMap;
+	ThreadMap tm_;
 
 	void addEndpoints() {
 		int size = std::stoi((*exampi::global::config)["size"]);
@@ -193,7 +195,7 @@ private:
 		while (*alive) {
 			std::unique_ptr<Request> r = outbox->promise().get();
 			std::cout << debug()
-							<< "sendThread:  got result from outbox future\n";
+									<< "sendThread:  got result from outbox future\n";
 			exampi::global::transport->send(r->getIovecs(), r->endpoint.rank,
 					0);
 			// TODO:  check that sending actually completed
@@ -212,7 +214,7 @@ private:
 		while (*alive) {
 			std::unique_ptr<Request> r = make_unique<Request>();
 			std::cout << debug()
-							<< "matchThread:  made request, about to peek...\n";
+									<< "matchThread:  made request, about to peek...\n";
 			exampi::global::transport->peek(r->getHeaderIovecs(), 0);
 			r->unpack();
 
@@ -254,7 +256,7 @@ private:
 			} else {
 				unexpectedLock->unlock();
 				std::cout << debug()
-								<< "matchThread:  matched, about to receive remainder\n";
+										<< "matchThread:  matched, about to receive remainder\n";
 				std::cout << debug() << "\tTarget array is "
 						<< (*result)->array.toString() << "\n";
 				std::cout << debug() << "\tDatatype says extent is "
@@ -297,6 +299,28 @@ public:
 
 		init();
 		return 0;
+	}
+
+	virtual void finalize() {
+		exampi::global::communicators.clear();
+		exampi::global::groups.clear();
+		alive = false;
+		matchList.clear();
+		unexpectedList.clear();
+		matchLock.unlock();
+		unexpectedLock.unlock();
+		ThreadMap::const_iterator it = tm_.find("1");
+		if (it != tm_.end()) {
+			pthread_cancel(it->second);
+			tm_.erase("1");
+			std::cout << "Thread " << "1" << " killed:" << std::endl;
+		}
+		it = tm_.find("2");
+		if (it != tm_.end()) {
+			pthread_cancel(it->second);
+			tm_.erase("2");
+			std::cout << "Thread " << "2" << " killed:" << std::endl;
+		}
 	}
 
 	virtual int stop() {
@@ -392,26 +416,26 @@ public:
 
 		unexpectedLock.lock();
 		matchLock.lock();
-			auto res = std::find_if(unexpectedList.begin(), unexpectedList.end(),
-							[tag,s, c, e](const std::unique_ptr<Request> &i) -> bool {i->unpack();return i->tag == tag && i->source == s && i->stage == e && i->comm == c;});
-			if (res == unexpectedList.end()) {
-				unexpectedLock.unlock();
-				matchList.push_back(std::move(r));
-				matchLock.unlock();
-			}
-			else {
-				matchLock.unlock();
-				std::cout << "Found match in unexpectedList\n";
-				(*res)->unpack();
-				//memcpy(array.ptr, )
-				memcpy(array.getIovec().iov_base, (*res)->temp.iov_base, array.getIovec().iov_len);
-				(r)->completionPromise.set_value( { .count = (*res)->status.count, .cancelled = 0,
-					.MPI_SOURCE = (*res)->source, .MPI_TAG = (*res)->tag, .MPI_ERROR =
-					MPI_SUCCESS});
-				unexpectedList.erase(res);
-				unexpectedLock.unlock();
+		auto res = std::find_if(unexpectedList.begin(), unexpectedList.end(),
+				[tag,s, c, e](const std::unique_ptr<Request> &i) -> bool {i->unpack();return i->tag == tag && i->source == s && i->stage == e && i->comm == c;});
+		if (res == unexpectedList.end()) {
+			unexpectedLock.unlock();
+			matchList.push_back(std::move(r));
+			matchLock.unlock();
+		}
+		else {
+			matchLock.unlock();
+			std::cout << "Found match in unexpectedList\n";
+			(*res)->unpack();
+			//memcpy(array.ptr, )
+			memcpy(array.getIovec().iov_base, (*res)->temp.iov_base, array.getIovec().iov_len);
+			(r)->completionPromise.set_value( { .count = (*res)->status.count, .cancelled = 0,
+				.MPI_SOURCE = (*res)->source, .MPI_TAG = (*res)->tag, .MPI_ERROR =
+						MPI_SUCCESS});
+			unexpectedList.erase(res);
+			unexpectedLock.unlock();
 
-			}
+		}
 
 
 		return result;
@@ -424,17 +448,17 @@ public:
 		t.write(reinterpret_cast<char *>(&commsz), sizeof(int));
 		for(auto c : exampi::global::communicators)
 		{
-		    t.write(reinterpret_cast<char *>(&c.rank), sizeof(int));
-		    t.write(reinterpret_cast<char *>(&c.local_pt2pt), sizeof(int));
-		    t.write(reinterpret_cast<char *>(&c.local_coll), sizeof(int));
-		    t.write(reinterpret_cast<char *>(&c.isintra), sizeof(bool));
-		    int sz = (c.local)->getProcessList().size();
-		    t.write(reinterpret_cast<char *>(&sz), sizeof(int));
-		    std::list<int> ranks = (c.local)->getProcessList();
-		    for (auto i : ranks) {
-		    	t.write(reinterpret_cast<char *>(&i), sizeof(int));
-		    }
-		 }
+			t.write(reinterpret_cast<char *>(&c.rank), sizeof(int));
+			t.write(reinterpret_cast<char *>(&c.local_pt2pt), sizeof(int));
+			t.write(reinterpret_cast<char *>(&c.local_coll), sizeof(int));
+			t.write(reinterpret_cast<char *>(&c.isintra), sizeof(bool));
+			int sz = (c.local)->getProcessList().size();
+			t.write(reinterpret_cast<char *>(&sz), sizeof(int));
+			std::list<int> ranks = (c.local)->getProcessList();
+			for (auto i : ranks) {
+				t.write(reinterpret_cast<char *>(&i), sizeof(int));
+			}
+		}
 
 		return MPI_SUCCESS;
 	}
@@ -455,26 +479,26 @@ public:
 		while(commsz)
 		{
 			Comm com;
-		    t.read(reinterpret_cast<char *>(&r), sizeof(int));
-		    com.rank = r;
-		    t.read(reinterpret_cast<char *>(&p2p), sizeof(int));
-		    com.local_pt2pt = p2p;
-		    t.read(reinterpret_cast<char *>(&coll), sizeof(int));
-		    com.local_coll = coll;
-		    t.read(reinterpret_cast<char *>(&intra), sizeof(bool));
-		    com.isintra = intra;
-		    t.read(reinterpret_cast<char *>(&grpsize), sizeof(int));
-		    std::list<int> ranks;
-		    for (int i = 0; i < grpsize; i++) {
-		    	int x;
-		    	t.read(reinterpret_cast<char *>(&x), sizeof(int));
-		    	ranks.push_back(x);
-		    }
-		    grp = std::make_shared<Group>(ranks);
-		    com.local = grp;
-		    com.remote = grp;
-		    exampi::global::communicators.push_back(com);
-		    commsz--;
+			t.read(reinterpret_cast<char *>(&r), sizeof(int));
+			com.rank = r;
+			t.read(reinterpret_cast<char *>(&p2p), sizeof(int));
+			com.local_pt2pt = p2p;
+			t.read(reinterpret_cast<char *>(&coll), sizeof(int));
+			com.local_coll = coll;
+			t.read(reinterpret_cast<char *>(&intra), sizeof(bool));
+			com.isintra = intra;
+			t.read(reinterpret_cast<char *>(&grpsize), sizeof(int));
+			std::list<int> ranks;
+			for (int i = 0; i < grpsize; i++) {
+				int x;
+				t.read(reinterpret_cast<char *>(&x), sizeof(int));
+				ranks.push_back(x);
+			}
+			grp = std::make_shared<Group>(ranks);
+			com.local = grp;
+			com.remote = grp;
+			exampi::global::communicators.push_back(com);
+			commsz--;
 		}
 		return MPI_SUCCESS;
 	}

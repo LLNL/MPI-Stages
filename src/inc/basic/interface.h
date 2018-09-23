@@ -65,6 +65,8 @@ public:
 	}
 
 	virtual int MPI_Finalize() {
+		exampi::global::transport->finalize();
+		exampi::global::progress->finalize();
 		return 0;
 	}
 

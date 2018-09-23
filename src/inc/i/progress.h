@@ -11,6 +11,7 @@ class Progress
 {
   public:
     virtual int init() = 0;
+    virtual void finalize() = 0;
     virtual int init(std::istream &t) = 0;
     virtual void barrier() = 0;
     virtual std::future<MPI_Status> postSend(UserArray array, Endpoint dest, int tag) = 0;
