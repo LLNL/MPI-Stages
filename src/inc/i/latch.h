@@ -1,5 +1,5 @@
 #ifndef __EXAMPI_I_LATCH_H
-#define __EXAMPI_H_LATCH_H
+#define __EXAMPI_I_LATCH_H
 
 #include <mpi.h>
 #include <endpoint.h>
@@ -16,4 +16,4 @@ class Latch
 
 }} // ::exampi::i
 
-#endif
+#endif //  __EXAMPI_I_LATCH_H
