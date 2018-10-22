@@ -3,7 +3,6 @@
 #include <basic/interface.h>
 #include <basic/progress.h>
 #include <basic/transport.h>
-//#include <basic/TCPTransport.h>
 #include <basic/checkpoint.h>
 
 // global definitions
@@ -28,10 +27,10 @@ exampi::Config *config = new exampi::Config();
 exampi::i::Interface *interface = new exampi::basic::Interface();
 exampi::i::Progress  *progress = new exampi::basic::Progress();
 exampi::i::Transport *transport = new exampi::basic::Transport();
-//exampi::i::Transport *transport = new exampi::basic::TCPTransport();
 exampi::i::Checkpoint *checkpoint = new exampi::basic::Checkpoint();
-std::vector<exampi::Comm> communicators;
-std::list<std::shared_ptr<exampi::Group>> groups;
+std::vector<exampi::Comm *> communicators;
+std::vector<exampi::Group *> groups;
+exampi::errHandler *handler = new exampi::errHandler();
 
 std::unordered_map<MPI_Datatype, exampi::Datatype> datatypes =
 {

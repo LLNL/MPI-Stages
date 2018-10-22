@@ -21,6 +21,7 @@
 #include <netinet/in.h>
 #include <netinet/udp.h>
 #include <unistd.h>
+#include <stdlib.h>
 #include <arpa/inet.h>
 #include <future>
 

@@ -12,9 +12,9 @@ class Comm {
 public:
 	Comm() {
 	}
-	Comm(bool _isintra, std::shared_ptr<Group> _local,
-			std::shared_ptr<Group> _remote) :
-			isintra(_isintra), local(_local), remote(_remote) {
+	Comm(bool _isintra, exampi::Group *_local,
+			exampi::Group *_remote) :
+			is_intra(_isintra), local(_local), remote(_remote) {
 	}
 
 	virtual ~Comm() {
@@ -44,19 +44,29 @@ public:
 		return 0;
 	}
 	// accessors
-	std::shared_ptr<Group> get_local_group() {
+	exampi::Group* get_local_group() {
 		return local;
 	}
-	std::shared_ptr<Group> get_remote_group() {
+	exampi::Group* get_remote_group() {
 		return remote;
 	}
-	const int get_context_id_pt2pt() {
+
+	void set_local_group(Group *group) {
+		local = group;
+	}
+
+	void set_remote_group(Group *group) {
+		remote = group;
+	}
+
+	int get_context_id_pt2pt() const {
 		return local_pt2pt;
 	}
-	const int get_context_id_coll() {
+	int get_context_id_coll() const {
 		return local_coll;
 	}
-	void setRank(int r) {
+
+	void set_rank(int r) {
 		rank = r;
 	}
 	void set_context(int pt2pt, int coll) {
@@ -64,8 +74,16 @@ public:
 		local_coll = coll;
 	}
 
-	int getRank() {
+	int get_rank() {
 		return rank;
+	}
+
+	bool get_is_intra() {
+		return is_intra;
+	}
+
+	void set_is_intra(bool intra) {
+		is_intra = intra;
 	}
 
 	// Nawrin task for later, introduce the entire MPI API here as methods of this comm; right now, we do "Shane-mode,"
@@ -73,10 +91,10 @@ public:
 	//
 	// [future version only]
 	//
-//protected:
-	bool isintra;
-	std::shared_ptr<Group> local;
-	std::shared_ptr<Group> remote;
+protected:
+	bool is_intra;
+	exampi::Group *local;
+	exampi::Group *remote;
 
 	int local_pt2pt;
 	int local_coll;

@@ -3,7 +3,6 @@
 
 #include <iostream>
 #include <csignal>
-#include <global.h>
 
 namespace exampi {
 class errHandler

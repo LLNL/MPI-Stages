@@ -39,6 +39,16 @@ typedef struct
     int MPI_ERROR;
 } MPI_Status;
 
+typedef struct {
+	MPI_Comm *comms;
+	int comm_size;
+	MPI_Group *grps;
+	int group_size;
+} MPIX_Handles;
+
+typedef void (*MPIX_Serialize_handler) (MPIX_Handles *handle);
+typedef void (*MPIX_Deserialize_handler) (MPIX_Handles handle);
+
 #define MPI_SUCCESS 0 /* this is the default error class for success */
 #define MPI_REVERT 100  /* Need to revert to a checkpoint epoch */
 #define MPIX_TRY_RELOAD 101
@@ -213,11 +223,13 @@ int MPI_Waitall(int, MPI_Request [], MPI_Status []);
 double MPI_Wtime(void);
 
 // TODO:  Haven't cleared this for PMPI api yet
-int MPIX_Checkpoint(void);
-int MPIX_Load_checkpoint(void);
+int MPIX_Checkpoint_write(void);
+int MPIX_Checkpoint_read(void);
 int MPIX_Get_fault_epoch(int *);
-int MPIX_Serialize(MPI_Comm);
-int MPIX_Deserialize(MPI_Comm *);
+int MPIX_Serialize_handles();
+int MPIX_Deserialize_handles();
+int MPIX_Serialize_handler_register(const MPIX_Serialize_handler handler);
+int MPIX_Deserialize_handler_register(const MPIX_Deserialize_handler handler);
 
 #if 0
 int MPI_Get_processor_name( char *name, int *resultlen );
@@ -282,11 +294,14 @@ int PMPI_Startall(int, MPI_Request *);
 int PMPI_Wait(MPI_Request *, MPI_Status *);
 int PMPI_Waitall(int, MPI_Request [], MPI_Status []);
 double PMPI_Wtime(void);
-int PMPIX_Checkpoint(void);
-int PMPIX_Load_checkpoint(void);
+
+int PMPIX_Checkpoint_write(void);
+int PMPIX_Checkpoint_read(void);
 int PMPIX_Get_fault_epoch(int *);
-int PMPIX_Serialize(MPI_Comm);
-int PMPIX_Deserialize(MPI_Comm *);
+int PMPIX_Serialize_handles();
+int PMPIX_Deserialize_handles();
+int PMPIX_Serialize_handler_register(const MPIX_Serialize_handler handler);
+int PMPIX_Deserialize_handler_register(const MPIX_Deserialize_handler handler);
 
 #if 0
 int PMPI_Get_processor_name( char *name, int *resultlen );
