@@ -3,8 +3,8 @@
 ################################################################################
 
 # compiler/linker choice
-CXX = g++-8
-LD = g++-8
+CXX = g++ 
+LD =
 
 # flags
 CXXFLAGS = -std=c++11 -pthread -Wall -Werror
@@ -52,10 +52,10 @@ static: $(alib)
 $(alib): $(objects)
 	$(AR) rcs $@ $^
 
-$(blddir)/%.o: $(srcdir)/%.cpp $(headers)
+$(blddir)/%.o: $(srcdir)/%.cpp $(headers) | directories
 	$(CXX) -I$(incdir) -c $(CXXFLAGS) $< -o $@
 
-$(blddir)/*/%.o: $(srcdir)/*/%.cpp $(headers)
+$(blddir)/*/%.o: $(srcdir)/*/%.cpp $(headers) | directories
 	$(CXX) -I$(incdir) -c $(CXXFLAGS) $< -o $@
 
 ### directory rules
@@ -63,15 +63,13 @@ directories:
 	mkdir -p $(bindir)
 	mkdir -p $(libdir)
 	mkdir -p $(blddir)
+	mkdir -p $(blddir)/mpi
 
 ### clean rules
-#.PHONY: clean default framework docs framework-clean
-
-#clean: framework-clean
-#	@-rm src/libexampi.a	
-
-#framework-clean:
-#	$(MAKE) -C src clean
-
-#examples-clean:
-#	$(MAKE) -C examples clean
+.PHONY: clean
+clean:
+	@-rm -r $(bindir)
+	@-rm -r $(blddir)
+	@-rm -r $(libdir)
+	
+	
