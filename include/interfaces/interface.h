@@ -5,7 +5,7 @@
 #include <time.h>
 #include <errHandler.h>
 #include <funcType.h>
-#include "basic/progress.h"
+#include "engines/progress.h"
 
 namespace exampi {
 namespace basic {

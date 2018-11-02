@@ -1,9 +1,9 @@
 #include <global.h>
 
-#include <basic/interface.h>
-#include <basic/progress.h>
-#include <basic/transport.h>
-#include <basic/checkpoint.h>
+#include <interfaces/interface.h>
+#include <engines/progress.h>
+#include <transports/transport.h>
+#include <checkpoints/checkpoint.h>
 
 // global definitions
 // NOTE:  This is where you would use preproc (or w/e)

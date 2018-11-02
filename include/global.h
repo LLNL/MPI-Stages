@@ -31,10 +31,10 @@
 
 #include <map>
 #include <array.h>
-#include <i/interface.h>
-#include <i/progress.h>
-#include <i/transport.h>
-#include <i/checkpoint.h>
+#include <abstract/interface.h>
+#include <abstract/progress.h>
+#include <abstract/transport.h>
+#include <abstract/checkpoint.h>
 
 namespace exampi {
 namespace global {

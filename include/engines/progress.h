@@ -1,7 +1,7 @@
 #ifndef __EXAMPI_BASIC_PROGRESS_H
 #define __EXAMPI_BASIC_PROGRESS_H
 
-#include <basic.h>
+#include "basic.h"
 #include <map>
 #include <unordered_map>
 #include <list>
@@ -11,7 +11,7 @@
 #include <algorithm>
 #include <sigHandler.h>
 #include <comm.h>
-#include "basic/transport.h"
+#include "transports/transport.h"
 
 namespace exampi {
 namespace basic {

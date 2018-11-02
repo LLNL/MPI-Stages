@@ -2,7 +2,7 @@
 #define __EXAMPI_BASIC_CHECKPOINT_H
 
 #include <basic.h>
-#include "basic/progress.h"
+#include "engines/progress.h"
 
 namespace exampi {
 namespace basic {
