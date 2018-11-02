@@ -1,27 +1,21 @@
-default: framework modules examples
+default: framework examples
 
 framework:
 	$(MAKE) -C src
 
-modules:
-	$(MAKE) -C mod
-
 docs:
-	$(MAKE) -C tex
+	$(MAKE) -C docs
 	
-examples: framework modules
-	$(MAKE) -C examples
+#examples: framework
+#	$(MAKE) -C examples
 
-.PHONY: clean default framework modules docs feamework-clean modules-clean examples-clean
+.PHONY: clean default framework docs framework-clean
 
-clean: framework-clean modules-clean examples-clean
+clean: framework-clean
 	@-rm src/libexampi.a	
 
 framework-clean:
 	$(MAKE) -C src clean
 
-modules-clean:
-	$(MAKE) -C mod clean
-
-examples-clean:
-	$(MAKE) -C examples clean
+#examples-clean:
+#	$(MAKE) -C examples clean
