@@ -1,7 +1,7 @@
 #include <ExaMPI.h>
 #include <mpi.h>
 #include "basic.h"
-#include "basic/interface.h"
+#include "interfaces/interface.h"
 
 extern "C"
 {
