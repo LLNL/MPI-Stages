@@ -27,6 +27,7 @@
 #include <datatype.h>
 #include <comm.h>
 #include <group.h>
+#include <errHandler.h>
 
 #include <map>
 #include <array.h>
@@ -37,7 +38,7 @@
 
 namespace exampi {
 namespace global {
-    extern int rank;
+  extern int rank;
   extern int worldSize;
   extern std::string epochConfig;
   extern int epoch;
@@ -47,8 +48,8 @@ namespace global {
   extern exampi::i::Transport *transport;
   extern std::unordered_map<MPI_Datatype, exampi::Datatype> datatypes;
   extern exampi::i::Checkpoint *checkpoint;
-  extern std::vector<exampi::Comm> communicators;
-  extern std::list<std::shared_ptr<exampi::Group>> groups;
-
+  extern std::vector<exampi::Comm *> communicators;
+  extern std::vector<exampi::Group *> groups;
+  extern exampi::errHandler *handler;
 }} // exampi::i
 #endif

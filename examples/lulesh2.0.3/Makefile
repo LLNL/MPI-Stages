@@ -23,8 +23,8 @@ SOURCES2.0 = \
 OBJECTS2.0 = $(SOURCES2.0:.cc=.o)
 
 #Default build suggestions with OpenMP for g++
-CXXFLAGS = -g -std=c++11 -I$(incdir) -Wall
-LDFLAGS = -g -O3 -L$(libdir) -lrt -fpermissive
+CXXFLAGS = -g -std=c++11 -fopenmp -I$(incdir) -Wall
+LDFLAGS = -g -O3 -fopenmp -L$(libdir) -lrt -fpermissive
 
 #Below are reasonable default flags for a serial build
 #CXXFLAGS = -g -O3 -I. -Wall

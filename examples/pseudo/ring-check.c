@@ -30,7 +30,7 @@ int main(int argc, char** argv)
 			MPI_Comm_set_errhandler(MPI_COMM_WORLD, MPI_ERRORS_RETURN);
 			break;
 		case MPIX_TRY_RELOAD:
-			MPIX_Load_checkpoint(); //read the second to last checkpointed MPI state for this process and clear pending communication
+			MPIX_Checkpoint_read(); //read the second to last checkpointed MPI state for this process and clear pending communication
 			break;
 		default:
 			MPI_Abort(MPI_COMM_WORLD, -1);
@@ -55,7 +55,7 @@ int main_loop(int epoch, int *done) {
 	if (epoch > 0) {
 		MPIX_SAFE_CALL(MPI_Comm_rank(MPI_COMM_WORLD, &crank), code = MPIX_TRY_RELOAD, fail_return);
 		Application_Checkpoint_Read(epoch - 1, crank, &rank, &size, smallmessage);
-		MPIX_SAFE_CALL(MPIX_Deserialize(&newcomm), code = MPIX_TRY_RELOAD, fail_return);
+		//MPIX_SAFE_CALL(MPIX_Deserialize(&newcomm), code = MPIX_TRY_RELOAD, fail_return);
 		printf("%d: Size=%d, rank=%d\n", rank, size, rank);
 		if (rank == 0)
 			++smallmessage[0];
@@ -84,8 +84,8 @@ int main_loop(int epoch, int *done) {
 
 		MPIX_SAFE_CALL(MPIX_Get_fault_epoch(&epoch), code = MPIX_TRY_RELOAD, fail_return);
 		Application_Checkpoint_Write(epoch, rank, size, smallmessage);
-		MPIX_SAFE_CALL(MPIX_Checkpoint(), code = MPIX_TRY_RELOAD, fail_return);
-		MPIX_SAFE_CALL(MPIX_Serialize(newcomm), code = MPIX_TRY_RELOAD, fail_return);
+		MPIX_SAFE_CALL(MPIX_Checkpoint_write(), code = MPIX_TRY_RELOAD, fail_return);
+		//MPIX_SAFE_CALL(MPIX_Serialize(newcomm), code = MPIX_TRY_RELOAD, fail_return);
 
 
 		if (rank == 0) {

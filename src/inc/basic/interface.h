@@ -13,18 +13,19 @@ namespace basic {
 class Interface: public exampi::i::Interface {
 private:
 	int rank;  // TODO: Don't keep this here, hand off to progress
-	int ranks;
-	std::vector<std::string> hosts;
-
+	std::vector<MPIX_Serialize_handler> serialize_handlers;
+	std::vector<MPIX_Deserialize_handler> deserialize_handlers;
+	int recovery_code;
 public:
-	Interface() :
-		rank(0) {
-	}
-	;
-	virtual int MPI_Init(int *argc, char ***argv) {
+	Interface() : rank(0) {}
 
-		// first param is config file, second is rank
-		// third is epoch file, fourth is epoch
+	/*
+	 * 1st param: config file
+	 * 2nd param: rank
+	 * 3rd param: epoch file
+	 * 4th param: epoch
+	 */
+	virtual int MPI_Init(int *argc, char ***argv) {
 		std::cout << "Loading config from " << **argv << std::endl;
 		exampi::global::config->load(**argv);
 		exampi::global::worldSize = std::stoi(
@@ -45,13 +46,8 @@ public:
 		(*argc)--;
 
 		exampi::global::rank = rank;
-		int st = exampi::global::checkpoint->load();
-#if 0
-		exampi::global::rank = rank;
-		exampi::global::transport->init();
-		exampi::global::progress->init();
-		//exampi::global::progress->barrier();
-#endif
+		recovery_code = exampi::global::checkpoint->load();
+
 		if (exampi::global::epoch == 0)
 			exampi::global::progress->barrier();
 
@@ -60,11 +56,13 @@ public:
 		 * handler.setErrToHandle(SIGUSR2);
 		 */
 
-		std::cout << "Finished MPI_Init with code: " << st << "\n";
-		return st;
+		std::cout << "Finished MPI_Init with code: " << recovery_code << "\n";
+		return recovery_code;
 	}
 
 	virtual int MPI_Finalize() {
+		serialize_handlers.clear();
+		deserialize_handlers.clear();
 		exampi::global::transport->finalize();
 		exampi::global::progress->finalize();
 		return 0;
@@ -72,13 +70,11 @@ public:
 
 	virtual int MPI_Send(const void* buf, int count, MPI_Datatype datatype,
 			int dest, int tag, MPI_Comm comm) {
-		errHandler handler;
-		if (handler.isErrSet()) {
-			handler.setErrToZero();
+		if (exampi::global::handler->isErrSet()) {
 			return MPIX_TRY_RELOAD;
 		}
-		Comm c = exampi::global::communicators.at(comm);
-		int context = c.get_context_id_pt2pt();
+		Comm *c = exampi::global::communicators.at(comm);
+		int context = c->get_context_id_pt2pt();
 		size_t szcount = count;
 		MPI_Status st = exampi::global::progress->postSend( {
 			const_cast<void *>(buf), &(exampi::global::datatypes[datatype]),
@@ -90,14 +86,11 @@ public:
 
 	virtual int MPI_Recv(void *buf, int count, MPI_Datatype datatype,
 			int source, int tag, MPI_Comm comm, MPI_Status *status) {
-		//exampi::global::progress->recv_data(buf, count, datatype, source, tag, comm, status);
-		errHandler handler;
-		if (handler.isErrSet()) {
-			handler.setErrToZero();
+		if (exampi::global::handler->isErrSet()) {
 			return MPIX_TRY_RELOAD;
 		}
-		Comm c = exampi::global::communicators.at(comm);
-		int context = c.get_context_id_pt2pt();
+		Comm *c = exampi::global::communicators.at(comm);
+		int context = c->get_context_id_pt2pt();
 		size_t szcount = count;
 		MPI_Status st = exampi::global::progress->postRecv( {
 			const_cast<void *>(buf), &(exampi::global::datatypes[datatype]),
@@ -106,7 +99,6 @@ public:
 								<< "\n";
 
 		if (st.MPI_ERROR == MPIX_TRY_RELOAD) {
-			handler.setErrToZero();
 			memmove(status, &st, sizeof(MPI_Status));
 			return MPIX_TRY_RELOAD;
 		}
@@ -116,13 +108,11 @@ public:
 
 	virtual int MPI_Isend(const void *buf, int count, MPI_Datatype datatype,
 			int dest, int tag, MPI_Comm comm, MPI_Request *request) {
-		errHandler handler;
-		if (handler.isErrSet()) {
-			handler.setErrToZero();
+		if (exampi::global::handler->isErrSet()) {
 			return MPIX_TRY_RELOAD;
 		}
-		Comm c = exampi::global::communicators.at(comm);
-		int context = c.get_context_id_pt2pt();
+		Comm *c = exampi::global::communicators.at(comm);
+		int context = c->get_context_id_pt2pt();
 		size_t szcount = count;
 		// have to move construct the future; i'll fix this later with a pool in progress
 		std::future<MPI_Status> *f = new std::future<MPI_Status>();
@@ -136,14 +126,12 @@ public:
 
 	virtual int MPI_Irecv(void *buf, int count, MPI_Datatype datatype,
 			int source, int tag, MPI_Comm comm, MPI_Request *request) {
-		errHandler handler;
-		if (handler.isErrSet()) {
-			handler.setErrToZero();
+		if (exampi::global::handler->isErrSet()) {
 			return MPIX_TRY_RELOAD;
 		}
-		Comm c = exampi::global::communicators.at(comm);
-		int context = c.get_context_id_pt2pt();
-		//exampi::global::progress->recv_data(buf, count, datatype, source, tag, comm, status);
+		Comm *c = exampi::global::communicators.at(comm);
+		int context = c->get_context_id_pt2pt();
+
 		size_t szcount = count;
 		std::future<MPI_Status> *f = new std::future<MPI_Status>();
 		(*f) = exampi::global::progress->postRecv( { const_cast<void *>(buf),
@@ -153,9 +141,7 @@ public:
 	}
 
 	virtual int MPI_Sendrecv(const void *sendbuf, int sendcount, MPI_Datatype sendtype, int dest, int sendtag, void *recvbuf, int recvcount, MPI_Datatype recvtype, int source, int recvtag, MPI_Comm comm, MPI_Status *status) {
-		errHandler handler;
-		if (handler.isErrSet()) {
-			handler.setErrToZero();
+		if (exampi::global::handler->isErrSet()) {
 			return MPIX_TRY_RELOAD;
 		}
 		MPI_Request recvreq;
@@ -172,9 +158,7 @@ public:
 	}
 
 	virtual int MPI_Wait(MPI_Request *request, MPI_Status *status) {
-		errHandler handler;
-		if (handler.isErrSet()) {
-			handler.setErrToZero();
+		if (exampi::global::handler->isErrSet()) {
 			return MPIX_TRY_RELOAD;
 		}
 		std::future<MPI_Status> *f =
@@ -185,6 +169,9 @@ public:
 	}
 
 	virtual int MPI_Waitall(int count, MPI_Request array_of_requests[], MPI_Status array_of_statuses[]) {
+		if (exampi::global::handler->isErrSet()) {
+			return MPIX_TRY_RELOAD;
+		}
 		if (array_of_statuses) {
 			for (int i = 0; i < count; i++) {
 				if (array_of_requests[i]) {
@@ -205,6 +192,9 @@ public:
 
 	virtual int MPI_Bcast(void *buf, int count, MPI_Datatype datatype, int root,
 			MPI_Comm comm) {
+		if (exampi::global::handler->isErrSet()) {
+			return MPIX_TRY_RELOAD;
+		}
 		int rc;
 		if (exampi::global::rank == root) {
 			for (int i = 0; i < exampi::global::worldSize; i++)
@@ -223,46 +213,45 @@ public:
 	}
 
 	virtual int MPI_Comm_rank(MPI_Comm comm, int *r) {
-		Comm c = exampi::global::communicators.at(comm);
-		//int id = comm / 2;
+		if (exampi::global::handler->isErrSet()) {
+			return MPIX_TRY_RELOAD;
+		}
+		Comm *c = exampi::global::communicators.at(comm);
 
-	    //std::list<exampi::Comm>::iterator it = exampi::global::communicators.begin();
-		//std::advance(it, id);
-
-		*r = (c).getRank();
+		*r = (c)->get_rank();
 		return 0;
 	}
 
 	virtual int MPI_Comm_size(MPI_Comm comm, int *r) {
-		Comm c = exampi::global::communicators.at(comm);
-		//int id = comm / 2;
-		//std::list<exampi::Comm>::iterator it = exampi::global::communicators.begin();
-		//std::advance(it, id);
+		if (exampi::global::handler->isErrSet()) {
+			return MPIX_TRY_RELOAD;
+		}
+		Comm *c = exampi::global::communicators.at(comm);
 
-		*r = (c).get_local_group()->getProcessList().size();
-		//*r = std::stoi((*exampi::global::config)["size"]);
+		*r = (c)->get_local_group()->get_process_list().size();
 		return 0;
 	}
 
 	virtual int MPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm) {
+		if (exampi::global::handler->isErrSet()) {
+			return MPIX_TRY_RELOAD;
+		}
 		int rc;
-		Comm c = exampi::global::communicators.at(comm);
-		//int id = comm / 2;
-		//std::list<exampi::Comm>::iterator it = exampi::global::communicators.begin();
-		//std::advance(it, id);
+		Comm *c = exampi::global::communicators.at(comm);
+
 		int coll_context;
 		int p2p_context;
-		rc = (c).get_next_context(&p2p_context, &coll_context);
+		rc = (c)->get_next_context(&p2p_context, &coll_context);
 		if (rc != MPI_SUCCESS) {
 			return MPIX_TRY_RELOAD;
 		}
-		Comm communicator;
-		communicator = Comm(true, (c).get_local_group(), (c).get_remote_group());
-		communicator.setRank((c).getRank());
-		communicator.set_context(p2p_context, coll_context);
+		Comm *communicator;
+		communicator = new Comm(true, (c)->get_local_group(), (c)->get_remote_group());
+		communicator->set_rank((c)->get_rank());
+		communicator->set_context(p2p_context, coll_context);
 		exampi::global::communicators.push_back(communicator);
 		auto it = std::find_if(exampi::global::communicators.begin(), exampi::global::communicators.end(),
-											[communicator](const Comm &i) -> bool {return i.local_pt2pt == communicator.local_pt2pt;});
+											[communicator](const Comm *i) -> bool {return i->get_context_id_pt2pt() == communicator->get_context_id_pt2pt();});
 		if (it == exampi::global::communicators.end()) {
 			return MPIX_TRY_RELOAD;
 		}
@@ -272,87 +261,136 @@ public:
 		return MPI_SUCCESS;
 	}
 
-	virtual int MPIX_Serialize(MPI_Comm comm) {
-		Comm c = exampi::global::communicators.at(comm);
+	virtual int MPIX_Serialize_handles() {
+		if (exampi::global::handler->isErrSet()) {
+			return MPIX_TRY_RELOAD;
+		}
+
 		std::stringstream filename;
 		filename << exampi::global::epoch - 1 << "." << exampi::global::rank << ".cp";
 		std::ofstream t(filename.str(), std::ofstream::out | std::ofstream::app);
 
-		//t.write(reinterpret_cast<char *>(&c.rank), sizeof(int));
-		t.write(reinterpret_cast<char *>(&c.local_pt2pt), sizeof(int));
-		//t.write(reinterpret_cast<char *>(&c.local_coll), sizeof(int));
-		//t.write(reinterpret_cast<char *>(&c.isintra), sizeof(bool));
-		//int sz = (c.local)->getProcessList().size();
-	    //t.write(reinterpret_cast<char *>(&sz), sizeof(int));
-	    //std::list<int> ranks = (c.local)->getProcessList();
-		//for (auto i : ranks) {
-		//	t.write(reinterpret_cast<char *>(&i), sizeof(int));
-		//}
+		if (!serialize_handlers.empty()) {
+			for (auto it : serialize_handlers) {
+				MPIX_Handles handles;
+				(*it)(&handles);
+				t.write(reinterpret_cast<char *>(&handles.comm_size), sizeof(int));
+				for (int i = 0; i < handles.comm_size; i++) {
+					Comm *c = exampi::global::communicators.at(handles.comms[i]);
+					int id = c->get_context_id_pt2pt();
+					t.write(reinterpret_cast<char *>(&id), sizeof(int));
+				}
 
+				t.write(reinterpret_cast<char *>(&handles.group_size), sizeof(int));
+				for (int i = 0; i < handles.group_size; i++) {
+					Group *g = exampi::global::groups.at(handles.grps[i]);
+					int id = g->get_group_id();
+					t.write(reinterpret_cast<char *>(&id), sizeof(int));
+				}
+			}
+		}
 		t.close();
 
 		return MPI_SUCCESS;
 	}
 
-	virtual int MPIX_Deserialize(MPI_Comm *comm) {
+	virtual int MPIX_Deserialize_handles() {
+		if (exampi::global::handler->isErrSet()) {
+			return MPIX_TRY_RELOAD;
+		}
 		std::stringstream filename;
 		filename << exampi::global::epoch - 1 << "." << exampi::global::rank << ".cp";
 	    std::ifstream t(filename.str(), std::ifstream::in);
 
 	    long long int pos;
 	    t.read(reinterpret_cast<char *>(&pos), sizeof(long long int));
-	    std::cout << "File size " << pos << std::endl;
 	    t.seekg(pos);
 
-		//int grpsize;
-		int p2p;
-		//bool intra;
-		//std::shared_ptr<Group> grp;
-		Comm com;
-		//t.read(reinterpret_cast<char *>(&r), sizeof(int));
-		//com.rank = r;
-		t.read(reinterpret_cast<char *>(&p2p), sizeof(int));
-		//com.local_pt2pt = p2p;
-		//t.read(reinterpret_cast<char *>(&coll), sizeof(int));
-		//com.local_coll = coll;
-		//t.read(reinterpret_cast<char *>(&intra), sizeof(bool));
-		//com.isintra = intra;
-		//t.read(reinterpret_cast<char *>(&grpsize), sizeof(int));
-		//std::list<int> ranks;
-		/*for (int i = 0; i < grpsize; i++) {
-			int x;
-			t.read(reinterpret_cast<char *>(&x), sizeof(int));
-			ranks.push_back(x);
-		}*/
+	    int size, id;
 
-		t.close();
-		//grp = std::make_shared<Group>(ranks);
-		//com.local = grp;
-		//com.remote = grp;
-		std::cout << "handle value " << p2p << std::endl;
+	    if (!deserialize_handlers.empty()) {
+	    	for (auto iter : deserialize_handlers) {
+	    		MPIX_Handles handles;
+	    		t.read(reinterpret_cast<char *>(&size), sizeof(int));
+	    		handles.comm_size = size;
+	    		if (handles.comm_size > 0) {
+	    			handles.comms = (MPI_Comm *)malloc(size * sizeof(MPI_Comm));
+	    			for (int i = 0; i < size; i++) {
+	    				t.read(reinterpret_cast<char *>(&id), sizeof(int));
+	    				auto it = std::find_if(exampi::global::communicators.begin(), exampi::global::communicators.end(),
+	    											[id](const Comm *i) -> bool {return i->get_context_id_pt2pt() == id;});
+	    				if (it == exampi::global::communicators.end()) {
+	    					return MPIX_TRY_RELOAD;
+	    				}
+	    				else {
+	    					handles.comms[i] = std::distance(exampi::global::communicators.begin(), it);
+	    				}
+	    			}
+	    		}
+	    		t.read(reinterpret_cast<char *>(&size), sizeof(int));
+	    		handles.group_size = size;
+	    		if (handles.group_size > 0) {
+	    			handles.grps = (MPI_Group *)malloc(size * sizeof(MPI_Group));
+	    			for (int i = 0; i < size; i++) {
+	    				t.read(reinterpret_cast<char *>(&id), sizeof(int));
+	    				auto it = std::find_if(exampi::global::groups.begin(), exampi::global::groups.end(),
+	    			    							[id](const Group *i) -> bool {return i->get_group_id() == id;});
+	    				if (it == exampi::global::groups.end()) {
+	    					return MPIX_TRY_RELOAD;
+	    				}
+	    				else {
+	    					handles.grps[i] = std::distance(exampi::global::groups.begin(), it);
+	    				}
+	    			}
+	    		}
+	    		(*iter)(handles);
+	    	}
+	    }
 
-		auto it = std::find_if(exampi::global::communicators.begin(), exampi::global::communicators.end(),
-									[p2p](const Comm &i) -> bool {return i.local_pt2pt == p2p;});
-		if (it == exampi::global::communicators.end()) {
-			return MPIX_TRY_RELOAD;
-		}
-		else {
-			*comm = std::distance(exampi::global::communicators.begin(), it);
-		}
+	    t.close();
 		return MPI_SUCCESS;
 	}
 
-	virtual int MPIX_Checkpoint() {
-		errHandler handler;
-		if (handler.isErrSet()) {
-			handler.setErrToZero();
+	virtual int MPIX_Serialize_handler_register(const MPIX_Serialize_handler handler) {
+		if (exampi::global::handler->isErrSet()) {
+			return MPIX_TRY_RELOAD;
+		}
+		if (exampi::global::epoch == 0 && recovery_code == MPI_SUCCESS) {
+			serialize_handlers.push_back(handler);
+		}
+		else if (exampi::global::epoch > 0 && recovery_code == MPIX_SUCCESS_RESTART) {
+			serialize_handlers.push_back(handler);
+		}
+
+		return MPI_SUCCESS;
+	}
+
+	virtual int MPIX_Deserialize_handler_register(const MPIX_Deserialize_handler handler) {
+		if (exampi::global::handler->isErrSet()) {
+			return MPIX_TRY_RELOAD;
+		}
+		if (exampi::global::epoch == 0 && recovery_code == MPI_SUCCESS) {
+			deserialize_handlers.push_back(handler);
+		}
+		else if (exampi::global::epoch > 0 && recovery_code == MPIX_SUCCESS_RESTART) {
+			deserialize_handlers.push_back(handler);
+		}
+
+		return MPI_SUCCESS;
+	}
+
+	virtual int MPIX_Checkpoint_write() {
+		if (exampi::global::handler->isErrSet()) {
 			return MPIX_TRY_RELOAD;
 		}
 		exampi::global::checkpoint->save();
 		return MPI_SUCCESS;
 	}
 
-	virtual int MPIX_Load_checkpoint() {
+	virtual int MPIX_Checkpoint_read() {
+		if (exampi::global::handler->isErrSet()) {
+			exampi::global::handler->setErrToZero();
+		}
 		sigHandler signal;
 
 		while(signal.isSignalSet() != 1) {
@@ -363,13 +401,11 @@ public:
 		ef >> exampi::global::epoch;
 		ef.close();
 
-		return MPIX_SUCCESS_RECOVERY;
+		return MPI_SUCCESS;
 	}
 
 	virtual int MPIX_Get_fault_epoch(int *epoch) {
-		errHandler handler;
-		if (handler.isErrSet()) {
-			handler.setErrToZero();
+		if (exampi::global::handler->isErrSet()) {
 			return MPIX_TRY_RELOAD;
 		}
 
@@ -378,6 +414,9 @@ public:
 	}
 
 	virtual int MPI_Barrier(MPI_Comm comm) {
+		if (exampi::global::handler->isErrSet()) {
+			return MPIX_TRY_RELOAD;
+		}
 		int rank, size;
 		MPI_Status status;
 		int coll_tag = 0;
@@ -438,17 +477,14 @@ public:
 	}
 
 	virtual int MPI_Comm_set_errhandler(MPI_Comm comm, MPI_Errhandler err) {
-		errHandler handler;
-		handler.setErrToHandle(SIGUSR2);
+		exampi::global::handler->setErrToHandle(SIGUSR2);
 		return MPI_SUCCESS;
 	}
 
 	virtual int MPI_Reduce(const void *s_buf, void *r_buf, int count, MPI_Datatype type, MPI_Op op, int root, MPI_Comm comm) {
-		errHandler handler;
-				if (handler.isErrSet()) {
-					handler.setErrToZero();
-					return MPIX_TRY_RELOAD;
-				}
+		if (exampi::global::handler->isErrSet()) {
+			return MPIX_TRY_RELOAD;
+		}
 		int mask, comm_size, peer, peer_rank, peer_rel_rank, rc;
 		int rank, rel_rank;
 
@@ -500,11 +536,9 @@ public:
 	}
 
 	virtual int MPI_Allreduce(const void *s_buf, void *r_buf, int count, MPI_Datatype type, MPI_Op op, MPI_Comm comm) {
-		errHandler handler;
-				if (handler.isErrSet()) {
-					handler.setErrToZero();
-					return MPIX_TRY_RELOAD;
-				}
+		if (exampi::global::handler->isErrSet()) {
+			return MPIX_TRY_RELOAD;
+		}
 		int rc = MPI_Reduce(s_buf, r_buf, count, type, op, 0, comm);
 		if (rc != MPI_SUCCESS) {
 			return rc;
@@ -515,6 +549,9 @@ public:
 	}
 
 	virtual int MPI_Get_count(MPI_Status *status, MPI_Datatype datatype, int *count) {
+		if (exampi::global::handler->isErrSet()) {
+			return MPIX_TRY_RELOAD;
+		}
 		exampi::Datatype type = exampi::global::datatypes[datatype];
 		if (type.getExtent()) {
 			*count = status->count / type.getExtent();

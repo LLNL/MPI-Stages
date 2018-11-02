@@ -36,17 +36,15 @@ class Checkpoint : public exampi::i::Checkpoint
       size = end - begin;
       target.clear();
       target.seekp(0, std::ofstream::beg);
-      std::cout << "File size during write " << size << std::endl;
+
       target.write(reinterpret_cast<char *>(&size), sizeof(long long int));
       target.close();
 
-      errHandler handler;
-      if (handler.isErrSet() != 1) {
+      if (exampi::global::handler->isErrSet() != 1) {
     	  exampi::global::epoch++;
-
-    	        std::ofstream ef(exampi::global::epochConfig);
-    	        ef << exampi::global::epoch;
-    	        ef.close();
+    	  std::ofstream ef(exampi::global::epochConfig);
+    	  ef << exampi::global::epoch;
+    	  ef.close();
       }
 
 
@@ -56,10 +54,9 @@ class Checkpoint : public exampi::i::Checkpoint
     {
       if(exampi::global::epoch == 0) // first init
       {
-    	//std::cout << "In init checkpoint load\n";
         exampi::global::transport->init();
         exampi::global::progress->init();
-        return 0;
+        return MPI_SUCCESS;
       }
       else   // subsequent init
       {
@@ -77,7 +74,6 @@ class Checkpoint : public exampi::i::Checkpoint
         {
          // i.save(target);
         }
-        std::cout << "In re-init\n";
         exampi::global::progress->load(target);
         exampi::global::transport->load(target);
         exampi::global::progress->barrier();

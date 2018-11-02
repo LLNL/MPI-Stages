@@ -1,4 +1,5 @@
 #include <errHandler.h>
+#include <global.h>
 
 namespace exampi {
 

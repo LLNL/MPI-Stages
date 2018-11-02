@@ -2781,7 +2781,7 @@ int main(int argc, char** argv)
 			MPI_Comm_set_errhandler(MPI_COMM_WORLD, MPI_ERRORS_RETURN);
 			break;
 		case MPIX_TRY_RELOAD:
-			recovery_code = MPIX_Load_checkpoint(); /*read the second to last checkpointed MPI state for this process and clear pending communication*/
+			recovery_code = MPIX_Checkpoint_read(); /*read the second to last checkpointed MPI state for this process and clear pending communication*/
 			break;
 		default:
 			abort = 1;
@@ -2923,7 +2923,7 @@ int main_loop(int argc, char **argv, int epoch, int *done)
       }
       MPIX_SAFE_CALL(MPI_Barrier(MPI_COMM_WORLD), code = MPIX_TRY_RELOAD, fail_return);
       Application_Checkpoint_Write(epoch, myRank, *locDom, opts);
-      MPIX_SAFE_CALL(MPIX_Checkpoint(), code = MPIX_TRY_RELOAD, fail_return);
+      MPIX_SAFE_CALL(MPIX_Checkpoint_write(), code = MPIX_TRY_RELOAD, fail_return);
       MPIX_SAFE_CALL(MPIX_Get_fault_epoch(&epoch), code = MPIX_TRY_RELOAD, fail_return);
    }
 
