@@ -1,0 +1,49 @@
+#! /usr/bin/env python2
+
+import sys, os, re, argparse, subprocess
+
+schedulers = ['local', 'slurm', 'osg', 'sge']
+
+def run_local(numproc, program):
+	# start numproc processes of program
+
+	processes = []
+
+	# create job stdout and stderr files
+
+	for idx in xrange(numproc):
+		process = subprocess.Popen(program)
+		
+		processes.append(process)
+
+	# TODO could send signals, or poll, etc...
+
+	for process in processes:
+		process.wait()
+
+if __name__ == '__main__':
+	# command line argument parsing
+	parser = argparse.ArgumentParser(description="ExaMPI Process Initiator")
+
+	parser.add_argument('-n', metavar='<numprocs>', type=int, required=True, help='Number of processes to start (required).')
+
+	parser.add_argument('-s', default=schedulers[0], metavar='<scheduler>', type=str, help='Job scheduler environment to use.', choices=schedulers)
+	
+	parser.add_argument('program', metavar='<program>', type=str, nargs=argparse.REMAINDER, help='Program binary to execute with flags.')
+
+	# TODO add additional argument possible by standard, section 8.8
+	
+	arguments = parser.parse_args()
+	
+	# switch between local, slurm and osg
+	if arguments.s is schedulers[0]:
+		# local scheduler ie run locally multiple processes
+		run_local(arguments.n, arguments.program)
+	
+	elif arguments.s is scheduler[1]:
+		# use SLURM
+		pass
+
+	elif arguments.s is scheduler[2] or arguments.s is scheduler[3]:
+		# use SGE or OSG
+		pass
