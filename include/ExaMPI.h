@@ -37,12 +37,30 @@ std::unique_ptr<T> make_unique(Args&&... args) {
 
 static inline std::thread::id thisThread() { return std::this_thread::get_id(); }
 
+
+// TODO remove this once all debug statements are properly wrapped!
 static inline std::string debug()
 {
   std::stringstream stream;
   stream << "\t[0x" << std::hex << std::setfill('0') << std::setw(8) << thisThread() << "] ";
   return stream.str();
 }
+
+#ifdef DEBUG
+void debug_init() {
+	std::stringstream stream;
+	
+	debug_stringstream << "\t[0x" << std::hex << std::setfill('0') << std::setw(8) << thisThread() << "] ";
+
+	return stream.str();
+}
+
+// TODO rename this to debug once everything is wrapped, then sed to global replace
+#define debugpp(string) std:cerr << debug_init() << string << std::endl; 
+#else
+#define debugpp(string)
+#endif
+
 
 static inline std::string mpiStatusString(MPI_Status st)
 {

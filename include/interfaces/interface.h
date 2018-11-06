@@ -26,21 +26,28 @@ public:
 	 * 4th param: epoch
 	 */
 	virtual int MPI_Init(int *argc, char ***argv) {
-		std::cout << "Loading config from " << **argv << std::endl;
+		//std::cout << "Loading config from " << **argv << std::endl;
+		debugpp("Loading config from " << **argv);
 		exampi::global::config->load(**argv);
 		exampi::global::worldSize = std::stoi(
 				(*exampi::global::config)["size"]);
 		(*argv)++;
 		(*argc)--;
-		std::cout << "Taking rank to be arg " << **argv << std::endl;
+
+		//std::cout << "Taking rank to be arg " << **argv << std::endl;
+		debugpp("Taking rank to be arg " << **argv);
 		rank = atoi(**argv);
 		(*argv)++;
 		(*argc)--;
-		std::cout << "Taking epoch config to be " << **argv << std::endl;
+
+		//std::cout << "Taking epoch config to be " << **argv << std::endl;
+		debugpp("Taking epoch config to be " << **argv);
 		exampi::global::epochConfig = std::string(**argv);
 		(*argv)++;
 		(*argc)--;
-		std::cout << "Taking epoch to be " << **argv << std::endl;
+
+		//std::cout << "Taking epoch to be " << **argv << std::endl;
+		debugpp("Taking epoch to be " << **argv);
 		exampi::global::epoch = atoi(**argv);
 		(*argv)++;
 		(*argc)--;
@@ -56,7 +63,8 @@ public:
 		 * handler.setErrToHandle(SIGUSR2);
 		 */
 
-		std::cout << "Finished MPI_Init with code: " << recovery_code << "\n";
+		//std::cout << "Finished MPI_Init with code: " << recovery_code << "\n";
+		debugpp("Finished MPI_Init with code: " << recovery_code);
 		return recovery_code;
 	}
 
