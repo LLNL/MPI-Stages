@@ -35,23 +35,24 @@ sources = $(wildcard $(srcdir)/*.cpp) $(wildcard $(srcdir)/*/*.cpp)
 objects = $(patsubst %.cpp, %.o, $(subst $(srcdir), $(blddir), $(sources)))
 
 ### rules
-#default: $(alib)
 default: static
 
 help:
 	@echo "make static"
 	@echo "make shared"
 
-#$(target): directories $(headers) $(objects)
-#	$(AR) $(LDFLAGS) -o %@
-
-#shared: $(shlib)
+# target building rules
+shared: $(shlib)
 
 static: $(alib)
 
 $(alib): $(objects)
 	$(AR) rcs $@ $^
 
+$(shlib): $(objects)
+	@echo "SHARED LIBRARY NOT IMPLEMENTED"
+
+# object building rules
 $(blddir)/%.o: $(srcdir)/%.cpp $(headers) | directories
 	$(CXX) -I$(incdir) -c $(CXXFLAGS) $< -o $@
 
@@ -60,18 +61,21 @@ $(blddir)/*/%.o: $(srcdir)/*/%.cpp $(headers) | directories
 
 ### directory rules
 directories:
-	mkdir -p $(bindir)
-	mkdir -p $(libdir)
-	mkdir -p $(blddir)
-	mkdir -p $(blddir)/mpi
+	@echo "Creating build directories."
+	@mkdir -p $(bindir)
+	@mkdir -p $(libdir)
+	@mkdir -p $(blddir)
+	@mkdir -p $(blddir)/mpi
 
 ### clean rules
 .PHONY: style
 style:
-	astyle --project "include/*" "src/*"
+	@echo "Formatting all header files and source files."
+	@astyle --project "include/*" "src/*"
 
 .PHONY: clean
 clean:
+	@echo "Removing all build directories."
 	@-rm -rf $(bindir)
 	@-rm -rf $(blddir)
 	@-rm -rf $(libdir)
