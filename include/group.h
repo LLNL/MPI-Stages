@@ -3,11 +3,12 @@
 
 #include <list>
 
-namespace exampi {
+namespace exampi
+{
 
 class Group
 {
- public:
+public:
 	Group();
 	Group(std::list<int> processes);
 	std::list<int> get_process_list();
@@ -15,8 +16,8 @@ class Group
 	void set_group_id(int id);
 	void set_process_list(std::list<int> ranks);
 
- protected:
- private:
+protected:
+private:
 	std::list<int> process_list;
 	int group_id;
 	static int id;

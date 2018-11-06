@@ -9,10 +9,10 @@ extern "C"
 
 #pragma weak MPI_Wait = PMPI_Wait
 
-int PMPI_Wait(MPI_Request *request, MPI_Status *status)
-{
-	int rc = exampi::global::interface->MPI_Wait(request, status);
-	return rc;
-}
+	int PMPI_Wait(MPI_Request *request, MPI_Status *status)
+	{
+		int rc = exampi::global::interface->MPI_Wait(request, status);
+		return rc;
+	}
 
 }

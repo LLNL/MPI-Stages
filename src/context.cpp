@@ -1,6 +1,7 @@
 #include <context.h>
 
-namespace exampi {
+namespace exampi
+{
 
 volatile int Context::nextID = 1;
 

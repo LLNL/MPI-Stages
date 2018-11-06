@@ -6,25 +6,32 @@
 #include <group.h>
 #include <memory>
 
-namespace exampi {
+namespace exampi
+{
 
-class Comm {
+class Comm
+{
 public:
-	Comm() {
+	Comm()
+	{
 	}
 	Comm(bool _isintra, exampi::Group *_local,
-			exampi::Group *_remote) :
-			is_intra(_isintra), local(_local), remote(_remote) {
+	     exampi::Group *_remote) :
+		is_intra(_isintra), local(_local), remote(_remote)
+	{
 	}
 
-	virtual ~Comm() {
+	virtual ~Comm()
+	{
 	}
 
 	// fix rule of 5 later
 	// Comm &operator=(Comm &rhs) = 0;
-	int get_next_context(int *pt2pt, int *coll) {
+	int get_next_context(int *pt2pt, int *coll)
+	{
 		int rc;
-		if (rank == 0) {
+		if (rank == 0)
+		{
 			//Context::contextLock.lock();
 			Context::nextID++;
 			*pt2pt = Context::nextID;
@@ -33,56 +40,69 @@ public:
 			//Context::contextLock.unlock();
 		}
 		rc = MPI_Bcast(pt2pt, 1, MPI_INT, 0, local_pt2pt);
-		if (rc != MPI_SUCCESS) {
+		if (rc != MPI_SUCCESS)
+		{
 			return MPIX_TRY_RELOAD;
 		}
 		rc = MPI_Bcast(coll, 1, MPI_INT, 0, local_pt2pt);
-		if (rc != MPI_SUCCESS) {
+		if (rc != MPI_SUCCESS)
+		{
 			return MPIX_TRY_RELOAD;
 		}
 
 		return 0;
 	}
 	// accessors
-	exampi::Group* get_local_group() {
+	exampi::Group *get_local_group()
+	{
 		return local;
 	}
-	exampi::Group* get_remote_group() {
+	exampi::Group *get_remote_group()
+	{
 		return remote;
 	}
 
-	void set_local_group(Group *group) {
+	void set_local_group(Group *group)
+	{
 		local = group;
 	}
 
-	void set_remote_group(Group *group) {
+	void set_remote_group(Group *group)
+	{
 		remote = group;
 	}
 
-	int get_context_id_pt2pt() const {
+	int get_context_id_pt2pt() const
+	{
 		return local_pt2pt;
 	}
-	int get_context_id_coll() const {
+	int get_context_id_coll() const
+	{
 		return local_coll;
 	}
 
-	void set_rank(int r) {
+	void set_rank(int r)
+	{
 		rank = r;
 	}
-	void set_context(int pt2pt, int coll) {
+	void set_context(int pt2pt, int coll)
+	{
 		local_pt2pt = pt2pt;
 		local_coll = coll;
 	}
 
-	int get_rank() {
+	int get_rank()
+	{
 		return rank;
 	}
 
-	bool get_is_intra() {
+	bool get_is_intra()
+	{
 		return is_intra;
 	}
 
-	void set_is_intra(bool intra) {
+	void set_is_intra(bool intra)
+	{
 		is_intra = intra;
 	}
 

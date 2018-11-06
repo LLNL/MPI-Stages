@@ -12,11 +12,11 @@
 namespace exampi
 {
 
-class Log 
+class Log
 
 
 
 
-} // namespace exampi
+	} // namespace exampi
 //fndef __EXAMPI_LOG_H
 #endif

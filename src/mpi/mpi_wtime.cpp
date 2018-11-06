@@ -8,10 +8,10 @@ extern "C"
 
 #pragma weak MPI_Wtime = PMPI_Wtime
 
-double PMPI_Wtime(void)
-{
-	double ret = exampi::global::interface->MPI_Wtime();
-	return ret;
-}
+	double PMPI_Wtime(void)
+	{
+		double ret = exampi::global::interface->MPI_Wtime();
+		return ret;
+	}
 
 }

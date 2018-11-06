@@ -4,21 +4,22 @@
 #include <iostream>
 #include <csignal>
 
-namespace exampi {
+namespace exampi
+{
 class errHandler
 {
 public:
-    errHandler();
-    ~errHandler();
+	errHandler();
+	~errHandler();
 
-    bool setErrToHandle(int sig);
-    static int isErrSet();
-    static void setErr(int unused);
-    static void setErrToZero();
-    static void setErrToOne();
+	bool setErrToHandle(int sig);
+	static int isErrSet();
+	static void setErr(int unused);
+	static void setErrToZero();
+	static void setErrToOne();
 
 private:
-    volatile static std::sig_atomic_t is_errSet;
+	volatile static std::sig_atomic_t is_errSet;
 };
 }
 #endif

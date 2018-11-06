@@ -5,8 +5,10 @@
 #include "transports/udp.h"
 //#include "basic/tcp.h"
 
-namespace exampi {
-namespace basic {
+namespace exampi
+{
+namespace basic
+{
 
 class Transport : public exampi::i::Transport
 {
@@ -29,7 +31,8 @@ public:
 		init();
 	}
 
-	virtual void finalize() {
+	virtual void finalize()
+	{
 		recvSocket.destroy();
 	}
 
@@ -45,17 +48,17 @@ public:
 	}
 
 	virtual std::future<int> send(std::vector<struct iovec> iov, int dest, MPI_Comm comm)
-    		{
+	{
 		std::cout << "\tbasic::Transport::send(..., " << dest <<", " << comm << ")\n";
 		udp::Socket s;
 		udp::Message msg(iov);
 
 		msg.send(s, endpoints[dest]);
 		return std::promise<int>().get_future();
-    		}
+	}
 
 	virtual std::future<int> receive(std::vector<struct iovec> iov, MPI_Comm comm, ssize_t *count)
-    		{
+	{
 		std::cout << debug() << "basic::Transport::receive(...)" << std::endl;
 		std::cout << debug() << "\tiov says size is " << iov.size() << std::endl;
 		std::cout << debug() << "\t ------ " << std::endl;
@@ -66,9 +69,10 @@ public:
 		*count = msg.receive(recvSocket);
 		std::cout << debug() << "basic::Transport::receive returning" << std::endl;
 		return std::promise<int>().get_future();
-    		}
+	}
 
-	virtual int cleanUp(MPI_Comm comm) {
+	virtual int cleanUp(MPI_Comm comm)
+	{
 		std::cout << debug() << "basic::Transport::receive(...)" << std::endl;
 		char buffer[2];
 		struct sockaddr_storage src_addr;
@@ -105,16 +109,16 @@ public:
 	}
 
 	/*std::vector<std::string> split(std::vector<std::string> vec, std::string line) {
-    	vec.clear();
-    	std::size_t delim = line.find_first_of("|");
-    	std::string key = line.substr(0, delim);
-    	vec.push_back(key);
-    	std::string val = line.substr(delim+1);
-    	vec.push_back(val);
-    	return vec;
-    }*/
+		vec.clear();
+		std::size_t delim = line.find_first_of("|");
+		std::string key = line.substr(0, delim);
+		vec.push_back(key);
+		std::string val = line.substr(delim+1);
+		vec.push_back(val);
+		return vec;
+	}*/
 
-	virtual int save(std::ostream& t)
+	virtual int save(std::ostream &t)
 	{
 		// save endpoints
 		int epsz = endpoints.size();
@@ -130,7 +134,7 @@ public:
 		return 0;
 	}
 
-	virtual int load(std::istream& t)
+	virtual int load(std::istream &t)
 	{
 		init();
 		// load endpoints

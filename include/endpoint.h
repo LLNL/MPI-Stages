@@ -5,15 +5,20 @@
 #include <datatype.h>
 
 
-namespace exampi {
+namespace exampi
+{
 
 class Endpoint
 {
-  public:
-    int rank;
-    MPI_Comm comm;
+public:
+	int rank;
+	MPI_Comm comm;
 
-    void invalid() { rank = -1; comm = -1; }
+	void invalid()
+	{
+		rank = -1;
+		comm = -1;
+	}
 };
 
 } // ::exampi

@@ -7,7 +7,7 @@ CXX = g++
 LD =
 
 # flags
-CXXFLAGS = -std=c++11 -pthread -Wall -Werror
+CXXFLAGS = -std=c++11 -pthread -Wall
 LDFLAGS = 
 
 # target definitions
@@ -66,6 +66,10 @@ directories:
 	mkdir -p $(blddir)/mpi
 
 ### clean rules
+.PHONY: style
+style:
+	astyle --project "include/*" "src/*"
+
 .PHONY: clean
 clean:
 	@-rm -rf $(bindir)

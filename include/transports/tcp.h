@@ -6,18 +6,23 @@
 #include <netinet/tcp.h>
 #include <climits>
 
-namespace exampi {
-namespace basic {
-namespace tcp {
+namespace exampi
+{
+namespace basic
+{
+namespace tcp
+{
 
 class Socket
 {
 private:
 	int sd;
 public:
-	Socket() {
+	Socket()
+	{
 		sd = socket(AF_INET, SOCK_STREAM, 0);
-		if (sd < 0) {
+		if (sd < 0)
+		{
 			std::cout << "ERROR: creating listening socket\n";
 		}
 		int flag = 1;
@@ -33,27 +38,36 @@ public:
 		inaddr.sin_addr.s_addr = INADDR_ANY;
 		inaddr.sin_port = htons(port);
 
-		if (bind(sd, (struct sockaddr*)&inaddr, sizeof(inaddr)) < 0) {
+		if (bind(sd, (struct sockaddr *)&inaddr, sizeof(inaddr)) < 0)
+		{
 			std::cout << "ERROR: bind failed\n";
 		}
 
-		if (listen(sd, SOMAXCONN) < 0) {
+		if (listen(sd, SOMAXCONN) < 0)
+		{
 			std::cout << "ERROR: listening for connection\n";
 		}
 		int flags;
-		if ((flags = fcntl(sd, F_GETFL, 0)) < 0) {
+		if ((flags = fcntl(sd, F_GETFL, 0)) < 0)
+		{
 			std::cout << "ERROR: failed fcntl\n";
 		}
-		else {
+		else
+		{
 			flags |= O_NONBLOCK;
-			if (fcntl(sd, F_SETFL, flags) < 0) {
+			if (fcntl(sd, F_SETFL, flags) < 0)
+			{
 				std::cout << "ERROR: failed fcntl non blocking\n";
 			}
 		}
 	}
 
-	int getFd() { return sd; }
-	void destroy() {
+	int getFd()
+	{
+		return sd;
+	}
+	void destroy()
+	{
 		close(sd);
 	}
 };
@@ -65,10 +79,10 @@ private:
 	std::vector<struct iovec> iov;
 public:
 	Message() : iov()
-{
+	{
 		hdr.msg_control = NULL;
 		hdr.msg_controllen = 0;
-}
+	}
 
 	Message(std::vector<struct iovec> i) : iov(i)
 	{
@@ -78,7 +92,10 @@ public:
 		hdr.msg_namelen = 0;
 	}
 
-	void addBuf(exampi::i::Buf *b) { iov.push_back(b->iov()); }
+	void addBuf(exampi::i::Buf *b)
+	{
+		iov.push_back(b->iov());
+	}
 	void updateHeader()
 	{
 		std::cout << "length of message" << iov[1].iov_len << " header "<< iov[0].iov_len << "\n";
@@ -101,8 +118,8 @@ public:
 		char str[INET_ADDRSTRLEN];
 		inet_ntop(AF_INET, &(addr.get()->sin_addr), str, INET_ADDRSTRLEN);
 		std::cout << "\tbasic::Transport::tcp::send\n"
-				<< "\t\t" << hdr.msg_iovlen << " iovecs\n"
-				<< "\t\t" << str << "\n";
+		          << "\t\t" << hdr.msg_iovlen << " iovecs\n"
+		          << "\t\t" << str << "\n";
 
 		ssize_t length = sendmsg(sock, &hdr, 0);
 		std::cout << "Send to TCP " << length << "\n";

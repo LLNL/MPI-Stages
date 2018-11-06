@@ -36,20 +36,23 @@
 #include <abstract/transport.h>
 #include <abstract/checkpoint.h>
 
-namespace exampi {
-namespace global {
-  extern int rank;
-  extern int worldSize;
-  extern std::string epochConfig;
-  extern int epoch;
-  extern exampi::Config *config;
-  extern exampi::i::Interface *interface;
-  extern exampi::i::Progress *progress;
-  extern exampi::i::Transport *transport;
-  extern std::unordered_map<MPI_Datatype, exampi::Datatype> datatypes;
-  extern exampi::i::Checkpoint *checkpoint;
-  extern std::vector<exampi::Comm *> communicators;
-  extern std::vector<exampi::Group *> groups;
-  extern exampi::errHandler *handler;
-}} // exampi::i
+namespace exampi
+{
+namespace global
+{
+extern int rank;
+extern int worldSize;
+extern std::string epochConfig;
+extern int epoch;
+extern exampi::Config *config;
+extern exampi::i::Interface *interface;
+extern exampi::i::Progress *progress;
+extern exampi::i::Transport *transport;
+extern std::unordered_map<MPI_Datatype, exampi::Datatype> datatypes;
+extern exampi::i::Checkpoint *checkpoint;
+extern std::vector<exampi::Comm *> communicators;
+extern std::vector<exampi::Group *> groups;
+extern exampi::errHandler *handler;
+}
+} // exampi::i
 #endif

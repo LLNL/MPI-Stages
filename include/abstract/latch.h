@@ -12,8 +12,8 @@ namespace i
 class Latch
 {
 public:
-    virtual void wait() = 0;
-    virtual void signal() = 0;
+	virtual void wait() = 0;
+	virtual void signal() = 0;
 };
 
 }

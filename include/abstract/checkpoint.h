@@ -11,8 +11,8 @@ namespace i
 class Checkpoint
 {
 public:
-    virtual void save() = 0;
-    virtual int load() = 0;
+	virtual void save() = 0;
+	virtual int load() = 0;
 };
 
 }

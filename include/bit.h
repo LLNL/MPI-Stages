@@ -15,9 +15,9 @@ namespace Bit
 {
 
 
-    // SF:  This uses templates and typenames to assign a data type
-    // based on bit width (provided in template) at compile-time.
-    // see std::conditional
+// SF:  This uses templates and typenames to assign a data type
+// based on bit width (provided in template) at compile-time.
+// see std::conditional
 template<size_t sz>
 using type =
     typename std::conditional<sz==0, void,
@@ -35,23 +35,29 @@ using type =
 template<size_t sz>
 class Mask
 {
-  private:  
-    const type<sz> data;
-  public:
-    constexpr Mask() : data((1u << sz) - 1u) {;}
-    constexpr Mask(type<sz> t) : data(t & ((1u << sz) - 1u)) {;}
-    constexpr operator type<sz>() const {return data;}
+private:
+	const type<sz> data;
+public:
+	constexpr Mask() : data((1u << sz) - 1u) {;}
+	constexpr Mask(type<sz> t) : data(t & ((1u << sz) - 1u)) {;}
+	constexpr operator type<sz>() const
+	{
+		return data;
+	}
 };
 
 template<size_t sz>
 class At
 {
-  private:  
-    const type<sz> data;
-  public:
-    constexpr At() : data((1u << sz)) {;}
-    constexpr At(type<sz> t) : data(t & (1u << sz)) {;}
-    constexpr operator type<sz>() const {return data;}
+private:
+	const type<sz> data;
+public:
+	constexpr At() : data((1u << sz)) {;}
+	constexpr At(type<sz> t) : data(t & (1u << sz)) {;}
+	constexpr operator type<sz>() const
+	{
+		return data;
+	}
 };
 
 // This is distict from a "field" (below) in that it is fully evaluated;
@@ -59,11 +65,14 @@ class At
 template<size_t start, size_t width>
 class Slice
 {
-  private:
-    const type<width> data;
-  public:
-    constexpr Slice(const type<start+width> target) : data(target & (Mask<width+start>() ^ Mask<start>())) {;}
-    constexpr operator type<width>() const {return data;}
+private:
+	const type<width> data;
+public:
+	constexpr Slice(const type<start+width> target) : data(target & (Mask<width+start>() ^ Mask<start>())) {;}
+	constexpr operator type<width>() const
+	{
+		return data;
+	}
 };
 
 
@@ -73,28 +82,60 @@ class Slice
 template<size_t O, size_t W>   // Offset, Width
 class Field
 {
-  private:
-    type<O+W> &data;
-    const type<O+W> mask;
-  public:
-    Field(type<O+W> &i) : data(i), mask(Mask<O+W>(W) << O) {;}
-    Field(Field &i) {data = i.data;}
-    Field(Field&& i) {std::move(i.data);}
+private:
+	type<O+W> &data;
+	const type<O+W> mask;
+public:
+	Field(type<O+W> &i) : data(i), mask(Mask<O+W>(W) << O) {;}
+	Field(Field &i)
+	{
+		data = i.data;
+	}
+	Field(Field &&i)
+	{
+		std::move(i.data);
+	}
 
-    type<O+W> get() const {return data & mask;}
-    void set(type<O+W> v) 
-    {
-      data &= !mask; // erase field
-      data |= (v & mask); 
-    }
+	type<O+W> get() const
+	{
+		return data & mask;
+	}
+	void set(type<O+W> v)
+	{
+		data &= !mask; // erase field
+		data |= (v & mask);
+	}
 
-    type<O+W> operator=(type<O+W> t) {set(t); return data;}
-    type<O+W> operator+(type<O+W> t) {set(get() + t); return data;}
-    type<O+W> operator-(type<O+W> t) {set(get() - t); return data;}
-    type<O+W> operator*(type<O+W> t) {set(get() * t); return data;}
-    type<O+W> operator/(type<O+W> t) {set(get() / t); return data;}
+	type<O+W> operator=(type<O+W> t)
+	{
+		set(t);
+		return data;
+	}
+	type<O+W> operator+(type<O+W> t)
+	{
+		set(get() + t);
+		return data;
+	}
+	type<O+W> operator-(type<O+W> t)
+	{
+		set(get() - t);
+		return data;
+	}
+	type<O+W> operator*(type<O+W> t)
+	{
+		set(get() * t);
+		return data;
+	}
+	type<O+W> operator/(type<O+W> t)
+	{
+		set(get() / t);
+		return data;
+	}
 
-    constexpr operator type<O+W>() const {return data;}
+	constexpr operator type<O+W>() const
+	{
+		return data;
+	}
 };
 
 } // Bits
