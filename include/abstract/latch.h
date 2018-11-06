@@ -4,16 +4,19 @@
 #include <mpi.h>
 #include <endpoint.h>
 
-namespace exampi {
-namespace i {
+namespace exampi
+{
+namespace i
+{
 
 class Latch
 {
-  public:
+public:
     virtual void wait() = 0;
     virtual void signal() = 0;
 };
 
-}} // ::exampi::i
+}
+} // ::exampi::i
 
 #endif //  __EXAMPI_I_LATCH_H

@@ -68,8 +68,6 @@ directories:
 ### clean rules
 .PHONY: clean
 clean:
-	@-rm -r $(bindir)
-	@-rm -r $(blddir)
-	@-rm -r $(libdir)
-	
-	
+	@-rm -rf $(bindir)
+	@-rm -rf $(blddir)
+	@-rm -rf $(libdir)

@@ -1,0 +1,8 @@
+--style=allman
+--indent=spaces=4
+
+--indent-switches
+
+--indent-namespaces
+
+--recursive
