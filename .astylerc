@@ -1,8 +1,17 @@
+--recursive
+
+--quiet
+
+--lineend=linux
+
+--suffix=none
+
 --style=allman
---indent=spaces=4
+
+--indent=tab
 
 --indent-switches
 
---indent-namespaces
+--align-pointer=name
 
---recursive
+--align-reference=name
