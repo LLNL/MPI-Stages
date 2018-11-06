@@ -2,4 +2,51 @@
  
 \begin{document}
 
+Place all implementation code into the source files instead of the header files.
+
+Indentation 4-space per level
+
+C code style: Allman
+
+while (x == y)
+{
+    something();
+    somethingelse();
+}
+
+finalthing();
+
+brackets must be aligned, indentation is required. Brackets belong to parent level
+
+if (condition)
+{
+	block
+}
+else
+{
+	block
+}
+
+Variable naming convention, no camelcase
+
+make variable names meainingful!!!
+
+no: 
+a = 3
+data = ...
+
+yes:
+receivers = 3
+recv\_data = ...
+
+Use underscores liberally.
+
+No global variables, use singleton pattern for C++ objects. + Factory...
+
+debug statements as much as required.
+
+debug("this string" << variable << "another string")
+
+will automagically intend and such.
+
 \end{document}
