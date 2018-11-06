@@ -3,22 +3,24 @@
 
 #include <mpi.h>
 
-namespace exampi {
-namespace i {
+namespace exampi
+{
+namespace i
+{
 
 class Interface
 {
-  public:
-	virtual int MPI_Allreduce(const void *s_buf, void *r_buf, int count, MPI_Datatype type, MPI_Op op, MPI_Comm comm) = 0;
-	virtual int MPI_Abort(MPI_Comm comm, int errorcode) = 0;
-	virtual int MPI_Barrier(MPI_Comm comm) = 0;
-	virtual int MPI_Bcast(void *buf, int count, MPI_Datatype datatype, int root, MPI_Comm comm) = 0;
-	virtual int MPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm) = 0;
-	virtual int MPI_Comm_rank(MPI_Comm comm, int *r) = 0;
-	virtual int MPI_Comm_size(MPI_Comm comm, int *r) = 0;
-	virtual int MPI_Comm_set_errhandler(MPI_Comm comm, MPI_Errhandler err) = 0;
-	virtual int MPI_Finalize(void) = 0;
-	virtual int MPI_Get_count(MPI_Status *status, MPI_Datatype datatype, int *count) = 0;
+public:
+    virtual int MPI_Allreduce(const void *s_buf, void *r_buf, int count, MPI_Datatype type, MPI_Op op, MPI_Comm comm) = 0;
+    virtual int MPI_Abort(MPI_Comm comm, int errorcode) = 0;
+    virtual int MPI_Barrier(MPI_Comm comm) = 0;
+    virtual int MPI_Bcast(void *buf, int count, MPI_Datatype datatype, int root, MPI_Comm comm) = 0;
+    virtual int MPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm) = 0;
+    virtual int MPI_Comm_rank(MPI_Comm comm, int *r) = 0;
+    virtual int MPI_Comm_size(MPI_Comm comm, int *r) = 0;
+    virtual int MPI_Comm_set_errhandler(MPI_Comm comm, MPI_Errhandler err) = 0;
+    virtual int MPI_Finalize(void) = 0;
+    virtual int MPI_Get_count(MPI_Status *status, MPI_Datatype datatype, int *count) = 0;
     virtual int MPI_Init(int *argc, char ***argv) = 0;
     virtual int MPI_Irecv(void* buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm, MPI_Request *request) = 0;
     virtual int MPI_Isend(const void* buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm, MPI_Request *request) = 0;
@@ -39,5 +41,6 @@ class Interface
     virtual int MPIX_Serialize_handler_register(const MPIX_Serialize_handler) = 0;
 };
 
-}} // exampi::i
+}
+} // exampi::i
 #endif

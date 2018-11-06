@@ -3,15 +3,18 @@
 
 #include <mpi.h>
 
-namespace exampi {
-namespace i {
+namespace exampi
+{
+namespace i
+{
 
 class Checkpoint
 {
-  public:
+public:
     virtual void save() = 0;
     virtual int load() = 0;
 };
 
-}} // exampi::i
+}
+} // exampi::i
 #endif

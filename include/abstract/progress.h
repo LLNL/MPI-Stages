@@ -4,12 +4,14 @@
 #include <mpi.h>
 #include <endpoint.h>
 
-namespace exampi {
-namespace i {
+namespace exampi
+{
+namespace i
+{
 
 class Progress
 {
-  public:
+public:
     virtual int init() = 0;
     virtual void finalize() = 0;
     virtual int init(std::istream &t) = 0;
@@ -22,6 +24,7 @@ class Progress
     virtual void cleanUp() = 0;
 };
 
-}} // ::exampi::i
+}
+} // ::exampi::i
 
 #endif // __EXAMPI_I_PROGRESS_H
