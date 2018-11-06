@@ -7,19 +7,45 @@ schedulers = ['local', 'slurm', 'osg', 'sge']
 def run_local(numproc, program):
 	# start numproc processes of program
 
+	# launch program instances
 	processes = []
+	for rank in xrange(numproc):
+		# seperate binary
+		child = [program[0]]
 
-	# create job stdout and stderr files
+		# insert ExaMPI arguments
+		configname = 'mpirun.%i.config.tmp' % rank
+		child.append(configname)
 
-	for idx in xrange(numproc):
-		process = subprocess.Popen(program)
+		child.append(str(rank))
+
+		epochname = 'mpirun.%i.epoch.tmp' % rank
+		child.append(epochname)
+
+		epoch = 0
+		child.append(str(epoch))
+
+		# append user arguments
+		child.extend(program[1:])
+
+		print(child)
+
+		process = subprocess.Popen(child)
 		
 		processes.append(process)
 
 	# TODO could send signals, or poll, etc...
+	# mpiexec acts as daemon
 
+	# TODO watch for program crash
+
+	# finalize all child processes
 	for process in processes:
 		process.wait()
+
+def run_slurm():
+	# TODO execute srun externally, plugin required
+	pass
 
 if __name__ == '__main__':
 	# command line argument parsing
