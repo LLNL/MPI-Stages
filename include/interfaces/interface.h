@@ -73,6 +73,7 @@ public:
 		deserialize_handlers.clear();
 		exampi::global::transport->finalize();
 		exampi::global::progress->finalize();
+
 		return 0;
 	}
 
@@ -87,8 +88,10 @@ public:
 		MPI_Status st = exampi::global::progress->postSend( {
 			const_cast<void *>(buf), &(exampi::global::datatypes[datatype]),
 					szcount }, { dest, context }, tag).get();
-		std::cout << debug() << "Finished MPI_Send: " << mpiStatusString(st)
-								<< "\n";
+		
+		//std::cout << debug() << "Finished MPI_Send: " << mpiStatusString(st) << "\n";
+		debugpp("Finished MPI_Send: " << mpiStatusString(st));
+
 		return 0;
 	}
 
@@ -103,8 +106,9 @@ public:
 		MPI_Status st = exampi::global::progress->postRecv( {
 			const_cast<void *>(buf), &(exampi::global::datatypes[datatype]),
 					szcount }, {source, context}, tag).get();
-		std::cout << debug() << "Finished MPI_Recv: " << mpiStatusString(st)
-								<< "\n";
+		//std::cout << debug() << "Finished MPI_Recv: " << mpiStatusString(st)
+		//						<< "\n";
+		debugpp("Finished MPI_Recv: " << mpiStatusString(st));
 
 		if (st.MPI_ERROR == MPIX_TRY_RELOAD) {
 			memmove(status, &st, sizeof(MPI_Status));
