@@ -383,17 +383,27 @@ public:
 		return 0;
 	}
 
-	virtual void cleanUp()
-	{
+	virtual void cleanUp() {
+		
+		// what is this?
 		sigHandler handler;
 		handler.setSignalToHandle(SIGUSR1);
+
+		// read parent pid from file
 		int parent_pid = std::stoi((*exampi::global::config)["ppid"]);
+
+
+		// write out pid and epoch
 		std::stringstream filename;
 		filename << "pid." << exampi::global::rank << ".txt";
+
 		std::ofstream t(filename.str());
 		t << ::getpid() << std::endl;
 		t << exampi::global::epoch << std::endl;
 		t.close();
+		
+		// send SIGUSR1 signal to daemon
+		// TODO convert to socket comms
 		kill(parent_pid, SIGUSR1);
 
 		matchLock.lock();
@@ -414,13 +424,16 @@ public:
 
 	virtual void barrier()
 	{
+		// this is the MPI_init barrier release
+
+		// write process id to file with rank
 		std::stringstream filename;
 		filename << "pid." << exampi::global::rank << ".txt";
 		std::ofstream t(filename.str());
 		t << ::getpid();
 		t.close();
-
-
+		
+		// TODO convert to socket communication
 		sigHandler signal;
 		signal.setSignalToHandle(SIGUSR1);
 		int parent_pid = std::stoi((*exampi::global::config)["ppid"]);
@@ -428,6 +441,7 @@ public:
 
 		while (signal.isSignalSet() != 1)
 		{
+			// thats long!
 			sleep(1);
 		}
 		signal.setSignalToZero();

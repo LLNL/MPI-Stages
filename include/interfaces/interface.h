@@ -582,6 +582,8 @@ public:
 
 	virtual int MPI_Comm_set_errhandler(MPI_Comm comm, MPI_Errhandler err)
 	{
+		// This sets the signal handler for SIGUSR2
+		// will call cleanup
 		exampi::global::handler->setErrToHandle(SIGUSR2);
 		return MPI_SUCCESS;
 	}

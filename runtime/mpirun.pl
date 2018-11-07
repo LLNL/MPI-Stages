@@ -199,6 +199,7 @@ until($done)
       {
           #$done = 0;
         $live++;
+	# TODO how does this work???
         my $sig = $return & 127;
         my $st = $return >> 8;
         $epoch = $latest;
@@ -208,6 +209,7 @@ until($done)
         print "\t Rank $r\n";
         $failed = $r;
           if ($st == 255) {
+		# THIS IS MPI_ABORT
           	 # MPI Stages and Reinit
               $isAbort = 0;
               $live = 0;

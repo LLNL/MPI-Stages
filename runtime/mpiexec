@@ -1,28 +1,35 @@
 #! /usr/bin/env python2
 
-import sys, os, re, argparse, subprocess, time, signal
+import sys, os, re, argparse, subprocess, time, signal, socket
 
 schedulers = ['local', 'slurm', 'osg', 'sge']
 
-def handler_siguser1(signum, frame):
-	pass
+MPI_SUCCESS = 0
 
 def run_local(numproc, program):
 	# start numproc processes of program
 
-	# launch program instances
-	processes = []
+	# open socket on loopback network
+	udp_ip = "127.0.0.1"
+	udp_port = 50000
+
+	sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+	sock.bind((udp_ip, udp_port))
+	sock.setblocking(0)
+
+	# launch children
+	processes = {}
 	for rank in xrange(numproc):
 		# seperate binary
 		child = [program[0]]
 
 		# insert ExaMPI arguments
-		configname = 'mpirun.%i.config.tmp' % rank
+		configname = 'mpi.%i.config.tmp' % rank
 		child.append(configname)
 
 		child.append(str(rank))
 
-		epochname = 'mpirun.%i.epoch.tmp' % rank
+		epochname = 'mpi.%i.epoch.tmp' % rank
 		child.append(epochname)
 
 		epoch = 0
@@ -33,28 +40,42 @@ def run_local(numproc, program):
 
 		print(child)
 
+		# TODO pass environment?
 		process = subprocess.Popen(child)
-		
-		processes.append(process)
+		proceses[rank] = processprocesses.append(process)
 
-	# pray MPI_Init doesn't die
-	# 
+	# monitor processes
+	while len(processes) > 0:
+		# check process alive
+		for rank, process in processes.iteritems():
+			# wait 1s between processes
+			time.sleep(1)
 
-	# monitor children
-	while True:
-		for process in processes:
-			# wait 100ms between processes
-			time.sleep(0.1)
+			# check socket
+			try:
+				data = sock.recv(64)
+				print(data, addr)
+				
+				rank, msg = (0, 0)
 
-			# check if process is alive 
+				if msg is 'barrier':
+					# barrier entry
+					# release with last barrier
+					pass
+			except err:
+				pass
+
+			# check if process is dead
 			if process.poll() is not None:
-				# process has exited
-				# TODO check return code
-				#process.returncode
-				# this replaces term returncode
-
-	# TODO could send signals, or poll, etc...
-	# mpiexec acts as daemon
+				if process.returncode is MPI_SUCCESS:
+					# MPI exited cleanly
+					del processes[idx]
+				elif process.returncode is 255:
+					# MPI abort called
+					pass
+				#elif
+					# another option? 
+	
 
 def run_slurm():
 	# TODO execute srun externally, plugin required

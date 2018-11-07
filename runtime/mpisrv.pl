@@ -32,6 +32,8 @@ sub sigusr1_handler {
     my $pidfile = "pid.$state{rank}.txt";
     open(my $pidfh, "<", $pidfile) or die "Can't read pid";
     $pidfh->autoflush(1);
+
+	# this is in response to err and signal usr2
     if ($isError) {
     	my @lines = <$pidfh>;
     	chomp @lines;
@@ -48,6 +50,7 @@ sub sigusr1_handler {
     	}
     }
    else {
+	# replace this with socket receive...
    		$childpid = <$pidfh>;
     	chomp $childpid;
     	close $pidfh;
@@ -97,6 +100,7 @@ while(1)  # main serve loop
             $epochconfig->autoflush(1);
             print $epochconfig "$lepoch\n";
             close $epochconfig;
+		# sending USR1
             kill USR1 => $childpid;
         }
         elsif ($cmd eq "!com") {
