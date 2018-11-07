@@ -9,7 +9,7 @@ MPI_SUCCESS = 0
 def run_local(numproc, program):
 	# start numproc processes of program
 
-	# open socket on loopback network
+	# open socket on loopback network as server
 	udp_ip = "127.0.0.1"
 	udp_port = 50000
 
@@ -17,16 +17,34 @@ def run_local(numproc, program):
 	sock.bind((udp_ip, udp_port))
 	sock.setblocking(0)
 
+	# generate config string
+	config = 'ppid:0\n'
+	config += 'size:' + str(numproc) + '\n'
+	
+	for rank in xrange(numproc):
+		# TODO FIXME don't assume local host
+		config += str(rank) + ':' + '127.0.0.1:' + str(40000 + rank) + '\n'
+
+	print('Configfile contents:')
+	print(config)
+
 	# launch children
 	processes = {}
 	for rank in xrange(numproc):
 		# seperate binary
-		child = [program[0]]
+		child = [program[0], 'exampilauncher']
 
 		# insert ExaMPI arguments
 		configname = 'mpi.%i.config.tmp' % rank
 		child.append(configname)
 
+		# write config file
+		config = open(configname, 'w')
+		config.write('ppid:0\n')
+		config.write('size:'+str(numproc))
+		config.close()
+
+		# rank number
 		child.append(str(rank))
 
 		epochname = 'mpi.%i.epoch.tmp' % rank
@@ -42,7 +60,7 @@ def run_local(numproc, program):
 
 		# TODO pass environment?
 		process = subprocess.Popen(child)
-		proceses[rank] = processprocesses.append(process)
+		processes[rank] = process
 
 	# monitor processes
 	while len(processes) > 0:
@@ -62,7 +80,7 @@ def run_local(numproc, program):
 					# barrier entry
 					# release with last barrier
 					pass
-			except err:
+			except:
 				pass
 
 			# check if process is dead

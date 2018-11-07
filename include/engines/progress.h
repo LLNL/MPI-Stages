@@ -12,6 +12,7 @@
 #include <sigHandler.h>
 #include <comm.h>
 #include "transports/transport.h"
+#include "daemon.h"
 
 namespace exampi
 {
@@ -38,20 +39,20 @@ public:
 	// TODO:  Don't forget these debugs, this can create a lot of spam
 	void dump()
 	{
-		std::ios oldState(nullptr);
-		oldState.copyfmt(std::cout);
+		//std::ios oldState(nullptr);
+		//oldState.copyfmt(//std::cout);
 
-		uint32_t *dword = (uint32_t *) hdr;
-		std::cout << "\texampi::basic::Header has:\n";
-		std::cout << std::setbase(16) << std::internal << std::setfill('0')
-		          << "\t" << std::setw(8) << dword[0] << " " << std::setw(8)
-		          << dword[1] << " " << std::setw(8) << dword[2] << " "
-		          << std::setw(8) << dword[3] << " " << "\n\t" << std::setw(8)
-		          << dword[4] << " " << std::setw(8) << dword[5] << " "
-		          << std::setw(8) << dword[6] << " " << std::setw(8) << dword[7]
-		          << " " << "\n";
+		//uint32_t *dword = (uint32_t *) hdr;
+		//std::cout << "\texampi::basic::Header has:\n";
+		//std::cout << std::setbase(16) << std::internal << std::setfill('0')
+		//          << "\t" << std::setw(8) << dword[0] << " " << std::setw(8)
+		//          << dword[1] << " " << std::setw(8) << dword[2] << " "
+		//          << std::setw(8) << dword[3] << " " << "\n\t" << std::setw(8)
+		//          << dword[4] << " " << std::setw(8) << dword[5] << " "
+		//          << std::setw(8) << dword[6] << " " << std::setw(8) << dword[7]
+		//          << " " << "\n";
 
-		std::cout.copyfmt(oldState);
+		//std::cout.copyfmt(oldState);
 	}
 
 	void pack()
@@ -68,7 +69,7 @@ public:
 		dword[5] = tag;
 		dword[6] = context;
 		dword[7] = 0xAABBCCDD;  // CRC
-		std::cout << "\tpack:\n";
+		//std::cout << "\tpack:\n";
 		dump();
 
 	}
@@ -79,9 +80,9 @@ public:
 		rank = dword[4];
 		tag = dword[5];
 		context = dword[6];
-		std::cout << "\tunpack:\n";
+		//std::cout << "\tunpack:\n";
 		dump();
-		std::cout << "\tUnderstood rank as " << rank << "\n";
+		//std::cout << "\tUnderstood rank as " << rank << "\n";
 	}
 
 	struct iovec getIovec()
@@ -194,7 +195,10 @@ private:
 
 	void addEndpoints()
 	{
+		// read in size
 		int size = std::stoi((*exampi::global::config)["size"]);
+
+		// read in endpoints
 		std::vector < std::string > elem;
 		std::list<int> rankList;
 		for (int i = 0; i < size; i++)
@@ -202,8 +206,16 @@ private:
 			elem.clear();
 			rankList.push_back(i);
 			std::string rank = std::to_string(i);
-			elem.push_back((*exampi::global::config)[rank]);
-			elem.push_back("8080");
+
+			std::string remote = (*exampi::global::config)[rank];
+
+			size_t delim = remote.find_first_of(":");
+			std::string ip = remote.substr(0, delim);
+			std::string port = remote.substr(delim+1);
+
+			elem.push_back(ip);
+			elem.push_back(port);
+
 			exampi::global::transport->addEndpoint(i, elem);
 		}
 		group = new Group(rankList);
@@ -211,12 +223,12 @@ private:
 
 	static void sendThreadProc(bool *alive, AsyncQueue<Request> *outbox)
 	{
-		std::cout << debug() << "Launching sendThreadProc(...)\n";
+		//std::cout << debug() << "Launching sendThreadProc(...)\n";
 		while (*alive)
 		{
 			std::unique_ptr<Request> r = outbox->promise().get();
-			std::cout << debug()
-			          << "sendThread:  got result from outbox future\n";
+			//std::cout << debug()
+			//          << "sendThread:  got result from outbox future\n";
 			exampi::global::transport->send(r->getIovecs(), r->endpoint.rank,
 			                                0);
 			// TODO:  check that sending actually completed
@@ -232,23 +244,23 @@ private:
 	                            std::list<std::unique_ptr<Request>> *unexpectedList,
 	                            std::mutex *matchLock, std::mutex *unexpectedLock)
 	{
-		std::cout << debug() << "Launching matchThreadProc(...)\n";
+		//std::cout << debug() << "Launching matchThreadProc(...)\n";
 		while (*alive)
 		{
 			std::unique_ptr<Request> r = make_unique<Request>();
-			std::cout << debug()
-			          << "matchThread:  made request, about to peek...\n";
+			//std::cout << debug()
+			//          << "matchThread:  made request, about to peek...\n";
 			exampi::global::transport->peek(r->getHeaderIovecs(), 0);
 			r->unpack();
 
-			std::cout << debug() << "matchThread:  received\n";
+			//std::cout << debug() << "matchThread:  received\n";
 			unexpectedLock->lock();
 			matchLock->lock();
 			int t = r->tag;
 			int s = r->source;
 			int c = r->comm;
 			int e = r->stage;
-			std::cout << "Context " << c << std::endl;
+			//std::cout << "Context " << c << std::endl;
 
 			auto result =
 			    std::find_if(matchList->begin(), matchList->end(),
@@ -256,7 +268,7 @@ private:
 			if (result == matchList->end())
 			{
 				matchLock->unlock();
-				std::cout << "WARNING:  Failed to match incoming msg\n";
+				//std::cout << "WARNING:  Failed to match incoming msg\n";
 				if (t == MPIX_CLEANUP_TAG)
 				{
 					exampi::global::transport->cleanUp(0);
@@ -268,11 +280,11 @@ private:
 					if (e != exampi::global::epoch)
 					{
 						unexpectedLock->unlock();
-						std::cout << "WARNING: Message from last stage (discarded)\n";
+						//std::cout << "WARNING: Message from last stage (discarded)\n";
 					}
 					else
 					{
-						std::cout << debug() << "\tUnexpected message\n";
+						//std::cout << debug() << "\tUnexpected message\n";
 						std::unique_ptr<Request> tmp = make_unique<Request>();
 						ssize_t length;
 						exampi::global::transport->receive(tmp->getTempIovecs(), 0, &length);
@@ -285,12 +297,12 @@ private:
 			else
 			{
 				unexpectedLock->unlock();
-				std::cout << debug()
-				          << "matchThread:  matched, about to receive remainder\n";
-				std::cout << debug() << "\tTarget array is "
-				          << (*result)->array.toString() << "\n";
-				std::cout << debug() << "\tDatatype says extent is "
-				          << (*result)->array.datatype->getExtent() << "\n";
+				//std::cout << debug()
+				//          << "matchThread:  matched, about to receive remainder\n";
+				//std::cout << debug() << "\tTarget array is "
+				//          << (*result)->array.toString() << "\n";
+				//std::cout << debug() << "\tDatatype says extent is "
+				//          << (*result)->array.datatype->getExtent() << "\n";
 				ssize_t length;
 				exampi::global::transport->receive((*result)->getIovecs(), 0, &length);
 				(*result)->unpack();
@@ -358,14 +370,14 @@ public:
 		{
 			pthread_cancel(it->second);
 			tm_.erase("1");
-			std::cout << "Thread " << "1" << " killed:" << std::endl;
+			//std::cout << "Thread " << "1" << " killed:" << std::endl;
 		}
 		it = tm_.find("2");
 		if (it != tm_.end())
 		{
 			pthread_cancel(it->second);
 			tm_.erase("2");
-			std::cout << "Thread " << "2" << " killed:" << std::endl;
+			//std::cout << "Thread " << "2" << " killed:" << std::endl;
 		}
 	}
 
@@ -383,29 +395,35 @@ public:
 		return 0;
 	}
 
-	virtual void cleanUp() {
-		
+	virtual void cleanUp()
+	{
+
 		// what is this?
 		sigHandler handler;
 		handler.setSignalToHandle(SIGUSR1);
 
 		// read parent pid from file
-		int parent_pid = std::stoi((*exampi::global::config)["ppid"]);
+		//int parent_pid = std::stoi((*exampi::global::config)["ppid"]);
 
 
 		// write out pid and epoch
-		std::stringstream filename;
-		filename << "pid." << exampi::global::rank << ".txt";
+		//std::stringstream filename;
+		//filename << "pid." << exampi::global::rank << ".txt";
 
-		std::ofstream t(filename.str());
-		t << ::getpid() << std::endl;
-		t << exampi::global::epoch << std::endl;
-		t.close();
-		
+		//std::ofstream t(filename.str());
+		//t << ::getpid() << std::endl;
+		//t << exampi::global::epoch << std::endl;
+		//t.close();
+
+
 		// send SIGUSR1 signal to daemon
 		// TODO convert to socket comms
-		kill(parent_pid, SIGUSR1);
+		Daemon *daemon = Daemon::get_instance();
+		daemon->send_clean_up();
 
+		//kill(parent_pid, SIGUSR1);
+
+		// TODO what is this?
 		matchLock.lock();
 		int size = matchList.size();
 		matchLock.unlock();
@@ -416,6 +434,7 @@ public:
 				                                    exampi::global::rank, MPIX_CLEANUP_TAG, MPI_COMM_WORLD);
 			exampi::global::handler->setErrToOne();
 		}
+
 		/* Checkpoint/restart
 		 * exit(0);
 		 */
@@ -424,33 +443,43 @@ public:
 
 	virtual void barrier()
 	{
-		// this is the MPI_init barrier release
+		Daemon *daemon = Daemon::get_instance();
 
-		// write process id to file with rank
-		std::stringstream filename;
-		filename << "pid." << exampi::global::rank << ".txt";
-		std::ofstream t(filename.str());
-		t << ::getpid();
-		t.close();
-		
-		// TODO convert to socket communication
-		sigHandler signal;
-		signal.setSignalToHandle(SIGUSR1);
-		int parent_pid = std::stoi((*exampi::global::config)["ppid"]);
-		kill(parent_pid, SIGUSR1);
+		daemon->send_barrier_ready();
 
-		while (signal.isSignalSet() != 1)
-		{
-			// thats long!
-			sleep(1);
-		}
-		signal.setSignalToZero();
+		daemon->recv_barrier_release();
+
+		//// this is the MPI_init barrier release
+
+		//// write process id to file with rank
+		//std::stringstream filename;
+		//filename << "pid." << exampi::global::rank << ".txt";
+		//std::ofstream t(filename.str());
+		//t << ::getpid();
+		//t.close();
+
+		//// TODO convert to socket communication
+		//sigHandler signal;
+		//signal.setSignalToHandle(SIGUSR1);
+
+		//// send usr1 to parent
+		//// TODO replace with socket comms
+		//int parent_pid = std::stoi((*exampi::global::config)["ppid"]);
+		//kill(parent_pid, SIGUSR1);
+
+		//// wait for "com" return
+		//// busy wait on signal
+		//while (signal.isSignalSet() != 1)
+		//{
+		//	sleep(1);
+		//}
+		//signal.setSignalToZero();
 	}
 
 	virtual std::future<MPI_Status> postSend(UserArray array, Endpoint dest,
 	        int tag)
 	{
-		std::cout << debug() << "\tbasic::Interface::postSend(...)\n";
+		//std::cout << debug() << "\tbasic::Interface::postSend(...)\n";
 		std::unique_ptr<Request> r = make_unique<Request>();
 		r->op = Op::Send;
 		r->source = exampi::global::rank;
@@ -464,9 +493,10 @@ public:
 		return result;
 	}
 
-	virtual std::future<MPI_Status> postRecv(UserArray array, Endpoint source, int tag)
+	virtual std::future<MPI_Status> postRecv(UserArray array, Endpoint source,
+	        int tag)
 	{
-		std::cout << debug() << "\tbasic::Interface::postRecv(...)\n";
+		//std::cout << debug() << "\tbasic::Interface::postRecv(...)\n";
 
 		std::unique_ptr<Request> r = make_unique<Request>();
 		r->op = Op::Receive;
@@ -494,10 +524,11 @@ public:
 		else
 		{
 			matchLock.unlock();
-			std::cout << "Found match in unexpectedList\n";
+			//std::cout << "Found match in unexpectedList\n";
 			(*res)->unpack();
 			//memcpy(array.ptr, )
-			memcpy(array.getIovec().iov_base, (*res)->temp.iov_base, array.getIovec().iov_len);
+			memcpy(array.getIovec().iov_base, (*res)->temp.iov_base,
+			       array.getIovec().iov_len);
 			(r)->completionPromise.set_value( { .count = (*res)->status.count, .cancelled = 0,
 			                                    .MPI_SOURCE = (*res)->source, .MPI_TAG = (*res)->tag, .MPI_ERROR =
 			                                        MPI_SUCCESS});
@@ -595,7 +626,8 @@ public:
 			com->set_is_intra(intra);
 			t.read(reinterpret_cast<char *>(&id), sizeof(int));
 
-			auto it = std::find_if(exampi::global::groups.begin(), exampi::global::groups.end(),
+			auto it = std::find_if(exampi::global::groups.begin(),
+			                       exampi::global::groups.end(),
 			                       [id](const Group *i) -> bool {return i->get_group_id() == id;});
 			if (it == exampi::global::groups.end())
 			{
