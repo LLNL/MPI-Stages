@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <cstring>
 #include <sstream>
+#include <iostream>
 
 #include <mpi.h>
 #include <sys/uio.h>
@@ -47,24 +48,27 @@ static inline std::thread::id thisThread()
 static inline std::string debug()
 {
 	std::stringstream stream;
-	stream << "\t[0x" << std::hex << std::setfill('0') << std::setw(8) << thisThread() << "] ";
+	stream << "\t[0x" << std::hex << std::setfill('0') << std::setw(
+	           8) << thisThread() << "] ";
 	return stream.str();
 }
 
 #ifdef DEBUG
-void debug_init()
-{
-	std::stringstream stream;
-
-	debug_stringstream << "\t[0x" << std::hex << std::setfill('0') << std::setw(8) << thisThread() << "] ";
-
-	return stream.str();
-}
+//std::string debug_init()
+//{
+//	std::stringstream stream;
+//
+//	//debug_stringstream << "\t[0x" << std::hex << std::setfill('0') << std::setw(
+//	//                       8) << thisThread() << "] ";
+//
+//	return stream.str();
+//}
 
 // TODO rename this to debug once everything is wrapped, then sed to global replace
-#define debugpp(string) std:cerr << debug_init() << string << std::endl;
+//#define debugpp(msg) std::clog << debug_init() << msg << std::endl;
+#define debugpp(msg) std::clog << msg << std::endl;
 #else
-#define debugpp(string)
+#define debugpp(msg)
 #endif
 
 
@@ -85,7 +89,8 @@ enum class Op : int
 };
 
 // TODO:  should really wrap this into a class --sf
-static inline void iovMove(std::vector<struct iovec> toVec, std::vector<struct iovec> fromVec)
+static inline void iovMove(std::vector<struct iovec> toVec,
+                           std::vector<struct iovec> fromVec)
 {
 	auto toPos = toVec.begin();
 	auto fromPos = fromVec.begin();
@@ -122,7 +127,7 @@ protected:
 
 	void test()
 	{
-		std::cout << debug() << "\tAQ:  testing\n";
+		//std::cout << debug() << "\tAQ:  testing\n";
 		std::unique_lock<std::mutex> lock(promiseLock);
 		pcond.wait(lock, [&]()
 		{
@@ -131,27 +136,29 @@ protected:
 		if(promises.size() > 0)
 			if(data.size() > 0)
 			{
-				std::cout << debug() << "\tAQ:  data and promises, advancing\n";
+				//std::cout << debug() << "\tAQ:  data and promises, advancing\n";
 				promises.front()->set_value(std::move(data.front()));
 				promises.pop_front();
 				if (!data.empty())
 					data.pop_front();
 			}
 		lock.unlock();
-		std::cout << debug() << "\tAQ:  done testing\n";
+
+		//std::cout << debug() << "\tAQ:  done testing\n";
 	}
 public:
 	AsyncQueue()
 	{
-		std::cout << debug() << "\tAsyncQueue:  constructing\n";
+		//std::cout << debug() << "\tAsyncQueue:  constructing\n";
 	}
 
 	std::future<DataType> promise()
 	{
-		std::cout << debug() << "\tAQ: Promise requested.  data(" << data.size() << ") promises(" << promises.size() << ")\n";
+		//std::cout << debug() << "\tAQ: Promise requested.  data(" << data.size() <<
+		//          ") promises(" << promises.size() << ")\n";
 		std::unique_lock<std::mutex> lock(promiseLock);
 		promises.push_back(make_unique<PromiseType>());
-		std::cout << debug() << "\tAQ: Promise pushed; about to get_future...\n";
+		//std::cout << debug() << "\tAQ: Promise pushed; about to get_future...\n";
 		auto result = promises.back()->get_future();
 		lock.unlock();
 		pcond.notify_all();
@@ -161,7 +168,7 @@ public:
 
 	void put(DataType &&v)
 	{
-		std::cout << debug() << "\tAQ:  Putting\n";
+		//std::cout << debug() << "\tAQ:  Putting\n";
 		data.push_back(std::move(v));
 		test();
 	}
