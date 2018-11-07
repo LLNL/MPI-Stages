@@ -1,8 +1,11 @@
 #! /usr/bin/env python2
 
-import sys, os, re, argparse, subprocess
+import sys, os, re, argparse, subprocess, time, signal
 
 schedulers = ['local', 'slurm', 'osg', 'sge']
+
+def handler_siguser1(signum, frame):
+	pass
 
 def run_local(numproc, program):
 	# start numproc processes of program
@@ -34,18 +37,33 @@ def run_local(numproc, program):
 		
 		processes.append(process)
 
+	# pray MPI_Init doesn't die
+	# 
+
+	# monitor children
+	while True:
+		for process in processes:
+			# wait 100ms between processes
+			time.sleep(0.1)
+
+			# check if process is alive 
+			if process.poll() is not None:
+				# process has exited
+				# TODO check return code
+				#process.returncode
+				# this replaces term returncode
+
 	# TODO could send signals, or poll, etc...
 	# mpiexec acts as daemon
 
-	# TODO watch for program crash
-
-	# finalize all child processes
-	for process in processes:
-		process.wait()
-
 def run_slurm():
 	# TODO execute srun externally, plugin required
-	pass
+	print("SLURM NOT IMPLEMENTED, THIS IS A STUB")
+	
+def run_sge():
+	# TODO
+	print("SGE/OSG NOT IMPLEMENTED, THIS IS A STUB")
+	print("WE DON'T WANT THIS, SWITCH TO SLURM")
 
 if __name__ == '__main__':
 	# command line argument parsing
@@ -68,8 +86,8 @@ if __name__ == '__main__':
 	
 	elif arguments.s is scheduler[1]:
 		# use SLURM
-		pass
+		run_slurm()
 
 	elif arguments.s is scheduler[2] or arguments.s is scheduler[3]:
 		# use SGE or OSG
-		pass
+		run_sge()
