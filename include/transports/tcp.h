@@ -8,11 +8,6 @@
 
 namespace exampi
 {
-namespace basic
-{
-namespace tcp
-{
-
 class Socket
 {
 private:
@@ -92,7 +87,7 @@ public:
 		hdr.msg_namelen = 0;
 	}
 
-	void addBuf(exampi::i::Buf *b)
+	void addBuf(exampi::Buf *b)
 	{
 		iov.push_back(b->iov());
 	}
@@ -141,7 +136,5 @@ public:
 		return len;
 	}
 };
-}//tcp
-}//basic
 }//exampi
 #endif

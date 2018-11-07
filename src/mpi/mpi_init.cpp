@@ -11,7 +11,7 @@ extern "C"
 
 	int PMPI_Init(int *argc, char ***argv)
 	{
-		int rc = exampi::global::interface->MPI_Init(argc, argv);
+		int rc = exampi::interface->MPI_Init(argc, argv);
 		return rc;
 	}
 

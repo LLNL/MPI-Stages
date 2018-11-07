@@ -6,8 +6,6 @@
 
 namespace exampi
 {
-namespace i
-{
 
 class Latch
 {
@@ -16,7 +14,6 @@ public:
 	virtual void signal() = 0;
 };
 
-}
-} // ::exampi::i
+} // ::exampi
 
 #endif //  __EXAMPI_I_LATCH_H

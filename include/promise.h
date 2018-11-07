@@ -5,7 +5,7 @@ namespace exampi
 {
 
 // simple condition variable wrapper for threshold events (i.e. edge triggered)
-class Latch : public exampi::i::Latch
+class Latch : public exampi::Latch
 {
 private:
 	size_t needed;

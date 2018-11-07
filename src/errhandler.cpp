@@ -22,7 +22,7 @@ bool errHandler::setErrToHandle(int sig)
 void errHandler::setErr(int unused)
 {
 	is_errSet = 1;
-	exampi::global::progress->cleanUp();
+	exampi::progress->cleanUp();
 }
 
 void errHandler::setErrToZero()

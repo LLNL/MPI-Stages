@@ -12,10 +12,7 @@
 // ideally we'd have heavy preproc or generation of
 // this file)   --sf
 
-namespace exampi
-{
-namespace global
-{
+namespace exampi {
 
 int rank = -1;
 int worldSize = -1;
@@ -25,15 +22,19 @@ std::string epochConfig;
 // NOTE:  I construct the objects here to give them the chance
 // to do preinit at startup -- init calls will be required anyway
 // to avoid OoI problems, so might as well take advantage of them.
-// TODO REMOVE THIS
-exampi::Config *config = new exampi::Config();
-exampi::i::Interface *interface = new exampi::BasicInterface();
-exampi::i::Progress  *progress = new exampi::basic::Progress();
-exampi::i::Transport *transport = new exampi::basic::Transport();
-exampi::i::Checkpoint *checkpoint = new exampi::basic::Checkpoint();
+Config *config = new Config();
+
+Interface *interface = new BasicInterface();
+
+Progress *progress = new BasicProgress();
+
+Transport *transport = new BasicTransport();
+
+Checkpoint *checkpoint = new BasicCheckpoint();
+
 std::vector<exampi::Comm *> communicators;
 std::vector<exampi::Group *> groups;
-exampi::errHandler *handler = new exampi::errHandler();
+errHandler *handler = new errHandler();
 
 std::unordered_map<MPI_Datatype, exampi::Datatype> datatypes =
 {
@@ -63,5 +64,4 @@ std::unordered_map<MPI_Datatype, exampi::Datatype> datatypes =
 #endif
 };
 
-} // global
 } // exampi

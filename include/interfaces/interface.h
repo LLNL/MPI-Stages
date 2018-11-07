@@ -5,22 +5,23 @@
 #include <time.h>
 #include <errHandler.h>
 #include <funcType.h>
+
 #include "engines/progress.h"
+#include "abstract/interface.h"
 #include "daemon.h"
 
 namespace exampi
 {
 
-class BasicInterface: public exampi::Interface
+class BasicInterface: public Interface
 {
 private:
-	int rank;  // TODO: Don't keep this here, hand off to progress
 	std::vector<MPIX_Serialize_handler> serialize_handlers;
 	std::vector<MPIX_Deserialize_handler> deserialize_handlers;
 	int recovery_code;
 
 public:
-	BasicInterface() : rank(0) {}
+	BasicInterface();
 
 	/*
 	 * 1st param: config file

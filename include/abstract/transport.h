@@ -5,8 +5,6 @@
 
 namespace exampi
 {
-namespace i
-{
 
 class Transport
 {
@@ -25,7 +23,6 @@ public:
 	virtual int cleanUp(MPI_Comm comm) = 0;
 };
 
-}
-} // ::exampi::i
+} // ::exampi
 
 #endif

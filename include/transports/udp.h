@@ -6,10 +6,6 @@
 
 namespace exampi
 {
-namespace basic
-{
-namespace udp
-{
 
 class Socket
 {
@@ -65,7 +61,7 @@ public:
 		hdr.msg_namelen = 0;
 	}
 
-	void addBuf(exampi::i::Buf *b)
+	void addBuf(exampi::Buf *b)
 	{
 		iov.push_back(b->iov());
 	}
@@ -114,8 +110,6 @@ public:
 	}
 };
 
-} // udp
-} // basic
 } // exampi
 
 #endif // guard

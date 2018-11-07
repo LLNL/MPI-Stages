@@ -43,7 +43,7 @@ Daemon *Daemon::get_instance()
 int Daemon::send_barrier_ready()
 {
 	std::stringstream packet;
-	packet << exampi::global::rank << " ";
+	packet << exampi::rank << " ";
 	packet << "barrier ";
 	packet << getpid();
 
@@ -58,9 +58,9 @@ int Daemon::recv_barrier_release()
 int Daemon::send_clean_up()
 {
 	std::stringstream packet;
-	packet << exampi::global::rank << " ";
+	packet << exampi::rank << " ";
 	packet << getpid() << " ";
-	packet << exampi::global::epoch;
+	packet << exampi::epoch;
 
 	return send(packet.str());
 }

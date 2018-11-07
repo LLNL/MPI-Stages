@@ -12,7 +12,7 @@ extern "C"
 	int PMPI_Waitall(int count, MPI_Request array_of_requests[],
 	                 MPI_Status array_of_statuses[])
 	{
-		int rc = exampi::global::interface->MPI_Waitall(count, array_of_requests,
+		int rc = exampi::interface->MPI_Waitall(count, array_of_requests,
 			         array_of_statuses);
 		return rc;
 	}

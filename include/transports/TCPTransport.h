@@ -7,9 +7,7 @@
 
 namespace exampi
 {
-namespace basic
-{
-class TCPTransport : public exampi::i::Transport
+class TCPTransport : public exampi::Transport
 {
 private:
 	std::string address;
@@ -27,7 +25,7 @@ public:
 	{
 		tcpListenSocket.bindPort(8080);
 
-		for (int i = 0; i < exampi::global::worldSize; i++)
+		for (int i = 0; i < exampi::worldSize; i++)
 		{
 			clientSocket[i] = 0;
 		}
@@ -135,13 +133,13 @@ public:
 
 		//std::cout << debug() << "basic::Transport::udp::recv\n";
 
-		int sd = clientSocket[exampi::global::rank];
+		int sd = clientSocket[exampi::rank];
 		recvmsg(sd, &message, MSG_WAITALL);
 		FD_ZERO(&readfds);
 		FD_SET(tcpListenSocket.getFd(), &readfds);
 		max_fd = tcpListenSocket.getFd();
 		clientSocket.clear(0);
-		for (int i = 0; i < exampi::global::worldSize; i++)
+		for (int i = 0; i < exampi::worldSize; i++)
 		{
 			clientSocket[i] = 0;
 		}
@@ -225,7 +223,7 @@ public:
 						FD_SET(tcpListenSocket.getFd(), &readfds);
 						max_fd = tcpListenSocket.getFd();
 						clientSocket.clear(0);
-						for (int i = 0; i < exampi::global::worldSize; i++)
+						for (int i = 0; i < exampi::worldSize; i++)
 						{
 							clientSocket[i] = 0;
 						}

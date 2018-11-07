@@ -16,8 +16,6 @@
 
 namespace exampi
 {
-namespace basic
-{
 
 // POD types
 class Header
@@ -43,7 +41,7 @@ public:
 		//oldState.copyfmt(//std::cout);
 
 		//uint32_t *dword = (uint32_t *) hdr;
-		//std::cout << "\texampi::basic::Header has:\n";
+		//std::cout << "\texampi::Header has:\n";
 		//std::cout << std::setbase(16) << std::internal << std::setfill('0')
 		//          << "\t" << std::setw(8) << dword[0] << " " << std::setw(8)
 		//          << dword[1] << " " << std::setw(8) << dword[2] << " "
@@ -177,7 +175,7 @@ public:
 	}
 };
 
-class Progress: public exampi::i::Progress
+class BasicProgress: public Progress
 {
 private:
 	AsyncQueue<Request> outbox;
@@ -196,7 +194,7 @@ private:
 	void addEndpoints()
 	{
 		// read in size
-		int size = std::stoi((*exampi::global::config)["size"]);
+		int size = std::stoi((*exampi::config)["size"]);
 
 		// read in endpoints
 		std::vector < std::string > elem;
@@ -207,7 +205,7 @@ private:
 			rankList.push_back(i);
 			std::string rank = std::to_string(i);
 
-			std::string remote = (*exampi::global::config)[rank];
+			std::string remote = (*exampi::config)[rank];
 
 			size_t delim = remote.find_first_of(":");
 			std::string ip = remote.substr(0, delim);
@@ -216,7 +214,7 @@ private:
 			elem.push_back(ip);
 			elem.push_back(port);
 
-			exampi::global::transport->addEndpoint(i, elem);
+			exampi::transport->addEndpoint(i, elem);
 		}
 		group = new Group(rankList);
 	}
@@ -229,7 +227,7 @@ private:
 			std::unique_ptr<Request> r = outbox->promise().get();
 			//std::cout << debug()
 			//          << "sendThread:  got result from outbox future\n";
-			exampi::global::transport->send(r->getIovecs(), r->endpoint.rank,
+			exampi::transport->send(r->getIovecs(), r->endpoint.rank,
 			                                0);
 			// TODO:  check that sending actually completed
 			r->completionPromise.set_value( { .count = 0, .cancelled = 0,
@@ -250,7 +248,7 @@ private:
 			std::unique_ptr<Request> r = make_unique<Request>();
 			//std::cout << debug()
 			//          << "matchThread:  made request, about to peek...\n";
-			exampi::global::transport->peek(r->getHeaderIovecs(), 0);
+			exampi::transport->peek(r->getHeaderIovecs(), 0);
 			r->unpack();
 
 			//std::cout << debug() << "matchThread:  received\n";
@@ -271,13 +269,13 @@ private:
 				//std::cout << "WARNING:  Failed to match incoming msg\n";
 				if (t == MPIX_CLEANUP_TAG)
 				{
-					exampi::global::transport->cleanUp(0);
-					exampi::global::progress->stop();
+					exampi::transport->cleanUp(0);
+					exampi::progress->stop();
 					unexpectedLock->unlock();
 				}
 				else
 				{
-					if (e != exampi::global::epoch)
+					if (e != exampi::epoch)
 					{
 						unexpectedLock->unlock();
 						//std::cout << "WARNING: Message from last stage (discarded)\n";
@@ -287,7 +285,7 @@ private:
 						//std::cout << debug() << "\tUnexpected message\n";
 						std::unique_ptr<Request> tmp = make_unique<Request>();
 						ssize_t length;
-						exampi::global::transport->receive(tmp->getTempIovecs(), 0, &length);
+						exampi::transport->receive(tmp->getTempIovecs(), 0, &length);
 						tmp->status.count = length - 32;
 						unexpectedList->push_back(std::move(tmp));
 						unexpectedLock->unlock();
@@ -304,7 +302,7 @@ private:
 				//std::cout << debug() << "\tDatatype says extent is "
 				//          << (*result)->array.datatype->getExtent() << "\n";
 				ssize_t length;
-				exampi::global::transport->receive((*result)->getIovecs(), 0, &length);
+				exampi::transport->receive((*result)->getIovecs(), 0, &length);
 				(*result)->unpack();
 				(*result)->completionPromise.set_value( { .count = length - 32,
 				                                        .cancelled = 0, .MPI_SOURCE = (*result)->source,
@@ -317,7 +315,7 @@ private:
 		}
 	}
 public:
-	Progress()
+	BasicProgress()
 	{
 		;
 	}
@@ -331,11 +329,11 @@ public:
 		matchThread = std::thread { matchThreadProc, &alive, &matchList, &unexpectedList,
 		                            &matchLock, &unexpectedLock };
 
-		exampi::global::groups.push_back(group);
+		exampi::groups.push_back(group);
 		communicator = new Comm(true, group, group);
-		communicator->set_rank(exampi::global::rank);
+		communicator->set_rank(exampi::rank);
 		communicator->set_context(0, 1);
-		exampi::global::communicators.push_back(communicator);
+		exampi::communicators.push_back(communicator);
 		return 0;
 	}
 
@@ -348,17 +346,17 @@ public:
 
 	virtual void finalize()
 	{
-		for(auto &&com : exampi::global::communicators)
+		for(auto &&com : exampi::communicators)
 		{
 			delete com;
 		}
-		exampi::global::communicators.clear();
+		exampi::communicators.clear();
 
-		for (auto &&group : exampi::global::groups)
+		for (auto &&group : exampi::groups)
 		{
 			delete group;
 		}
-		exampi::global::groups.clear();
+		exampi::groups.clear();
 
 		alive = false;
 		matchList.clear();
@@ -403,16 +401,16 @@ public:
 		handler.setSignalToHandle(SIGUSR1);
 
 		// read parent pid from file
-		//int parent_pid = std::stoi((*exampi::global::config)["ppid"]);
+		//int parent_pid = std::stoi((*exampi::config)["ppid"]);
 
 
 		// write out pid and epoch
 		//std::stringstream filename;
-		//filename << "pid." << exampi::global::rank << ".txt";
+		//filename << "pid." << exampi::rank << ".txt";
 
 		//std::ofstream t(filename.str());
 		//t << ::getpid() << std::endl;
-		//t << exampi::global::epoch << std::endl;
+		//t << exampi::epoch << std::endl;
 		//t.close();
 
 
@@ -429,10 +427,10 @@ public:
 		matchLock.unlock();
 		if (size > 0)
 		{
-			exampi::global::handler->setErrToZero();
-			exampi::global::interface->MPI_Send((void *) 0, 0, MPI_INT,
-				                                    exampi::global::rank, MPIX_CLEANUP_TAG, MPI_COMM_WORLD);
-			exampi::global::handler->setErrToOne();
+			exampi::handler->setErrToZero();
+			exampi::interface->MPI_Send((void *) 0, 0, MPI_INT,
+				                            exampi::rank, MPIX_CLEANUP_TAG, MPI_COMM_WORLD);
+			exampi::handler->setErrToOne();
 		}
 
 		/* Checkpoint/restart
@@ -453,7 +451,7 @@ public:
 
 		//// write process id to file with rank
 		//std::stringstream filename;
-		//filename << "pid." << exampi::global::rank << ".txt";
+		//filename << "pid." << exampi::rank << ".txt";
 		//std::ofstream t(filename.str());
 		//t << ::getpid();
 		//t.close();
@@ -464,7 +462,7 @@ public:
 
 		//// send usr1 to parent
 		//// TODO replace with socket comms
-		//int parent_pid = std::stoi((*exampi::global::config)["ppid"]);
+		//int parent_pid = std::stoi((*exampi::config)["ppid"]);
 		//kill(parent_pid, SIGUSR1);
 
 		//// wait for "com" return
@@ -482,8 +480,8 @@ public:
 		//std::cout << debug() << "\tbasic::Interface::postSend(...)\n";
 		std::unique_ptr<Request> r = make_unique<Request>();
 		r->op = Op::Send;
-		r->source = exampi::global::rank;
-		r->stage = exampi::global::epoch;
+		r->source = exampi::rank;
+		r->stage = exampi::epoch;
 		r->array = array;
 		r->endpoint = dest;
 		r->tag = tag;
@@ -505,10 +503,10 @@ public:
 		r->endpoint = source;
 		r->tag = tag;
 		r->comm = source.comm;
-		r->stage = exampi::global::epoch;
+		r->stage = exampi::epoch;
 		int s = source.rank;
 		int c = source.comm;
-		int e = exampi::global::epoch;
+		int e = exampi::epoch;
 		auto result = r->completionPromise.get_future();
 
 		unexpectedLock.lock();
@@ -544,9 +542,9 @@ public:
 	virtual int save(std::ostream &t)
 	{
 		//save group
-		int group_size = exampi::global::groups.size();
+		int group_size = exampi::groups.size();
 		t.write(reinterpret_cast<char *>(&group_size), sizeof(int));
-		for (auto &g : exampi::global::groups)
+		for (auto &g : exampi::groups)
 		{
 			int value = g->get_group_id();
 			t.write(reinterpret_cast<char *>(&value), sizeof(int));
@@ -559,9 +557,9 @@ public:
 		}
 
 		//save communicator
-		int comm_size = exampi::global::communicators.size();
+		int comm_size = exampi::communicators.size();
 		t.write(reinterpret_cast<char *>(&comm_size), sizeof(int));
-		for(auto &c : exampi::global::communicators)
+		for(auto &c : exampi::communicators)
 		{
 			int value = c->get_rank();
 			t.write(reinterpret_cast<char *>(&value), sizeof(int));
@@ -608,7 +606,7 @@ public:
 				ranks.push_back(rank);
 			}
 			grp->set_process_list(ranks);
-			exampi::global::groups.push_back(grp);
+			exampi::groups.push_back(grp);
 			group_size--;
 		}
 		//restore communicator
@@ -626,10 +624,10 @@ public:
 			com->set_is_intra(intra);
 			t.read(reinterpret_cast<char *>(&id), sizeof(int));
 
-			auto it = std::find_if(exampi::global::groups.begin(),
-			                       exampi::global::groups.end(),
+			auto it = std::find_if(exampi::groups.begin(),
+			                       exampi::groups.end(),
 			                       [id](const Group *i) -> bool {return i->get_group_id() == id;});
-			if (it == exampi::global::groups.end())
+			if (it == exampi::groups.end())
 			{
 				return MPIX_TRY_RELOAD;
 			}
@@ -638,9 +636,9 @@ public:
 				com->set_local_group(*it);
 			}
 			t.read(reinterpret_cast<char *>(&id), sizeof(int));
-			it = std::find_if(exampi::global::groups.begin(), exampi::global::groups.end(),
+			it = std::find_if(exampi::groups.begin(), exampi::groups.end(),
 			                  [id](const Group *i) -> bool {return i->get_group_id() == id;});
-			if (it == exampi::global::groups.end())
+			if (it == exampi::groups.end())
 			{
 				return MPIX_TRY_RELOAD;
 			}
@@ -648,7 +646,7 @@ public:
 			{
 				com->set_remote_group(*it);
 			}
-			exampi::global::communicators.push_back(com);
+			exampi::communicators.push_back(com);
 			comm_size--;
 		}
 		return MPI_SUCCESS;
@@ -656,7 +654,6 @@ public:
 
 };
 
-} // basic
 } // exampi
 
 #endif // header guard

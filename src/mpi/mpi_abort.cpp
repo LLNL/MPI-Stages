@@ -10,7 +10,7 @@ extern "C"
 
 	int PMPI_Abort(MPI_Comm comm, int errorcode)
 	{
-		int rc = exampi::global::interface->MPI_Abort(comm, errorcode);
+		int rc = exampi::interface->MPI_Abort(comm, errorcode);
 		return rc;
 	}
 

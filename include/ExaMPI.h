@@ -256,41 +256,40 @@ class Promise
 {
 };
 #endif
-namespace i
-{
-class Fault
+
+
+
+class FaultAbstract
 {
 public:
 	virtual void DoSomething() = 0;
 };
 
-class Memory
+class MemoryAbstract
 {
 public:
 	virtual void DoSomething() = 0;
 };
 
 // send/recv buffer that knows how to describe itself as an iovec
-class Buf
+class BufAbstract
 {
 public:
 	virtual struct iovec iov() = 0;
 };
 
 // as above, but as a vector
-class BufV
+class BufVAbstract
 {
 public:
 	virtual struct iovec *AsIovecV() = 0;
 };
 
-class Address
+class AddressAbstract
 {
 public:
 	virtual size_t size() = 0;
 };
-
-} // i
 
 class Tag
 {
@@ -313,14 +312,14 @@ public:
 // This may not need to go here -- it may be a property of e.g. the progress module
 // Single buffer wrong; ok for now
 // Decorated MPI-class transmit
-class Message
+class MessageAbstract
 {
 public:
 	int rank;
 	MPI_Comm communicator;
 	Tag tag;
 	int context;
-	i::Buf *buf;
+	BufAbstract *buf;
 
 };
 } //exampi

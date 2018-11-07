@@ -72,8 +72,4 @@ public:
 
 }
 
-
-
-
-//fndef __EXAMPI_CONFIG_H
 #endif

@@ -8,7 +8,7 @@ extern "C" {
 #pragma weak MPI_Barrier = PMPI_Barrier
 	int PMPI_Barrier(MPI_Comm comm)
 	{
-		int rc = exampi::global::interface->MPI_Barrier(comm);
+		int rc = exampi::interface->MPI_Barrier(comm);
 		return rc;
 	}
 }

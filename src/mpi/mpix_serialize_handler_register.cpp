@@ -9,7 +9,7 @@ extern "C"
 
 	int PMPIX_Serialize_handler_register(const MPIX_Serialize_handler handler)
 	{
-		int rc = exampi::global::interface->MPIX_Serialize_handler_register(handler);
+		int rc = exampi::interface->MPIX_Serialize_handler_register(handler);
 		return rc;
 	}
 

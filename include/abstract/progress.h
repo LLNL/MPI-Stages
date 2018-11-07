@@ -6,8 +6,6 @@
 
 namespace exampi
 {
-namespace i
-{
 
 class Progress
 {
@@ -26,7 +24,6 @@ public:
 	virtual void cleanUp() = 0;
 };
 
-}
-} // ::exampi::i
+} // ::exampi
 
-#endif // __EXAMPI_I_PROGRESS_H
+#endif // __EXAMPI_PROGRESS_H

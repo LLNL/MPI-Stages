@@ -7,19 +7,17 @@
 
 namespace exampi
 {
-namespace basic
-{
 
-class Transport : public exampi::i::Transport
+class BasicTransport : public Transport
 {
 private:
 	std::string address;
 	std::unordered_map<int,Address> endpoints;
 	//uint16_t port;
-	udp::Socket recvSocket;
+	Socket recvSocket;
 	//int tcpSock;
 public:
-	Transport() : endpoints(), recvSocket() {;};
+	BasicTransport() : endpoints(), recvSocket() {;};
 
 	virtual void init()
 	{
@@ -51,8 +49,8 @@ public:
 	                              MPI_Comm comm)
 	{
 		//std::cout << "\tbasic::Transport::send(..., " << dest <<", " << comm << ")\n";
-		udp::Socket s;
-		udp::Message msg(iov);
+		Socket s;
+		Message msg(iov);
 
 		msg.send(s, endpoints[dest]);
 		return std::promise<int>().get_future();
@@ -64,7 +62,7 @@ public:
 		//std::cout << debug() << "basic::Transport::receive(...)" << std::endl;
 		//std::cout << debug() << "\tiov says size is " << iov.size() << std::endl;
 		//std::cout << debug() << "\t ------ " << std::endl;
-		udp::Message msg(iov);
+		Message msg(iov);
 
 		//std::cout << debug() <<
 		//          "basic::Transport::receive, constructed msg, calling msg.receive" << std::endl;
@@ -96,17 +94,17 @@ public:
 		//std::cout << debug() <<
 		//          "basic::Transport::receive, constructed msg, calling msg.receive" << std::endl;
 
-		//std::cout << debug() << "basic::Transport::udp::recv\n";
+		//std::cout << debug() << "basic::Transport::recv\n";
 
 		recvmsg(recvSocket.getFd(), &message, MSG_WAITALL);
-		//std::cout << debug() << "basic::Transport::udp::recv exiting\n";
+		//std::cout << debug() << "basic::Transport::recv exiting\n";
 		//std::cout << debug() << "basic::Transport::receive returning" << std::endl;
 		return 0;
 	}
 
 	virtual int peek(std::vector<struct iovec> iov, MPI_Comm comm)
 	{
-		udp::Message msg(iov);
+		Message msg(iov);
 		//msg.peek(recvSocket, tcpSock); /*For TCP transport*/
 		msg.peek(recvSocket);
 		return 0;
@@ -160,6 +158,5 @@ public:
 
 };
 
-} // basic
 } // exampi
 #endif //guard

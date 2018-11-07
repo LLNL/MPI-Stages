@@ -5,8 +5,6 @@
 
 namespace exampi
 {
-namespace i
-{
 
 class Checkpoint
 {
@@ -15,6 +13,5 @@ public:
 	virtual int load() = 0;
 };
 
-}
 } // exampi::i
 #endif
