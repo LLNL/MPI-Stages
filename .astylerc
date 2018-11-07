@@ -1,5 +1,7 @@
 --recursive
 
+--max-code-length=80
+
 --quiet
 
 --lineend=linux
