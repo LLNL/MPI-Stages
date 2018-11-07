@@ -7,7 +7,7 @@ CXX = g++
 LD =
 
 # flags
-CXXFLAGS = -std=c++11 -pthread -Wall
+override CXXFLAGS += -g -std=c++11 -pthread -Wall -DDEBUG
 LDFLAGS = 
 
 # target definitions
@@ -66,6 +66,9 @@ directories:
 	@mkdir -p $(libdir)
 	@mkdir -p $(blddir)
 	@mkdir -p $(blddir)/mpi
+	@mkdir -p $(blddir)/interfaces
+	@mkdir -p $(blddir)/engines
+	@mkdir -p $(blddir)/checkpoints
 
 ### clean rules
 .PHONY: style
