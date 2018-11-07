@@ -21,7 +21,10 @@ namespace exampi
 class Datatype
 {
 public:
-	Datatype(const MPI_Datatype &_mpi_dt, int _extent, bool _associative, bool _weakassociative, bool _commutative) : mpi_dt(_mpi_dt), extent(_extent), associative(_associative), weakassociative(_weakassociative), commutative(_commutative) {}
+	Datatype(const MPI_Datatype &_mpi_dt, int _extent, bool _associative,
+	         bool _weakassociative, bool _commutative) : mpi_dt(_mpi_dt), extent(_extent),
+		associative(_associative), weakassociative(_weakassociative),
+		commutative(_commutative) {}
 	virtual ~Datatype() {}
 
 	// accessors:
@@ -114,22 +117,35 @@ void InitializeDatatypes()
 {
 	// compare with mpi.h definitions for completeness of checking of initialization.
 
-	DatatypeProperties::add_builtin_datatype(Datatype(MPI_BYTE,           sizeof(unsigned char),  true,  true, true));
-	DatatypeProperties::add_builtin_datatype(Datatype(MPI_CHAR,           sizeof(char),           true,  true, true));
+	DatatypeProperties::add_builtin_datatype(Datatype(MPI_BYTE,
+	        sizeof(unsigned char),  true,  true, true));
+	DatatypeProperties::add_builtin_datatype(Datatype(MPI_CHAR,
+	        sizeof(char),           true,  true, true));
 #if 0
-	DatatypeProperties::add_builtin_datatype(Datatype(MPI_WCHAR,          sizeof(wchar_t),        true,  true, true));
+	DatatypeProperties::add_builtin_datatype(Datatype(MPI_WCHAR,
+	        sizeof(wchar_t),        true,  true, true));
 #endif
-	DatatypeProperties::add_builtin_datatype(Datatype(MPI_UNSIGNED_CHAR,  sizeof(unsigned char),  true,  true, true));
-	DatatypeProperties::add_builtin_datatype(Datatype(MPI_SHORT,          sizeof(short),          true,  true, true));
-	DatatypeProperties::add_builtin_datatype(Datatype(MPI_UNSIGNED_SHORT, sizeof(unsigned short), true,  true, true));
-	DatatypeProperties::add_builtin_datatype(Datatype(MPI_INT,            sizeof(int),            true,  true, true));
-	DatatypeProperties::add_builtin_datatype(Datatype(MPI_UNSIGNED_INT,   sizeof(unsigned int),   true,  true, true));
-	DatatypeProperties::add_builtin_datatype(Datatype(MPI_LONG,           sizeof(long),           true,  true, true));
-	DatatypeProperties::add_builtin_datatype(Datatype(MPI_UNSIGNED_LONG,  sizeof(unsigned long),  true,  true, true));
-	DatatypeProperties::add_builtin_datatype(Datatype(MPI_FLOAT,          sizeof(float),          false, true, true));
-	DatatypeProperties::add_builtin_datatype(Datatype(MPI_DOUBLE,         sizeof(double),         false, true, true));
+	DatatypeProperties::add_builtin_datatype(Datatype(MPI_UNSIGNED_CHAR,
+	        sizeof(unsigned char),  true,  true, true));
+	DatatypeProperties::add_builtin_datatype(Datatype(MPI_SHORT,
+	        sizeof(short),          true,  true, true));
+	DatatypeProperties::add_builtin_datatype(Datatype(MPI_UNSIGNED_SHORT,
+	        sizeof(unsigned short), true,  true, true));
+	DatatypeProperties::add_builtin_datatype(Datatype(MPI_INT,
+	        sizeof(int),            true,  true, true));
+	DatatypeProperties::add_builtin_datatype(Datatype(MPI_UNSIGNED_INT,
+	        sizeof(unsigned int),   true,  true, true));
+	DatatypeProperties::add_builtin_datatype(Datatype(MPI_LONG,
+	        sizeof(long),           true,  true, true));
+	DatatypeProperties::add_builtin_datatype(Datatype(MPI_UNSIGNED_LONG,
+	        sizeof(unsigned long),  true,  true, true));
+	DatatypeProperties::add_builtin_datatype(Datatype(MPI_FLOAT,
+	        sizeof(float),          false, true, true));
+	DatatypeProperties::add_builtin_datatype(Datatype(MPI_DOUBLE,
+	        sizeof(double),         false, true, true));
 #if 0
-	DatatypeProperties::add_builtin_datatype(Datatype(MPI_LONG_DOUBLE,    sizeof(long double),    false, true, true));
+	DatatypeProperties::add_builtin_datatype(Datatype(MPI_LONG_DOUBLE,
+	        sizeof(long double),    false, true, true));
 #endif
 
 	// add more here as we grow the support set */

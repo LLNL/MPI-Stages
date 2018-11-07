@@ -23,7 +23,8 @@ public:
 	std::string toString()
 	{
 		std::stringstream stream;
-		stream <<"UserArray{ptr=" << ptr << ",datatype=" << datatype << ",count=" << count << "}";
+		stream <<"UserArray{ptr=" << ptr << ",datatype=" << datatype << ",count=" <<
+		       count << "}";
 		return stream.str();
 	}
 };

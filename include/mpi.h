@@ -185,9 +185,11 @@ MPI_Op MPI_REPLACE; /* check this one; definitely not in first release */
 /* Core MPI API */
 
 int MPI_Abort(MPI_Comm, int);
-int MPI_Allgather(void *, int, MPI_Datatype, void *, int, MPI_Datatype, MPI_Comm);
+int MPI_Allgather(void *, int, MPI_Datatype, void *, int, MPI_Datatype,
+                  MPI_Comm);
 int MPI_Allreduce(const void *, void *, int, MPI_Datatype, MPI_Op, MPI_Comm);
-int MPI_Alltoall(void *, int, MPI_Datatype, void *, int, MPI_Datatype, MPI_Comm);
+int MPI_Alltoall(void *, int, MPI_Datatype, void *, int, MPI_Datatype,
+                 MPI_Comm);
 int MPI_Barrier(MPI_Comm);
 int MPI_Bcast(void *, int, MPI_Datatype, int, MPI_Comm);
 int MPI_Comm_create(MPI_Comm, MPI_Group, MPI_Comm *);
@@ -198,25 +200,33 @@ int MPI_Comm_set_errhandler(MPI_Comm, MPI_Errhandler);
 int MPI_Comm_size(MPI_Comm, int *);
 int MPI_Comm_split(MPI_Comm, int, int, MPI_Comm *);
 int MPI_Finalize(void);
-int MPI_Gather(void *, int, MPI_Datatype, void *, int, MPI_Datatype, int, MPI_Comm);
+int MPI_Gather(void *, int, MPI_Datatype, void *, int, MPI_Datatype, int,
+               MPI_Comm);
 int MPI_Get_count(MPI_Status *, MPI_Datatype, int *);
 int MPI_Group_create_session(MPIX_Session, char *, MPI_Group *);
-int MPI_Iallreduce(void *, void *, int, MPI_Datatype, MPI_Op, MPI_Comm, MPI_Request *);
+int MPI_Iallreduce(void *, void *, int, MPI_Datatype, MPI_Op, MPI_Comm,
+                   MPI_Request *);
 int MPI_Ibcast(void *, int, MPI_Datatype, int, MPI_Comm, MPI_Request *);
 int MPIX_Icheckpoint(MPI_Comm, MPI_Request *);
-int MPI_Igather(void *, int, MPI_Datatype, void *, int, MPI_Datatype, int, MPI_Comm, MPI_Request *);
-int MPI_Ireduce(void *, void *, int, MPI_Datatype, MPI_Op, int, MPI_Comm, MPI_Request *);
-int MPI_Iscatter(void *, int, MPI_Datatype, void *, int, MPI_Datatype, int, MPI_Comm, MPI_Request *);
+int MPI_Igather(void *, int, MPI_Datatype, void *, int, MPI_Datatype, int,
+                MPI_Comm, MPI_Request *);
+int MPI_Ireduce(void *, void *, int, MPI_Datatype, MPI_Op, int, MPI_Comm,
+                MPI_Request *);
+int MPI_Iscatter(void *, int, MPI_Datatype, void *, int, MPI_Datatype, int,
+                 MPI_Comm, MPI_Request *);
 int MPI_Init(int *, char ***);
 int MPI_Init_info(int *, char ***, MPI_Info);
 int MPI_Irecv(void *, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
 int MPI_Isend(void *, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
-int MPI_Recv(void *buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm, MPI_Status *status);
+int MPI_Recv(void *buf, int count, MPI_Datatype datatype, int dest, int tag,
+             MPI_Comm comm, MPI_Status *status);
 int MPI_Recv_init(void *, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
 int MPI_Reduce(const void *, void *, int, MPI_Datatype, MPI_Op, int, MPI_Comm);
-int MPI_Scatter(void *, int, MPI_Datatype, void *, int, MPI_Datatype, int, MPI_Comm);
+int MPI_Scatter(void *, int, MPI_Datatype, void *, int, MPI_Datatype, int,
+                MPI_Comm);
 int MPI_Send(const void *, int, MPI_Datatype, int, int, MPI_Comm);
-int MPI_Sendrecv(const void *, int, MPI_Datatype, int, int, void *, int, MPI_Datatype, int, int, MPI_Comm, MPI_Status *);
+int MPI_Sendrecv(const void *, int, MPI_Datatype, int, int, void *, int,
+                 MPI_Datatype, int, int, MPI_Comm, MPI_Status *);
 int MPI_Send_init(void *, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
 int MPIX_Session_get_names(MPIX_Session, char **);
 int MPIX_Session_init(MPI_Info, MPI_Errhandler, MPIX_Session *);
@@ -239,7 +249,8 @@ int MPIX_Deserialize_handler_register(const MPIX_Deserialize_handler handler);
 #if 0
 int MPI_Get_processor_name( char *name, int *resultlen );
 
-int MPI_Comm_create_errhandler(MPI_Comm_errhandler_fn *function, MPI_Errhandler *errhandler);
+int MPI_Comm_create_errhandler(MPI_Comm_errhandler_fn *function,
+                               MPI_Errhandler *errhandler);
 int MPI_Errhandler_set(MPI_Comm comm, MPI_Errhandler errhandler);
 int MPI_Comm_get_errhandler(MPI_Comm comm, MPI_Errhandler *errhandler);
 int PMPI_Errhandler_free(MPI_Errhandler *errhandler);
@@ -258,9 +269,11 @@ int PMPI_Errhandler_free(MPI_Errhandler *errhandler);
 /* MPI Profiling API */
 
 int PMPI_Abort(MPI_Comm, int);
-int PMPI_Allgather(void *, int, MPI_Datatype, void *, int, MPI_Datatype, MPI_Comm);
+int PMPI_Allgather(void *, int, MPI_Datatype, void *, int, MPI_Datatype,
+                   MPI_Comm);
 int PMPI_Allreduce(const void *, void *, int, MPI_Datatype, MPI_Op, MPI_Comm);
-int PMPI_Alltoall(void *, int, MPI_Datatype, void *, int, MPI_Datatype, MPI_Comm);
+int PMPI_Alltoall(void *, int, MPI_Datatype, void *, int, MPI_Datatype,
+                  MPI_Comm);
 int PMPI_Barrier(MPI_Comm);
 int PMPI_Bcast(void *, int, MPI_Datatype, int, MPI_Comm);
 int PMPI_Comm_create(MPI_Comm, MPI_Group, MPI_Comm *);
@@ -271,26 +284,36 @@ int PMPI_Comm_set_handler(MPI_Comm, MPI_Errhandler);
 int PMPI_Comm_size(MPI_Comm, int *);
 int PMPI_Comm_split(MPI_Comm, int, int, MPI_Comm *);
 int PMPI_Finalize(void);
-int PMPI_Gather(void *, int, MPI_Datatype, void *, int, MPI_Datatype, int, MPI_Comm);
+int PMPI_Gather(void *, int, MPI_Datatype, void *, int, MPI_Datatype, int,
+                MPI_Comm);
 int PMPI_Get_count(MPI_Status *, MPI_Datatype, int *);
 int PMPI_Group_create_session(MPIX_Session, char *, MPI_Group *);
-int PMPI_Iallreduce(void *, void *, int, MPI_Datatype, MPI_Op, MPI_Comm, MPI_Request *);
+int PMPI_Iallreduce(void *, void *, int, MPI_Datatype, MPI_Op, MPI_Comm,
+                    MPI_Request *);
 int PMPI_Ibcast(void *, int, MPI_Datatype, int, MPI_Comm, MPI_Request *);
 int PMPIX_Icheckpoint(MPI_Comm, MPI_Request *);
-int PMPI_Igather(void *, int, MPI_Datatype, void *, int, MPI_Datatype, int, MPI_Comm, MPI_Request *);
-int PMPI_Ireduce(void *, void *, int, MPI_Datatype, MPI_Op, int, MPI_Comm, MPI_Request *);
-int PMPI_Iscatter(void *, int, MPI_Datatype, void *, int, MPI_Datatype, int, MPI_Comm, MPI_Request *);
+int PMPI_Igather(void *, int, MPI_Datatype, void *, int, MPI_Datatype, int,
+                 MPI_Comm, MPI_Request *);
+int PMPI_Ireduce(void *, void *, int, MPI_Datatype, MPI_Op, int, MPI_Comm,
+                 MPI_Request *);
+int PMPI_Iscatter(void *, int, MPI_Datatype, void *, int, MPI_Datatype, int,
+                  MPI_Comm, MPI_Request *);
 int PMPI_Init(int *, char ***);
 int PMPI_Init_info(int *, char ***, MPI_Info);
 int PMPI_Irecv(void *, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
 int PMPI_Isend(void *, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
-int PMPI_Recv(void *buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm, MPI_Status *status);
-int PMPI_Recv_init(void *, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
+int PMPI_Recv(void *buf, int count, MPI_Datatype datatype, int dest, int tag,
+              MPI_Comm comm, MPI_Status *status);
+int PMPI_Recv_init(void *, int, MPI_Datatype, int, int, MPI_Comm,
+                   MPI_Request *);
 int PMPI_Reduce(const void *, void *, int, MPI_Datatype, MPI_Op, int, MPI_Comm);
-int PMPI_Scatter(void *, int, MPI_Datatype, void *, int, MPI_Datatype, int, MPI_Comm);
+int PMPI_Scatter(void *, int, MPI_Datatype, void *, int, MPI_Datatype, int,
+                 MPI_Comm);
 int PMPI_Send(const void *, int, MPI_Datatype, int, int, MPI_Comm);
-int PMPI_Sendrecv(const void *, int, MPI_Datatype, int, int, void *, int, MPI_Datatype, int, int, MPI_Comm, MPI_Status *);
-int PMPI_Send_init(void *, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
+int PMPI_Sendrecv(const void *, int, MPI_Datatype, int, int, void *, int,
+                  MPI_Datatype, int, int, MPI_Comm, MPI_Status *);
+int PMPI_Send_init(void *, int, MPI_Datatype, int, int, MPI_Comm,
+                   MPI_Request *);
 int PMPIX_Session_get_names(MPIX_Session, char **);
 int PMPIX_Session_init(MPI_Info, MPI_Errhandler, MPIX_Session *);
 int PMPIX_Session_finalize(MPIX_Session *);
@@ -311,7 +334,8 @@ int PMPIX_Deserialize_handler_register(const MPIX_Deserialize_handler handler);
 #if 0
 int PMPI_Get_processor_name( char *name, int *resultlen );
 
-int PMPI_Comm_create_errhandler(MPI_Comm_errhandler_fn *function, MPI_Errhandler *errhandler);
+int PMPI_Comm_create_errhandler(MPI_Comm_errhandler_fn *function,
+                                MPI_Errhandler *errhandler);
 int PMPI_Errhandler_set(MPI_Comm comm, MPI_Errhandler errhandler);
 int PMPI_Comm_get_errhandler(MPI_Comm comm, MPI_Errhandler *errhandler);
 int PMPI_Errhandler_free(MPI_Errhandler *errhandler);

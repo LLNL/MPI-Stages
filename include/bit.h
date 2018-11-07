@@ -68,7 +68,8 @@ class Slice
 private:
 	const type<width> data;
 public:
-	constexpr Slice(const type<start+width> target) : data(target & (Mask<width+start>() ^ Mask<start>())) {;}
+	constexpr Slice(const type<start+width> target) : data(target &
+		        (Mask<width+start>() ^ Mask<start>())) {;}
 	constexpr operator type<width>() const
 	{
 		return data;

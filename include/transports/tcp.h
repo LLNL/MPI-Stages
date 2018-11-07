@@ -23,7 +23,7 @@ public:
 		sd = socket(AF_INET, SOCK_STREAM, 0);
 		if (sd < 0)
 		{
-			std::cout << "ERROR: creating listening socket\n";
+			//std::cout << "ERROR: creating listening socket\n";
 		}
 		int flag = 1;
 		setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &flag, sizeof(int));
@@ -40,24 +40,24 @@ public:
 
 		if (bind(sd, (struct sockaddr *)&inaddr, sizeof(inaddr)) < 0)
 		{
-			std::cout << "ERROR: bind failed\n";
+			//std::cout << "ERROR: bind failed\n";
 		}
 
 		if (listen(sd, SOMAXCONN) < 0)
 		{
-			std::cout << "ERROR: listening for connection\n";
+			//std::cout << "ERROR: listening for connection\n";
 		}
 		int flags;
 		if ((flags = fcntl(sd, F_GETFL, 0)) < 0)
 		{
-			std::cout << "ERROR: failed fcntl\n";
+			//std::cout << "ERROR: failed fcntl\n";
 		}
 		else
 		{
 			flags |= O_NONBLOCK;
 			if (fcntl(sd, F_SETFL, flags) < 0)
 			{
-				std::cout << "ERROR: failed fcntl non blocking\n";
+				//std::cout << "ERROR: failed fcntl non blocking\n";
 			}
 		}
 	}
@@ -98,7 +98,8 @@ public:
 	}
 	void updateHeader()
 	{
-		std::cout << "length of message" << iov[1].iov_len << " header "<< iov[0].iov_len << "\n";
+		//std::cout << "length of message" << iov[1].iov_len << " header "<<
+		iov[0].iov_len << "\n";
 		hdr.msg_iov = iov.data();
 		hdr.msg_iovlen = iov.size();
 	}
@@ -117,20 +118,20 @@ public:
 		// debug output
 		char str[INET_ADDRSTRLEN];
 		inet_ntop(AF_INET, &(addr.get()->sin_addr), str, INET_ADDRSTRLEN);
-		std::cout << "\tbasic::Transport::tcp::send\n"
-		          << "\t\t" << hdr.msg_iovlen << " iovecs\n"
-		          << "\t\t" << str << "\n";
+		//std::cout << "\tbasic::Transport::tcp::send\n"
+		        << "\t\t" << hdr.msg_iovlen << " iovecs\n"
+		        << "\t\t" << str << "\n";
 
 		ssize_t length = sendmsg(sock, &hdr, 0);
-		std::cout << "Send to TCP " << length << "\n";
+		//std::cout << "Send to TCP " << length << "\n";
 	}
 	ssize_t receive(int &sock)
 	{
-		std::cout << debug() << "basic::Transport::tcp::recv\n";
+		//std::cout << debug() << "basic::Transport::tcp::recv\n";
 		updateHeader();
 		ssize_t length = recvmsg(sock, &hdr, MSG_WAITALL);
-		std::cout << "Received from TCP " << length << "\n";
-		std::cout << debug() << "basic::Transport::tcp::recv exiting\n";
+		//std::cout << "Received from TCP " << length << "\n";
+		//std::cout << debug() << "basic::Transport::tcp::recv exiting\n";
 		return length;
 	}
 	ssize_t peek(int &sock)

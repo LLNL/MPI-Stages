@@ -42,14 +42,15 @@ public:
 		// TODO:  see basic/udp.h; need move constructor to avoid copy here
 		Address addr(opts[0], port);
 
-		std::cout << "\tAssigning " << rank << " to " << opts[0] << ":" << port << "\n";
+		//std::cout << "\tAssigning " << rank << " to " << opts[0] << ":" << port << "\n";
 		endpoints[rank] = addr;
 		return endpoints.size();
 	}
 
-	virtual std::future<int> send(std::vector<struct iovec> iov, int dest, MPI_Comm comm)
+	virtual std::future<int> send(std::vector<struct iovec> iov, int dest,
+	                              MPI_Comm comm)
 	{
-		std::cout << "\tbasic::Transport::send(..., " << dest <<", " << comm << ")\n";
+		//std::cout << "\tbasic::Transport::send(..., " << dest <<", " << comm << ")\n";
 		udp::Socket s;
 		udp::Message msg(iov);
 
@@ -57,23 +58,25 @@ public:
 		return std::promise<int>().get_future();
 	}
 
-	virtual std::future<int> receive(std::vector<struct iovec> iov, MPI_Comm comm, ssize_t *count)
+	virtual std::future<int> receive(std::vector<struct iovec> iov, MPI_Comm comm,
+	                                 ssize_t *count)
 	{
-		std::cout << debug() << "basic::Transport::receive(...)" << std::endl;
-		std::cout << debug() << "\tiov says size is " << iov.size() << std::endl;
-		std::cout << debug() << "\t ------ " << std::endl;
+		//std::cout << debug() << "basic::Transport::receive(...)" << std::endl;
+		//std::cout << debug() << "\tiov says size is " << iov.size() << std::endl;
+		//std::cout << debug() << "\t ------ " << std::endl;
 		udp::Message msg(iov);
 
-		std::cout << debug() << "basic::Transport::receive, constructed msg, calling msg.receive" << std::endl;
+		//std::cout << debug() <<
+		//          "basic::Transport::receive, constructed msg, calling msg.receive" << std::endl;
 		//msg.receive(recvSocket, tcpSock); /*For TCP transport*/
 		*count = msg.receive(recvSocket);
-		std::cout << debug() << "basic::Transport::receive returning" << std::endl;
+		//std::cout << debug() << "basic::Transport::receive returning" << std::endl;
 		return std::promise<int>().get_future();
 	}
 
 	virtual int cleanUp(MPI_Comm comm)
 	{
-		std::cout << debug() << "basic::Transport::receive(...)" << std::endl;
+		//std::cout << debug() << "basic::Transport::receive(...)" << std::endl;
 		char buffer[2];
 		struct sockaddr_storage src_addr;
 
@@ -90,13 +93,14 @@ public:
 		message.msg_controllen=0;
 
 
-		std::cout << debug() << "basic::Transport::receive, constructed msg, calling msg.receive" << std::endl;
+		//std::cout << debug() <<
+		//          "basic::Transport::receive, constructed msg, calling msg.receive" << std::endl;
 
-		std::cout << debug() << "basic::Transport::udp::recv\n";
+		//std::cout << debug() << "basic::Transport::udp::recv\n";
 
 		recvmsg(recvSocket.getFd(), &message, MSG_WAITALL);
-		std::cout << debug() << "basic::Transport::udp::recv exiting\n";
-		std::cout << debug() << "basic::Transport::receive returning" << std::endl;
+		//std::cout << debug() << "basic::Transport::udp::recv exiting\n";
+		//std::cout << debug() << "basic::Transport::receive returning" << std::endl;
 		return 0;
 	}
 

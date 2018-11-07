@@ -104,7 +104,8 @@ void internal_MAX_OP(void *invec, void *inoutvec, int *len, MPI_Datatype *dt)
 			break;
 
 		case MPI_UNSIGNED_CHAR:
-			internal_max_op_fn<unsigned char>((unsigned char *)invec, (unsigned char *)inoutvec, len);
+			internal_max_op_fn<unsigned char>((unsigned char *)invec,
+			                                  (unsigned char *)inoutvec, len);
 			break;
 
 		case MPI_SHORT:
@@ -112,7 +113,8 @@ void internal_MAX_OP(void *invec, void *inoutvec, int *len, MPI_Datatype *dt)
 			break;
 
 		case MPI_UNSIGNED_SHORT:
-			internal_max_op_fn<unsigned short>((unsigned short *)invec, (unsigned short *)inoutvec, len);
+			internal_max_op_fn<unsigned short>((unsigned short *)invec,
+			                                   (unsigned short *)inoutvec, len);
 			break;
 
 		case MPI_INT:
@@ -120,7 +122,8 @@ void internal_MAX_OP(void *invec, void *inoutvec, int *len, MPI_Datatype *dt)
 			break;
 
 		case MPI_UNSIGNED_INT:
-			internal_max_op_fn<unsigned int>((unsigned int *)invec, (unsigned int *)inoutvec, len);
+			internal_max_op_fn<unsigned int>((unsigned int *)invec,
+			                                 (unsigned int *)inoutvec, len);
 			break;
 
 		case MPI_LONG:
@@ -128,7 +131,8 @@ void internal_MAX_OP(void *invec, void *inoutvec, int *len, MPI_Datatype *dt)
 			break;
 
 		case MPI_UNSIGNED_LONG:
-			internal_max_op_fn<unsigned long>((unsigned long *)invec, (unsigned long *)inoutvec, len);
+			internal_max_op_fn<unsigned long>((unsigned long *)invec,
+			                                  (unsigned long *)inoutvec, len);
 			break;
 
 		case MPI_FLOAT:
@@ -140,7 +144,8 @@ void internal_MAX_OP(void *invec, void *inoutvec, int *len, MPI_Datatype *dt)
 			break;
 
 		case MPI_LONG_LONG_INT:
-			internal_max_op_fn<long long int>((long long int *)invec, (long long int *)inoutvec, len);
+			internal_max_op_fn<long long int>((long long int *)invec,
+			                                  (long long int *)inoutvec, len);
 			break;
 
 		case MPI_LONG_LONG:
@@ -165,7 +170,8 @@ void internal_MIN_OP(void *invec, void *inoutvec, int *len, MPI_Datatype *dt)
 			break;
 
 		case MPI_UNSIGNED_CHAR:
-			internal_min_op_fn<unsigned char>((unsigned char *)invec, (unsigned char *)inoutvec, len);
+			internal_min_op_fn<unsigned char>((unsigned char *)invec,
+			                                  (unsigned char *)inoutvec, len);
 			break;
 
 		case MPI_SHORT:
@@ -173,7 +179,8 @@ void internal_MIN_OP(void *invec, void *inoutvec, int *len, MPI_Datatype *dt)
 			break;
 
 		case MPI_UNSIGNED_SHORT:
-			internal_min_op_fn<unsigned short>((unsigned short *)invec, (unsigned short *)inoutvec, len);
+			internal_min_op_fn<unsigned short>((unsigned short *)invec,
+			                                   (unsigned short *)inoutvec, len);
 			break;
 
 		case MPI_INT:
@@ -181,7 +188,8 @@ void internal_MIN_OP(void *invec, void *inoutvec, int *len, MPI_Datatype *dt)
 			break;
 
 		case MPI_UNSIGNED_INT:
-			internal_min_op_fn<unsigned int>((unsigned int *)invec, (unsigned int *)inoutvec, len);
+			internal_min_op_fn<unsigned int>((unsigned int *)invec,
+			                                 (unsigned int *)inoutvec, len);
 			break;
 
 		case MPI_LONG:
@@ -189,7 +197,8 @@ void internal_MIN_OP(void *invec, void *inoutvec, int *len, MPI_Datatype *dt)
 			break;
 
 		case MPI_UNSIGNED_LONG:
-			internal_min_op_fn<unsigned long>((unsigned long *)invec, (unsigned long *)inoutvec, len);
+			internal_min_op_fn<unsigned long>((unsigned long *)invec,
+			                                  (unsigned long *)inoutvec, len);
 			break;
 
 		case MPI_FLOAT:
@@ -201,7 +210,8 @@ void internal_MIN_OP(void *invec, void *inoutvec, int *len, MPI_Datatype *dt)
 			break;
 
 		case MPI_LONG_LONG_INT:
-			internal_min_op_fn<long long int>((long long int *)invec, (long long int *)inoutvec, len);
+			internal_min_op_fn<long long int>((long long int *)invec,
+			                                  (long long int *)inoutvec, len);
 			break;
 
 		case MPI_LONG_LONG:
@@ -226,7 +236,8 @@ void internal_SUM_OP(void *invec, void *inoutvec, int *len, MPI_Datatype *dt)
 			break;
 
 		case MPI_UNSIGNED_CHAR:
-			internal_sum_op_fn<unsigned char>((unsigned char *)invec, (unsigned char *)inoutvec, len);
+			internal_sum_op_fn<unsigned char>((unsigned char *)invec,
+			                                  (unsigned char *)inoutvec, len);
 			break;
 
 		case MPI_SHORT:
@@ -234,7 +245,8 @@ void internal_SUM_OP(void *invec, void *inoutvec, int *len, MPI_Datatype *dt)
 			break;
 
 		case MPI_UNSIGNED_SHORT:
-			internal_sum_op_fn<unsigned short>((unsigned short *)invec, (unsigned short *)inoutvec, len);
+			internal_sum_op_fn<unsigned short>((unsigned short *)invec,
+			                                   (unsigned short *)inoutvec, len);
 			break;
 
 		case MPI_INT:
@@ -242,7 +254,8 @@ void internal_SUM_OP(void *invec, void *inoutvec, int *len, MPI_Datatype *dt)
 			break;
 
 		case MPI_UNSIGNED_INT:
-			internal_sum_op_fn<unsigned int>((unsigned int *)invec, (unsigned int *)inoutvec, len);
+			internal_sum_op_fn<unsigned int>((unsigned int *)invec,
+			                                 (unsigned int *)inoutvec, len);
 			break;
 
 		case MPI_LONG:
@@ -250,7 +263,8 @@ void internal_SUM_OP(void *invec, void *inoutvec, int *len, MPI_Datatype *dt)
 			break;
 
 		case MPI_UNSIGNED_LONG:
-			internal_sum_op_fn<unsigned long>((unsigned long *)invec, (unsigned long *)inoutvec, len);
+			internal_sum_op_fn<unsigned long>((unsigned long *)invec,
+			                                  (unsigned long *)inoutvec, len);
 			break;
 
 		case MPI_FLOAT:
@@ -262,7 +276,8 @@ void internal_SUM_OP(void *invec, void *inoutvec, int *len, MPI_Datatype *dt)
 			break;
 
 		case MPI_LONG_LONG_INT:
-			internal_sum_op_fn<long long int>((long long int *)invec, (long long int *)inoutvec, len);
+			internal_sum_op_fn<long long int>((long long int *)invec,
+			                                  (long long int *)inoutvec, len);
 			break;
 
 		case MPI_LONG_LONG:
@@ -274,23 +289,28 @@ void internal_SUM_OP(void *invec, void *inoutvec, int *len, MPI_Datatype *dt)
 	}
 }
 
-void internal_MAX_LOC_OP(void *invec, void *inoutvec, int *len, MPI_Datatype *dt)
+void internal_MAX_LOC_OP(void *invec, void *inoutvec, int *len,
+                         MPI_Datatype *dt)
 {
 	switch(*dt)
 	{
 		case MPI_DOUBLE_INT:
-			internal_max_loc_op_fn<double_int_type>((double_int_type *)invec, (double_int_type *)inoutvec, len);
+			internal_max_loc_op_fn<double_int_type>((double_int_type *)invec,
+			                                        (double_int_type *)inoutvec, len);
 			break;
 
 		case MPI_FLOAT_INT:
-			internal_max_loc_op_fn<float_int_type>((float_int_type *)invec, (float_int_type *)inoutvec, len);
+			internal_max_loc_op_fn<float_int_type>((float_int_type *)invec,
+			                                       (float_int_type *)inoutvec, len);
 			break;
 
 		case MPI_LONG_INT:
-			internal_max_loc_op_fn<long_int_type>((long_int_type *)invec, (long_int_type *)inoutvec, len);
+			internal_max_loc_op_fn<long_int_type>((long_int_type *)invec,
+			                                      (long_int_type *)inoutvec, len);
 			break;
 		case MPI_2INT:
-			internal_max_loc_op_fn<int_int_type>((int_int_type *)invec, (int_int_type *)inoutvec, len);
+			internal_max_loc_op_fn<int_int_type>((int_int_type *)invec,
+			                                     (int_int_type *)inoutvec, len);
 			break;
 
 		default:
@@ -298,23 +318,28 @@ void internal_MAX_LOC_OP(void *invec, void *inoutvec, int *len, MPI_Datatype *dt
 	}
 }
 
-void internal_MIN_LOC_OP(void *invec, void *inoutvec, int *len, MPI_Datatype *dt)
+void internal_MIN_LOC_OP(void *invec, void *inoutvec, int *len,
+                         MPI_Datatype *dt)
 {
 	switch(*dt)
 	{
 		case MPI_DOUBLE_INT:
-			internal_min_loc_op_fn<double_int_type>((double_int_type *)invec, (double_int_type *)inoutvec, len);
+			internal_min_loc_op_fn<double_int_type>((double_int_type *)invec,
+			                                        (double_int_type *)inoutvec, len);
 			break;
 
 		case MPI_FLOAT_INT:
-			internal_min_loc_op_fn<float_int_type>((float_int_type *)invec, (float_int_type *)inoutvec, len);
+			internal_min_loc_op_fn<float_int_type>((float_int_type *)invec,
+			                                       (float_int_type *)inoutvec, len);
 			break;
 
 		case MPI_LONG_INT:
-			internal_min_loc_op_fn<long_int_type>((long_int_type *)invec, (long_int_type *)inoutvec, len);
+			internal_min_loc_op_fn<long_int_type>((long_int_type *)invec,
+			                                      (long_int_type *)inoutvec, len);
 			break;
 		case MPI_2INT:
-			internal_min_loc_op_fn<int_int_type>((int_int_type *)invec, (int_int_type *)inoutvec, len);
+			internal_min_loc_op_fn<int_int_type>((int_int_type *)invec,
+			                                     (int_int_type *)inoutvec, len);
 			break;
 		default:
 			break;

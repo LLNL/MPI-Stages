@@ -16,9 +16,11 @@ protected:
 	const bool weakAssociative;
 	const bool commutative;
 public:
-	Datatype() : mpiDatatype(0), extent(0), associative(false), weakAssociative(false), commutative(false) {;}
+	Datatype() : mpiDatatype(0), extent(0), associative(false),
+		weakAssociative(false), commutative(false) {;}
 	Datatype(const MPI_Datatype &dt, size_t ex, bool assoc, bool wassoc, bool comm)
-		: mpiDatatype(dt), extent(ex), associative(assoc), weakAssociative(wassoc), commutative(comm) {;}
+		: mpiDatatype(dt), extent(ex), associative(assoc), weakAssociative(wassoc),
+		  commutative(comm) {;}
 	virtual ~Datatype() {;}
 
 	const MPI_Datatype &getMpiDatatype() const

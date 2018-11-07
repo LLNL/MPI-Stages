@@ -7,7 +7,8 @@ int Group::id = 0;
 
 Group::Group() {};
 
-Group::Group(std::list<int> processes) : process_list(processes), group_id(id++) {}
+Group::Group(std::list<int> processes) : process_list(processes),
+	group_id(id++) {}
 
 std::list<int> Group::get_process_list()
 {

@@ -33,7 +33,10 @@ private:
 		std::size_t delim = line.find_first_of(":");
 		std::string key = line.substr(0, delim);
 		std::string val = line.substr(delim+1);
-		std::cout << "Config:  Adding " << key << " as " << val << std::endl;
+
+		// TODO THIS VOMITS ONTO THE COMMAND LINE
+		//std::cout << "Config:  Adding " << key << " as " << val << std::endl;
+
 		dict[key] = val;
 	}
 public:

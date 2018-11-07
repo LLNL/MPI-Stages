@@ -25,8 +25,9 @@ std::string epochConfig;
 // NOTE:  I construct the objects here to give them the chance
 // to do preinit at startup -- init calls will be required anyway
 // to avoid OoI problems, so might as well take advantage of them.
+// TODO REMOVE THIS
 exampi::Config *config = new exampi::Config();
-exampi::i::Interface *interface = new exampi::basic::Interface();
+exampi::i::Interface *interface = new exampi::BasicInterface();
 exampi::i::Progress  *progress = new exampi::basic::Progress();
 exampi::i::Transport *transport = new exampi::basic::Transport();
 exampi::i::Checkpoint *checkpoint = new exampi::basic::Checkpoint();

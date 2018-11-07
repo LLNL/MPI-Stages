@@ -52,14 +52,15 @@ public:
 		// TODO:  see basic/udp.h; need move constructor to avoid copy here
 		Address addr(opts[0], port);
 
-		std::cout << "\tAssigning " << rank << " to " << opts[0] << ":" << port << "\n";
+		//std::cout << "\tAssigning " << rank << " to " << opts[0] << ":" << port << "\n";
 		endpoints[rank] = addr;
 		return endpoints.size();
 	}
 
-	virtual std::future<int> send(std::vector<struct iovec> iov, int dest, MPI_Comm comm)
+	virtual std::future<int> send(std::vector<struct iovec> iov, int dest,
+	                              MPI_Comm comm)
 	{
-		std::cout << "\tbasic::Transport::send(..., " << dest <<", " << comm << ")\n";
+		//std::cout << "\tbasic::Transport::send(..., " << dest <<", " << comm << ")\n";
 		int sd;
 		Address addr = endpoints[dest];
 		if (clientSocket[dest] > 0)
@@ -71,11 +72,11 @@ public:
 			sd = socket(AF_INET, SOCK_STREAM, 0);
 			if (sd < 0)
 			{
-				std::cout << "ERROR: creating client socket\n";
+				//std::cout << "ERROR: creating client socket\n";
 			}
 			if (connect(sd, (struct sockaddr *) (addr.get()), sizeof(addr)) < 0)
 			{
-				std::cout << "ERROR: connecting socket\n";
+				//std::cout << "ERROR: connecting socket\n";
 			}
 			clientSocket[dest] = sd;
 		}
@@ -85,14 +86,17 @@ public:
 		return std::promise<int>().get_future();
 	}
 
-	virtual std::future<int> receive(std::vector<struct iovec> iov, MPI_Comm comm, ssize_t *count)
+	virtual std::future<int> receive(std::vector<struct iovec> iov, MPI_Comm comm,
+	                                 ssize_t *count)
 	{
-		std::cout << debug() << "basic::Transport::receive(...)" << std::endl;
-		std::cout << debug() << "\tiov says size is " << iov.size() << std::endl;
-		std::cout << debug() << "\t ------ " << std::endl;
+		//std::cout << debug() << "basic::Transport::receive(...)" << std::endl;
+		//std::cout << debug() << "\tiov says size is " << iov.size() << std::endl;
+		//std::cout << debug() << "\t ------ " << std::endl;
 		tcp::Message msg(iov);
 
-		std::cout << debug() << "basic::Transport::receive, constructed msg, calling msg.receive" << std::endl;
+		//std::cout << debug() <<
+		"basic::Transport::receive, constructed msg, calling msg.receive"
+		        << std::endl;
 		for (auto c : clientSocket)
 		{
 			int sd = c.second;
@@ -102,13 +106,13 @@ public:
 				break;
 			}
 		}
-		std::cout << debug() << "basic::Transport::receive returning" << std::endl;
+		//std::cout << debug() << "basic::Transport::receive returning" << std::endl;
 		return std::promise<int>().get_future();
 	}
 
 	virtual int cleanUp(MPI_Comm comm)
 	{
-		std::cout << debug() << "basic::Transport::receive(...)" << std::endl;
+		//std::cout << debug() << "basic::Transport::receive(...)" << std::endl;
 		char buffer[2];
 		struct sockaddr_storage src_addr;
 
@@ -125,9 +129,11 @@ public:
 		message.msg_controllen=0;
 
 
-		std::cout << debug() << "basic::Transport::receive, constructed msg, calling msg.receive" << std::endl;
+		//std::cout << debug() <<
+		"basic::Transport::receive, constructed msg, calling msg.receive"
+		        << std::endl;
 
-		std::cout << debug() << "basic::Transport::udp::recv\n";
+		//std::cout << debug() << "basic::Transport::udp::recv\n";
 
 		int sd = clientSocket[exampi::global::rank];
 		recvmsg(sd, &message, MSG_WAITALL);
@@ -139,8 +145,8 @@ public:
 		{
 			clientSocket[i] = 0;
 		}
-		std::cout << debug() << "basic::Transport::udp::recv exiting\n";
-		std::cout << debug() << "basic::Transport::receive returning" << std::endl;
+		//std::cout << debug() << "basic::Transport::udp::recv exiting\n";
+		//std::cout << debug() << "basic::Transport::receive returning" << std::endl;
 		return 0;
 	}
 
@@ -163,7 +169,7 @@ public:
 		int activity = select(max_fd + 1, &readfds, NULL, NULL, NULL);
 		if (activity < 0 && errno != EINTR)
 		{
-			std::cout << "ERROR: In select\n";
+			//std::cout << "ERROR: In select\n";
 			return 1;
 		}
 		if (FD_ISSET(tcpListenSocket.getFd(), &readfds))
@@ -172,14 +178,15 @@ public:
 			sockaddr_in client;
 			socklen_t clientlen;
 			clientlen = sizeof(client);
-			newClient = accept(tcpListenSocket.getFd(), (struct sockaddr *) &client, &clientlen);
+			newClient = accept(tcpListenSocket.getFd(), (struct sockaddr *) &client,
+			                   &clientlen);
 			if (newClient < 0)
 			{
-				std::cout << "ERROR: In accept new connection\n";
+				//std::cout << "ERROR: In accept new connection\n";
 			}
 			char str[INET_ADDRSTRLEN];
 			inet_ntop(AF_INET, &(client.sin_addr), str, INET_ADDRSTRLEN);
-			std::cout << "client ip "<< str << "\n";
+			//std::cout << "client ip "<< str << "\n";
 
 			for (auto ip : endpoints)
 			{
@@ -235,7 +242,7 @@ public:
 	{
 		// save endpoints
 		int epsz = endpoints.size();
-		//std::cout << "size: " << epsz << "\n";
+		////std::cout << "size: " << epsz << "\n";
 		t.write(reinterpret_cast<char *>(&epsz), sizeof(int));
 		for(auto i : endpoints)
 		{
@@ -255,7 +262,7 @@ public:
 		int rank;
 		Address addr;
 		t.read(reinterpret_cast<char *>(&epsz), sizeof(int));
-		//std::cout << "size: " << epsz << "\n";
+		////std::cout << "size: " << epsz << "\n";
 		while(epsz)
 		{
 			t.read(reinterpret_cast<char *>(&rank), sizeof(rank));

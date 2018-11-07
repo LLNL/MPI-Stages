@@ -133,10 +133,13 @@ while(1)  # main serve loop
             setpgrp(0, 0);
             my $configname = "mpirun.$state{rank}.config.tmp";
             my $epochname = "mpirun.$state{rank}.epoch.tmp";
+
+			# write config file
             open(my $config, ">", $configname) or die "Couldn't create temporary file";
             $config->autoflush(1);
             print $config "ppid:$parentpid\n" . join("\n", split(/;/, $configstr));
             close $config;
+
               if ($state{epoch} == 0) {
                   open(my $epochconfig, ">", $epochname) or die "Couldn't create temporary epoch file";
                   $epochconfig->autoflush(1);
@@ -239,6 +242,8 @@ while(1)  # main serve loop
                 my $host;
                 my %nodes;
                 
+
+				# create config?
                 my %config;
                 $config{"size"} = "$sz";
                 print "Generating node table...\n";

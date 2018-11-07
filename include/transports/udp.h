@@ -71,7 +71,8 @@ public:
 	}
 	void updateHeader()
 	{
-		std::cout << "length of message" << iov[1].iov_len << " header "<< iov[0].iov_len << "\n";
+		//std::cout << "length of message" << iov[1].iov_len << " header "<<
+		//          iov[0].iov_len << "\n";
 		hdr.msg_iov = iov.data();
 		hdr.msg_iovlen = iov.size();
 	}
@@ -90,20 +91,20 @@ public:
 		// debug output
 		char str[INET_ADDRSTRLEN];
 		inet_ntop(AF_INET, &(addr.get()->sin_addr), str, INET_ADDRSTRLEN);
-		std::cout << "\tbasic::Transport::udp::send\n"
-		          << "\t\t" << hdr.msg_iovlen << " iovecs\n"
-		          << "\t\t" << str << "\n";
+		//std::cout << "\tbasic::Transport::udp::send\n"
+		//          << "\t\t" << hdr.msg_iovlen << " iovecs\n"
+		//          << "\t\t" << str << "\n";
 
 		ssize_t length = sendmsg(sock.getFd(), &hdr, 0);
-		std::cout << "Send to UDP " << length << "\n";
+		//std::cout << "Send to UDP " << length << "\n";
 	}
 	ssize_t receive(Socket &sock)
 	{
-		std::cout << debug() << "basic::Transport::udp::recv\n";
+		//std::cout << debug() << "basic::Transport::udp::recv\n";
 		updateHeader();
 		ssize_t length = recvmsg(sock.getFd(), &hdr, MSG_WAITALL);
-		std::cout << "Received from UDP " << length << "\n";
-		std::cout << debug() << "basic::Transport::udp::recv exiting\n";
+		//std::cout << "Received from UDP " << length << "\n";
+		//std::cout << debug() << "basic::Transport::udp::recv exiting\n";
 		return length;
 	}
 	void peek(Socket &sock)
