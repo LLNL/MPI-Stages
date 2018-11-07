@@ -7,9 +7,10 @@ extern "C"
 {
 #pragma weak MPIX_Checkpoint_write = PMPIX_Checkpoint_write
 
-int PMPIX_Checkpoint_write(void) {
-	int rc = exampi::global::interface->MPIX_Checkpoint_write();
-	return rc;
-}
+	int PMPIX_Checkpoint_write(void)
+	{
+		int rc = exampi::global::interface->MPIX_Checkpoint_write();
+		return rc;
+	}
 
 }

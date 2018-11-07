@@ -26,44 +26,44 @@ namespace exampi
 
 class Config
 {
-  private:
-    std::map<std::string,std::string> dict;
-    void parse(std::string line)
-    {
-      std::size_t delim = line.find_first_of(":");
-      std::string key = line.substr(0, delim);
-      std::string val = line.substr(delim+1);
-      std::cout << "Config:  Adding " << key << " as " << val << std::endl;
-      dict[key] = val;
-    }
-  public:
-    Config() : dict()
-    {
-    }
+private:
+	std::map<std::string,std::string> dict;
+	void parse(std::string line)
+	{
+		std::size_t delim = line.find_first_of(":");
+		std::string key = line.substr(0, delim);
+		std::string val = line.substr(delim+1);
+		std::cout << "Config:  Adding " << key << " as " << val << std::endl;
+		dict[key] = val;
+	}
+public:
+	Config() : dict()
+	{
+	}
 
-    Config(const Config &c)
-    {
-      dict = c.dict;
-    }
+	Config(const Config &c)
+	{
+		dict = c.dict;
+	}
 
-    void load(std::string filename)
-    {
-      std::ifstream file(filename, std::ifstream::in);
-      std::string next;
-      while(std::getline(file, next))
-        parse(next);
+	void load(std::string filename)
+	{
+		std::ifstream file(filename, std::ifstream::in);
+		std::string next;
+		while(std::getline(file, next))
+			parse(next);
 
-    }
+	}
 
-    std::map<std::string,std::string> asMap()
-    {
-      return dict;
-    }
+	std::map<std::string,std::string> asMap()
+	{
+		return dict;
+	}
 
-    const std::string& operator[](const std::string &i)
-    {
-      return dict[i];
-    }
+	const std::string &operator[](const std::string &i)
+	{
+		return dict[i];
+	}
 };
 
 

@@ -1,9 +1,9 @@
-/* 
+/*
 
    Exampi public "mpi.h"  V 0.0
 
    Authors: Shane Matthew Farmer, Nawrin Sultana, Anthony Skjellum
-  
+
 */
 
 #ifndef _MPI_H
@@ -27,19 +27,20 @@ typedef int MPI_Op;
 typedef int MPI_Info;
 typedef int MPI_Errhandler;
 
-typedef void (*MPI_User_Function)( void *invec, void *inoutvec, int *len, 
-			MPI_Datatype *datatype);
+typedef void (*MPI_User_Function)( void *invec, void *inoutvec, int *len,
+                                   MPI_Datatype *datatype);
 
 typedef struct
 {
-    ssize_t count;
-    int cancelled;
-    int MPI_SOURCE;
-    int MPI_TAG;
-    int MPI_ERROR;
+	ssize_t count;
+	int cancelled;
+	int MPI_SOURCE;
+	int MPI_TAG;
+	int MPI_ERROR;
 } MPI_Status;
 
-typedef struct {
+typedef struct
+{
 	MPI_Comm *comms;
 	int comm_size;
 	MPI_Group *grps;
@@ -88,22 +89,26 @@ typedef struct long_int_type long_int_type;
 typedef struct double_int_type double_int_type;
 typedef struct int_int_type	int_int_type;
 
-struct float_int_type {
+struct float_int_type
+{
 	float val;
 	int loc;
 };
 
-struct long_int_type {
+struct long_int_type
+{
 	long val;
 	int loc;
 };
 
-struct double_int_type {
+struct double_int_type
+{
 	double val;
 	int loc;
 };
 
-struct int_int_type {
+struct int_int_type
+{
 	int val;
 	int loc;
 };
@@ -131,18 +136,18 @@ struct int_int_type {
 
 MPI_Op op :
 
-MPI_MAX maximum 
-MPI_MIN minimum 
-MPI_SUM sum 
-MPI_PROD product 
-MPI_LAND logical and 
-MPI_BAND bit-wise and 
-MPI_LOR logical or 
-MPI_BOR bit-wise or 
-MPI_LXOR logical xor 
-MPI_BXOR bit-wise xor 
-MPI_MAXLOC max value and location 
-MPI_MINLOC min value and location 
+MPI_MAX maximum
+MPI_MIN minimum
+MPI_SUM sum
+MPI_PROD product
+MPI_LAND logical and
+MPI_BAND bit-wise and
+MPI_LOR logical or
+MPI_BOR bit-wise or
+MPI_LXOR logical xor
+MPI_BXOR bit-wise xor
+MPI_MAXLOC max value and location
+MPI_MINLOC min value and location
 
 MPI_REPLACE  f(a,b) <-- b ; replace what you have.
 
@@ -158,18 +163,18 @@ MPI_OP_NULL too.
 
 
 #if 0 /* not in first release */
-  MPI_Op MPI_PROD;
-  MPI_Op MPI_LAND;
-  MPI_Op MPI_BAND;
-  MPI_Op MPI_LOR;
-  MPI_Op MPI_BOR;
-  MPI_Op MPI_LXOR;
-  MPI_Op MPI_BXOR;
-  MPI_Op MPI_MAXLOC;
-  MPI_Op MPI_MINLOC;
+MPI_Op MPI_PROD;
+MPI_Op MPI_LAND;
+MPI_Op MPI_BAND;
+MPI_Op MPI_LOR;
+MPI_Op MPI_BOR;
+MPI_Op MPI_LXOR;
+MPI_Op MPI_BXOR;
+MPI_Op MPI_MAXLOC;
+MPI_Op MPI_MINLOC;
 
-  MPI_Op MPI_REPLACE; /* check this one; definitely not in first release */
-#endif 
+MPI_Op MPI_REPLACE; /* check this one; definitely not in first release */
+#endif
 
 
 #define MPI_COMM_NULL     ((MPI_Comm)-1)
@@ -197,8 +202,8 @@ int MPI_Gather(void *, int, MPI_Datatype, void *, int, MPI_Datatype, int, MPI_Co
 int MPI_Get_count(MPI_Status *, MPI_Datatype, int *);
 int MPI_Group_create_session(MPIX_Session, char *, MPI_Group *);
 int MPI_Iallreduce(void *, void *, int, MPI_Datatype, MPI_Op, MPI_Comm, MPI_Request *);
-int MPI_Ibcast(void *, int, MPI_Datatype, int, MPI_Comm, MPI_Request *);  
-int MPIX_Icheckpoint(MPI_Comm, MPI_Request *);  
+int MPI_Ibcast(void *, int, MPI_Datatype, int, MPI_Comm, MPI_Request *);
+int MPIX_Icheckpoint(MPI_Comm, MPI_Request *);
 int MPI_Igather(void *, int, MPI_Datatype, void *, int, MPI_Datatype, int, MPI_Comm, MPI_Request *);
 int MPI_Ireduce(void *, void *, int, MPI_Datatype, MPI_Op, int, MPI_Comm, MPI_Request *);
 int MPI_Iscatter(void *, int, MPI_Datatype, void *, int, MPI_Datatype, int, MPI_Comm, MPI_Request *);
@@ -206,7 +211,7 @@ int MPI_Init(int *, char ***);
 int MPI_Init_info(int *, char ***, MPI_Info);
 int MPI_Irecv(void *, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
 int MPI_Isend(void *, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
-int MPI_Recv(void* buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm, MPI_Status *status);
+int MPI_Recv(void *buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm, MPI_Status *status);
 int MPI_Recv_init(void *, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
 int MPI_Reduce(const void *, void *, int, MPI_Datatype, MPI_Op, int, MPI_Comm);
 int MPI_Scatter(void *, int, MPI_Datatype, void *, int, MPI_Datatype, int, MPI_Comm);
@@ -239,13 +244,13 @@ int MPI_Errhandler_set(MPI_Comm comm, MPI_Errhandler errhandler);
 int MPI_Comm_get_errhandler(MPI_Comm comm, MPI_Errhandler *errhandler);
 int PMPI_Errhandler_free(MPI_Errhandler *errhandler);
 
-  /* 
-     minimum:
+/*
+   minimum:
 
-     MPI_ERRORS_ARE_FATAL
-     MPI_ERRORS_RETURN
-     MPI_ERR_HANDLER_NULL
-  */
+   MPI_ERRORS_ARE_FATAL
+   MPI_ERRORS_RETURN
+   MPI_ERR_HANDLER_NULL
+*/
 
 
 #endif
@@ -271,7 +276,7 @@ int PMPI_Get_count(MPI_Status *, MPI_Datatype, int *);
 int PMPI_Group_create_session(MPIX_Session, char *, MPI_Group *);
 int PMPI_Iallreduce(void *, void *, int, MPI_Datatype, MPI_Op, MPI_Comm, MPI_Request *);
 int PMPI_Ibcast(void *, int, MPI_Datatype, int, MPI_Comm, MPI_Request *);
-int PMPIX_Icheckpoint(MPI_Comm, MPI_Request *); 
+int PMPIX_Icheckpoint(MPI_Comm, MPI_Request *);
 int PMPI_Igather(void *, int, MPI_Datatype, void *, int, MPI_Datatype, int, MPI_Comm, MPI_Request *);
 int PMPI_Ireduce(void *, void *, int, MPI_Datatype, MPI_Op, int, MPI_Comm, MPI_Request *);
 int PMPI_Iscatter(void *, int, MPI_Datatype, void *, int, MPI_Datatype, int, MPI_Comm, MPI_Request *);
@@ -279,7 +284,7 @@ int PMPI_Init(int *, char ***);
 int PMPI_Init_info(int *, char ***, MPI_Info);
 int PMPI_Irecv(void *, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
 int PMPI_Isend(void *, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
-int PMPI_Recv(void* buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm, MPI_Status *status);
+int PMPI_Recv(void *buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm, MPI_Status *status);
 int PMPI_Recv_init(void *, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
 int PMPI_Reduce(const void *, void *, int, MPI_Datatype, MPI_Op, int, MPI_Comm);
 int PMPI_Scatter(void *, int, MPI_Datatype, void *, int, MPI_Datatype, int, MPI_Comm);
@@ -310,7 +315,7 @@ int PMPI_Comm_create_errhandler(MPI_Comm_errhandler_fn *function, MPI_Errhandler
 int PMPI_Errhandler_set(MPI_Comm comm, MPI_Errhandler errhandler);
 int PMPI_Comm_get_errhandler(MPI_Comm comm, MPI_Errhandler *errhandler);
 int PMPI_Errhandler_free(MPI_Errhandler *errhandler);
-#endif 
+#endif
 
 
 

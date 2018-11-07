@@ -3,18 +3,19 @@
 
 #include <mutex>
 
-namespace exampi {
+namespace exampi
+{
 
 class Context
 {
- public:
+public:
 	Context();
 	~Context();
 	static volatile int nextID;
 	static std::mutex contextLock;
 	//static int get_next_context();
- protected:
- private:
+protected:
+private:
 
 };
 

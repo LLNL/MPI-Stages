@@ -3,20 +3,21 @@
 
 #include <csignal>
 
-namespace exampi {
+namespace exampi
+{
 class sigHandler
 {
 public:
-    sigHandler();
-    ~sigHandler();
+	sigHandler();
+	~sigHandler();
 
-    bool setSignalToHandle(int sig);
-    static int isSignalSet();
-    static void setSignal(int unused);
-    static void setSignalToZero();
+	bool setSignalToHandle(int sig);
+	static int isSignalSet();
+	static void setSignal(int unused);
+	static void setSignalToZero();
 
 private:
-    volatile static std::sig_atomic_t is_signalSet;
+	volatile static std::sig_atomic_t is_signalSet;
 };
 }
 #endif

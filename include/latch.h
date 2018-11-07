@@ -4,11 +4,14 @@
 #include <mpi.h>
 #include <endpoint.h>
 
-namespace exampi {
-namespace latch {
-  
+namespace exampi
+{
+namespace latch
+{
+
 template
 
-}} // exampi::latch::
+}
+} // exampi::latch::
 #endif
 
