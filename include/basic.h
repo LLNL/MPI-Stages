@@ -33,7 +33,7 @@ public:
 		v.iov_base = p;
 		v.iov_len = sz;
 	}
-	
+
 	struct iovec iov()
 	{
 		return v;

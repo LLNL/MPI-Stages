@@ -228,7 +228,7 @@ private:
 			//std::cout << debug()
 			//          << "sendThread:  got result from outbox future\n";
 			exampi::transport->send(r->getIovecs(), r->endpoint.rank,
-			                                0);
+			                        0);
 			// TODO:  check that sending actually completed
 			r->completionPromise.set_value( { .count = 0, .cancelled = 0,
 			                                  .MPI_SOURCE = r->source, .MPI_TAG = r->tag, .MPI_ERROR =

@@ -16,7 +16,7 @@ int BasicInterface::MPI_Init(int *argc, char ***argv)
 	exampi::config->load(**argv);
 	std::cout << (*exampi::config)["size"] << std::endl;
 	exampi::worldSize = std::stoi(
-	                                (*exampi::config)["size"]);
+	                        (*exampi::config)["size"]);
 	(*argv)++;
 	(*argc)--;
 
@@ -129,7 +129,7 @@ int BasicInterface::MPI_Isend(const void *buf, int count, MPI_Datatype datatype,
 	// have to move construct the future; i'll fix this later with a pool in progress
 	std::future<MPI_Status> *f = new std::future<MPI_Status>();
 	(*f) = exampi::progress->postSend( { const_cast<void *>(buf),
-	        &(exampi::datatypes[datatype]), szcount },
+	                                     &(exampi::datatypes[datatype]), szcount },
 	{ dest, context }, tag);
 	(*request) = reinterpret_cast<MPI_Request>(f);
 
@@ -149,7 +149,7 @@ int BasicInterface::MPI_Irecv(void *buf, int count, MPI_Datatype datatype,
 	size_t szcount = count;
 	std::future<MPI_Status> *f = new std::future<MPI_Status>();
 	(*f) = exampi::progress->postRecv( { const_cast<void *>(buf),
-	        &(exampi::datatypes[datatype]), szcount }, {source, context}, tag);
+	                                     &(exampi::datatypes[datatype]), szcount }, {source, context}, tag);
 	(*request) = reinterpret_cast<MPI_Request>(f);
 	return 0;
 }

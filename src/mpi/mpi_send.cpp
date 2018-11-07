@@ -12,7 +12,7 @@ extern "C"
 	              int tag, MPI_Comm comm)
 	{
 		int rc = exampi::interface->MPI_Send(buf, count, datatype, dest, tag,
-			         comm);
+			                                     comm);
 		(void)rc;
 		return rc;
 	}

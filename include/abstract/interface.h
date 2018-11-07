@@ -1,5 +1,5 @@
-#ifndef __EXAMPI_INTERFACE_H
-#define __EXAMPI_INTERFACE_H
+#ifndef __EXAMPI_ABSTRACT_INTERFACE_H
+#define __EXAMPI_ABSTRACT_INTERFACE_H
 
 #include <mpi.h>
 
@@ -46,7 +46,8 @@ public:
 	virtual int MPIX_Checkpoint_read(void) = 0;
 	virtual int MPIX_Get_fault_epoch(int *epoch) = 0;
 	virtual int MPIX_Deserialize_handles() = 0;
-	virtual int MPIX_Deserialize_handler_register(const MPIX_Deserialize_handler) = 0;
+	virtual int MPIX_Deserialize_handler_register(const MPIX_Deserialize_handler) =
+	    0;
 	virtual int MPIX_Serialize_handles() = 0;
 	virtual int MPIX_Serialize_handler_register(const MPIX_Serialize_handler) = 0;
 };

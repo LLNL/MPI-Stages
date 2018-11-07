@@ -12,7 +12,7 @@ extern "C"
 	                MPI_Op op, int root, MPI_Comm comm)
 	{
 		int rc = exampi::interface->MPI_Reduce(s_buf, r_buf, count, type, op,
-			         root, comm);
+			                                       root, comm);
 		(void)rc;
 		return rc;
 	}

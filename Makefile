@@ -2,10 +2,6 @@
 #                                 User Section
 ################################################################################
 
-# compiler/linker choice
-CXX = g++ 
-LD =
-
 # flags
 override CXXFLAGS += -g -std=c++11 -pthread -Wall -DDEBUG
 LDFLAGS = 

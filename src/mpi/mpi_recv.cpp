@@ -12,7 +12,7 @@ extern "C"
 	              MPI_Comm comm, MPI_Status *status)
 	{
 		int rc = exampi::interface->MPI_Recv(buf, count, datatype, dest, tag,
-			         comm, status);
+			                                     comm, status);
 		(void)rc;
 		return rc;
 	}

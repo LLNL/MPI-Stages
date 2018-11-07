@@ -13,7 +13,7 @@ extern "C"
 	               MPI_Comm comm, MPI_Request *request)
 	{
 		int rc = exampi::interface->MPI_Isend(buf, count, datatype, dest, tag,
-			         comm, request);
+			                                      comm, request);
 		(void)rc;
 		return rc;
 	}

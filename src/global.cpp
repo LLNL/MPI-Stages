@@ -12,7 +12,8 @@
 // ideally we'd have heavy preproc or generation of
 // this file)   --sf
 
-namespace exampi {
+namespace exampi
+{
 
 int rank = -1;
 int worldSize = -1;

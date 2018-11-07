@@ -1,6 +1,7 @@
 #include "transport.h"
 
-namespace exampi {
+namespace exampi
+{
 
 BasicTransport::BasicTransport() : endpoints(), recvSocket() {;};
 
@@ -19,7 +20,8 @@ void BasicTransport::finalize()
 	recvSocket.destroy();
 }
 
-size_t BasicTransport::addEndpoint(const int rank, const std::vector<std::string> &opts)
+size_t BasicTransport::addEndpoint(const int rank,
+                                   const std::vector<std::string> &opts)
 {
 	uint16_t port = std::stoi(opts[1]);
 	// TODO:  see basic/udp.h; need move constructor to avoid copy here
@@ -31,7 +33,7 @@ size_t BasicTransport::addEndpoint(const int rank, const std::vector<std::string
 }
 
 std::future<int> BasicTransport::send(std::vector<struct iovec> iov, int dest,
-	                          MPI_Comm comm)
+                                      MPI_Comm comm)
 {
 	//std::cout << "\tbasic::Transport::send(..., " << dest <<", " << comm << ")\n";
 	udp::Socket s;
@@ -41,8 +43,9 @@ std::future<int> BasicTransport::send(std::vector<struct iovec> iov, int dest,
 	return std::promise<int>().get_future();
 }
 
-std::future<int> BasicTransport::receive(std::vector<struct iovec> iov, MPI_Comm comm,
-	                             ssize_t *count)
+std::future<int> BasicTransport::receive(std::vector<struct iovec> iov,
+        MPI_Comm comm,
+        ssize_t *count)
 {
 	//std::cout << debug() << "basic::Transport::receive(...)" << std::endl;
 	//std::cout << debug() << "\tiov says size is " << iov.size() << std::endl;
