@@ -8,8 +8,10 @@ BasicInterface::BasicInterface() {}
 int BasicInterface::MPI_Init(int *argc, char ***argv)
 {
 	if((*argc < 6) || (std::string((*argv)[1]) != std::string("exampilauncher")))
+	{
 		debugpp("Application was not launched with mpiexec.");
-	return -123123;
+		return -123123;
+	}
 
 	//std::cout << "Loading config from " << **argv << std::endl;
 	debugpp("Loading config from " << **argv);

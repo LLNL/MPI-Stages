@@ -1,5 +1,5 @@
-#ifndef __EXAMPI_I_CHECKPOINT_H
-#define __EXAMPI_I_CHECKPOINT_H
+#ifndef __EXAMPI_ABSTRACT_CHECKPOINT_H
+#define __EXAMPI_ABSTRACT_CHECKPOINT_H
 
 #include <mpi.h>
 

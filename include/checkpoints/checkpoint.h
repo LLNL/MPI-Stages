@@ -7,9 +7,11 @@
 namespace exampi
 {
 
-class BasicCheckpoint : public exampi::Checkpoint
+class BasicCheckpoint: public Checkpoint
 {
 public:
+	BasicCheckpoint(); 
+
 	void save();
 	int load();
 };

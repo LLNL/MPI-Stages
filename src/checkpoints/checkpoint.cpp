@@ -1,11 +1,14 @@
-#ifndef __EXAMPI_BASIC_CHECKPOINT_H
-#define __EXAMPI_BASIC_CHECKPOINT_H
+#include "checkpoints/checkpoint.h"
 
 #include <basic.h>
 #include "engines/progress.h"
 
 namespace exampi
 {
+
+BasicCheckpoint::BasicCheckpoint()
+{
+}
 
 void BasicCheckpoint::save()
 {
@@ -83,5 +86,3 @@ int BasicCheckpoint::load()
 }
 
 } // exampi
-
-#endif
