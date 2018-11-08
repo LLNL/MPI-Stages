@@ -2,9 +2,6 @@
 #define __EXAMPI_DAEMON_H
 
 #include <string>
-
-#include <sys/types.h>
-#include <sys/socket.h>
 #include <netinet/in.h>
 
 namespace exampi
@@ -23,7 +20,8 @@ private:
 	static Daemon *instance;
 
 	int sock;
-	sockaddr_in destination;
+	sockaddr_in daemon;
+	sockaddr_in local;
 
 	Daemon();
 	~Daemon();

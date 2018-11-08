@@ -6,7 +6,14 @@ schedulers = ['local', 'slurm', 'osg', 'sge']
 
 MPI_SUCCESS = 0
 
+def local_cleanup():
+	for path in os.listdir('.'):
+		if path[-3:] == "tmp":
+			os.remove(path)
+
 def run_local(numproc, program):
+	local_cleanup()
+
 	# start numproc processes of program
 
 	# open socket on loopback network as server
@@ -18,40 +25,40 @@ def run_local(numproc, program):
 	sock.setblocking(0)
 
 	# generate config string
-	config = 'ppid:0\n'
-	config += 'size:' + str(numproc) + '\n'
+	configstr = 'ppid:0\n'
+	configstr += 'size:' + str(numproc) + '\n'
 	
 	for rank in xrange(numproc):
-		# TODO FIXME don't assume local host
-		config += str(rank) + ':' + '127.0.0.1:' + str(40000 + rank) + '\n'
+		# all processes are local
+		configstr += str(rank) + ':' + '127.0.0.1:' + str(40000 + rank) + '\n'
 
 	print('Configfile contents:')
-	print(config)
+	print(configstr)
 
 	# launch children
 	processes = {}
+	outputs = {}
 	for rank in xrange(numproc):
 		# seperate binary
 		child = [program[0], 'exampilauncher']
 
-		# insert ExaMPI arguments
+		# setup config
 		configname = 'mpi.%i.config.tmp' % rank
+		with open(configname, 'w') as configfile:
+			configfile.write(configstr)
+
 		child.append(configname)
-
-		# write config file
-		config = open(configname, 'w')
-		config.write('ppid:0\n')
-		config.write('size:'+str(numproc))
-		config.close()
-
-		# rank number
 		child.append(str(rank))
 
+		# setup epoch
 		epochname = 'mpi.%i.epoch.tmp' % rank
-		child.append(epochname)
-
 		epoch = 0
+
+		child.append(epochname)
 		child.append(str(epoch))
+
+		with open(epochname, 'w') as epochfile:
+			epochfile.write(str(epoch))
 
 		# append user arguments
 		child.extend(program[1:])
@@ -59,41 +66,66 @@ def run_local(numproc, program):
 		print(child)
 
 		# TODO pass environment?
-		process = subprocess.Popen(child)
+		
+		# create file handles
+		outname = 'mpi.%i.out' % rank
+		errname = 'mpi.%i.err' % rank
+		ohandle = open(outname, 'w')
+		ehandle = open(errname, 'w')
+		outputs[rank] = (ohandle, ehandle)
+
+		process = subprocess.Popen(child, stdout=ohandle, stderr=ehandle)
 		processes[rank] = process
 
 	# monitor processes
-	while len(processes) > 0:
+	processes_barrier = 0
+	processes_running = len(processes)
+	while processes_running > 0:
+		# wait time between processes
+		time.sleep(0.1)
+
+		# check socket
+		try:
+			data = sock.recv(64)
+			
+			msg, rank, pid = data.split()
+
+			if msg == 'barrier':
+				processes_barrier += 1
+
+				# is barrier complete?
+				if processes_barrier == len(processes):
+					for rank in xrange(numproc):
+						msg = 'release\0';
+						msg = msg.encode('utf-8')
+						sock.sendto(msg, (udp_ip, 40000+rank))
+
+		except:
+			pass
+
 		# check process alive
 		for rank, process in processes.iteritems():
-			# wait 1s between processes
-			time.sleep(1)
-
-			# check socket
-			try:
-				data = sock.recv(64)
-				print(data, addr)
-				
-				rank, msg = (0, 0)
-
-				if msg is 'barrier':
-					# barrier entry
-					# release with last barrier
-					pass
-			except:
-				pass
-
 			# check if process is dead
 			if process.poll() is not None:
 				if process.returncode is MPI_SUCCESS:
 					# MPI exited cleanly
-					del processes[idx]
+					processes_running -= 1
+
 				elif process.returncode is 255:
 					# MPI abort called
 					pass
 				#elif
 					# another option? 
 	
+	# clean up config & epoch files
+	local_cleanup();
+	sock.close()
+	
+	for rank in xrange(numproc):
+		(ohandle, ehandle) = outputs[rank]
+
+		ohandle.close()
+		ehandle.close()
 
 def run_slurm():
 	# TODO execute srun externally, plugin required

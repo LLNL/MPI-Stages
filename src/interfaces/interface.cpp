@@ -7,34 +7,37 @@ BasicInterface::BasicInterface() {}
 
 int BasicInterface::MPI_Init(int *argc, char ***argv)
 {
+	debugpp("MPI_Init entered. argc=" << *argc);
+
 	if((*argc < 6) || (std::string((*argv)[1]) != std::string("exampilauncher")))
 	{
 		debugpp("Application was not launched with mpiexec.");
 		return -123123;
 	}
 
-	//std::cout << "Loading config from " << **argv << std::endl;
+	// TODO convert these to environment variables, command line is for users
+	// ignoring executable and exampilauncher message
+	(*argv)++;
+	(*argv)++;
+	(*argc) -= 2;
+
 	debugpp("Loading config from " << **argv);
 	exampi::config->load(**argv);
-	std::cout << (*exampi::config)["size"] << std::endl;
-	exampi::worldSize = std::stoi(
-	                        (*exampi::config)["size"]);
+	debugpp("MPI_Comm_world size " << (*exampi::config)["size"]);
+	exampi::worldSize = std::stoi((*exampi::config)["size"]);
 	(*argv)++;
 	(*argc)--;
 
-	//std::cout << "Taking rank to be arg " << **argv << std::endl;
 	debugpp("Taking rank to be arg " << **argv);
 	rank = atoi(**argv);
 	(*argv)++;
 	(*argc)--;
 
-	//std::cout << "Taking epoch config to be " << **argv << std::endl;
 	debugpp("Taking epoch config to be " << **argv);
 	exampi::epochConfig = std::string(**argv);
 	(*argv)++;
 	(*argc)--;
 
-	//std::cout << "Taking epoch to be " << **argv << std::endl;
 	debugpp("Taking epoch to be " << **argv);
 	exampi::epoch = atoi(**argv);
 	(*argv)++;
@@ -44,8 +47,9 @@ int BasicInterface::MPI_Init(int *argc, char ***argv)
 	recovery_code = exampi::checkpoint->load();
 
 	// execute global barrier, signal usage
-	if (exampi::epoch == 0)
+	if(exampi::epoch == 0)
 	{
+		debugpp("Executing barrier" << exampi::rank);
 		exampi::progress->barrier();
 	}
 
@@ -54,7 +58,6 @@ int BasicInterface::MPI_Init(int *argc, char ***argv)
 	 * handler.setErrToHandle(SIGUSR2);
 	 */
 
-	//std::cout << "Finished MPI_Init with code: " << recovery_code << "\n";
 	debugpp("Finished MPI_Init with code: " << recovery_code);
 	return recovery_code;
 }

@@ -21,7 +21,7 @@ public:
 
 	virtual void init()
 	{
-		recvSocket.bindPort(8080);
+		recvSocket.bindPort(10000 + exampi::rank);
 	}
 
 	virtual void init(std::istream &t)
