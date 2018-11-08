@@ -30,7 +30,7 @@ def run_local(numproc, program):
 	
 	for rank in xrange(numproc):
 		# all processes are local
-		configstr += str(rank) + ':' + '127.0.0.1:' + str(40000 + rank) + '\n'
+		configstr += str(rank) + ':' + '127.0.0.1:' + str(40000 + rank) + ':' + str(20000 + rank) + '\n'
 
 	print('Configfile contents:')
 	print(configstr)

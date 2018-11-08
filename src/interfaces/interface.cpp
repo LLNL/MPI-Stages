@@ -75,19 +75,23 @@ int BasicInterface::MPI_Finalize()
 int BasicInterface::MPI_Send(const void *buf, int count, MPI_Datatype datatype,
                              int dest, int tag, MPI_Comm comm)
 {
+	debugpp("MPI_Send MPI_Stages check");
 	if (exampi::handler->isErrSet())
 	{
 		return MPIX_TRY_RELOAD;
 	}
+
+	//
 	Comm *c = exampi::communicators.at(comm);
 	int context = c->get_context_id_pt2pt();
 	size_t szcount = count;
+
+	//
 	MPI_Status st = exampi::progress->postSend(
 	{
 		const_cast<void *>(buf), &(exampi::datatypes[datatype]),
 		szcount }, { dest, context }, tag).get();
 
-	//std::cout << debug() << "Finished MPI_Send: " << mpiStatusString(st) << "\n";
 	debugpp("Finished MPI_Send: " << mpiStatusString(st));
 
 	return 0;
@@ -97,27 +101,34 @@ int BasicInterface::MPI_Recv(void *buf, int count, MPI_Datatype datatype,
                              int source,
                              int tag, MPI_Comm comm, MPI_Status *status)
 {
+	debugpp("MPI_Recv MPI_Stages check");
 	if (exampi::handler->isErrSet())
 	{
 		return MPIX_TRY_RELOAD;
 	}
+	
+	//
 	Comm *c = exampi::communicators.at(comm);
 	int context = c->get_context_id_pt2pt();
 	size_t szcount = count;
+
+	//
+	debugpp("MPI_Recv post recv call");
 	MPI_Status st = exampi::progress->postRecv(
 	{
 		const_cast<void *>(buf), &(exampi::datatypes[datatype]),
 		szcount }, {source, context}, tag).get();
-	//std::cout << debug() << "Finished MPI_Recv: " << mpiStatusString(st)
-	//                                              << "\n";
+
 	debugpp("Finished MPI_Recv: " << mpiStatusString(st));
 
+	// 
 	if (st.MPI_ERROR == MPIX_TRY_RELOAD)
 	{
 		memmove(status, &st, sizeof(MPI_Status));
 		return MPIX_TRY_RELOAD;
 	}
 	memmove(status, &st, sizeof(MPI_Status));
+
 	return 0;
 }
 

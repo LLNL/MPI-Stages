@@ -1,6 +1,9 @@
 #ifndef __EXAMPI_ERRORS_H
 #define __EXAMPI_ERRORS_H
 
+namespace exampi
+{
+
 enum mpi_error 
 {
 	MPI_SUCCESS = 0,
@@ -10,5 +13,7 @@ enum mpi_error
 	MPI_ERR_TAG,
 	MPI_ERR_RANK
 };
+
+}
 
 #endif

@@ -206,13 +206,22 @@ private:
 			std::string rank = std::to_string(i);
 
 			std::string remote = (*exampi::config)[rank];
+			debugpp(remote);
 
-			size_t delim = remote.find_first_of(":");
-			std::string ip = remote.substr(0, delim);
-			std::string port = remote.substr(delim+1);
+			size_t beg = remote.find_first_of(":");
+			std::string ipblock = remote.substr(beg+1);
+			std::string ip = remote.substr(0, beg); 
+			debugpp("ip " << ip);
+
+			size_t ports = ipblock.find_first_of(":");
+
+			std::string port_daemon = ipblock.substr(0, ports);
+			std::string port_transport = ipblock.substr(ports+1);
+			
+			debugpp("ports " << port_daemon << " " << port_transport);
 
 			elem.push_back(ip);
-			elem.push_back(port);
+			elem.push_back(port_transport);
 
 			exampi::transport->addEndpoint(i, elem);
 		}
@@ -221,14 +230,13 @@ private:
 
 	static void sendThreadProc(bool *alive, AsyncQueue<Request> *outbox)
 	{
-		//std::cout << debug() << "Launching sendThreadProc(...)\n";
+		debugpp("Launching sendThreadProc(...)");
+
 		while (*alive)
 		{
 			std::unique_ptr<Request> r = outbox->promise().get();
-			//std::cout << debug()
-			//          << "sendThread:  got result from outbox future\n";
-			exampi::transport->send(r->getIovecs(), r->endpoint.rank,
-			                        0);
+			debugpp("sendThread:  got result from outbox future");
+			exampi::transport->send(r->getIovecs(), r->endpoint.rank, 0);
 			// TODO:  check that sending actually completed
 			r->completionPromise.set_value( { .count = 0, .cancelled = 0,
 			                                  .MPI_SOURCE = r->source, .MPI_TAG = r->tag, .MPI_ERROR =
@@ -242,23 +250,27 @@ private:
 	                            std::list<std::unique_ptr<Request>> *unexpectedList,
 	                            std::mutex *matchLock, std::mutex *unexpectedLock)
 	{
-		//std::cout << debug() << "Launching matchThreadProc(...)\n";
+		debugpp("Launching matchThreadProc(...)");
+
 		while (*alive)
 		{
 			std::unique_ptr<Request> r = make_unique<Request>();
-			//std::cout << debug()
-			//          << "matchThread:  made request, about to peek...\n";
+
+			debugpp("matchThread:  made request, about to peek...");
+
 			exampi::transport->peek(r->getHeaderIovecs(), 0);
 			r->unpack();
 
-			//std::cout << debug() << "matchThread:  received\n";
+			debugpp("matchThread:  received");
+			
 			unexpectedLock->lock();
 			matchLock->lock();
 			int t = r->tag;
 			int s = r->source;
 			int c = r->comm;
 			int e = r->stage;
-			//std::cout << "Context " << c << std::endl;
+
+			debugpp("context " << c);
 
 			auto result =
 			    std::find_if(matchList->begin(), matchList->end(),
@@ -266,7 +278,8 @@ private:
 			if (result == matchList->end())
 			{
 				matchLock->unlock();
-				//std::cout << "WARNING:  Failed to match incoming msg\n";
+				debugpp("WARNING:  Failed to match incoming msg");
+
 				if (t == MPIX_CLEANUP_TAG)
 				{
 					exampi::transport->cleanUp(0);
@@ -278,11 +291,11 @@ private:
 					if (e != exampi::epoch)
 					{
 						unexpectedLock->unlock();
-						//std::cout << "WARNING: Message from last stage (discarded)\n";
+						debugpp("WARNING: Message from last stage (discarded)");
 					}
 					else
 					{
-						//std::cout << debug() << "\tUnexpected message\n";
+						debugpp("\tUnexpected message\n");
 						std::unique_ptr<Request> tmp = make_unique<Request>();
 						ssize_t length;
 						exampi::transport->receive(tmp->getTempIovecs(), 0, &length);
@@ -295,12 +308,11 @@ private:
 			else
 			{
 				unexpectedLock->unlock();
-				//std::cout << debug()
-				//          << "matchThread:  matched, about to receive remainder\n";
-				//std::cout << debug() << "\tTarget array is "
-				//          << (*result)->array.toString() << "\n";
-				//std::cout << debug() << "\tDatatype says extent is "
-				//          << (*result)->array.datatype->getExtent() << "\n";
+
+				debugpp("matchThread:  matched, about to receive remainder");
+				debugpp("\tTarget array is " << (*result)->array.toString());
+				debugpp("\tDatatype says extent is " << (*result)->array.datatype->getExtent());
+
 				ssize_t length;
 				exampi::transport->receive((*result)->getIovecs(), 0, &length);
 				(*result)->unpack();
@@ -324,8 +336,11 @@ public:
 	{
 		addEndpoints();
 		alive = true;
+
 		sendThread = std::thread { sendThreadProc, &alive, &outbox };
+
 		//recvThread = std::thread{recvThreadProc, &alive, &inbox};
+
 		matchThread = std::thread { matchThreadProc, &alive, &matchList, &unexpectedList,
 		                            &matchLock, &unexpectedLock };
 
@@ -477,7 +492,9 @@ public:
 	virtual std::future<MPI_Status> postSend(UserArray array, Endpoint dest,
 	        int tag)
 	{
-		//std::cout << debug() << "\tbasic::Interface::postSend(...)\n";
+		debugpp("basic::Interface::postSend(...)");
+
+		// create request
 		std::unique_ptr<Request> r = make_unique<Request>();
 		r->op = Op::Send;
 		r->source = exampi::rank;
@@ -486,16 +503,22 @@ public:
 		r->endpoint = dest;
 		r->tag = tag;
 		r->comm = dest.comm;
+
+		//
 		auto result = r->completionPromise.get_future();
+
+		// give to send thread
 		outbox.put(std::move(r));
+
 		return result;
 	}
 
 	virtual std::future<MPI_Status> postRecv(UserArray array, Endpoint source,
 	        int tag)
 	{
-		//std::cout << debug() << "\tbasic::Interface::postRecv(...)\n";
+		debugpp("basic::Interface::postRecv(...)");
 
+		// make request
 		std::unique_ptr<Request> r = make_unique<Request>();
 		r->op = Op::Receive;
 		r->source = source.rank;
@@ -509,32 +532,38 @@ public:
 		int e = exampi::epoch;
 		auto result = r->completionPromise.get_future();
 
+		// search unexpected message queue
+		debugpp("searching unexpected message queue");
 		unexpectedLock.lock();
 		matchLock.lock();
 		auto res = std::find_if(unexpectedList.begin(), unexpectedList.end(),
 		                        [tag,s, c, e](const std::unique_ptr<Request> &i) -> bool {i->unpack(); return i->tag == tag && i->source == s && i->stage == e && i->comm == c;});
+
+		// 
 		if (res == unexpectedList.end())
 		{
+			debugpp("NO match in unexpectedList, push");
 			unexpectedLock.unlock();
 			matchList.push_back(std::move(r));
 			matchLock.unlock();
 		}
 		else
 		{
+			// found in UMQ
 			matchLock.unlock();
-			//std::cout << "Found match in unexpectedList\n";
+
+			debugpp("Found match in unexpectedList");
+
 			(*res)->unpack();
 			//memcpy(array.ptr, )
 			memcpy(array.getIovec().iov_base, (*res)->temp.iov_base,
 			       array.getIovec().iov_len);
 			(r)->completionPromise.set_value( { .count = (*res)->status.count, .cancelled = 0,
-			                                    .MPI_SOURCE = (*res)->source, .MPI_TAG = (*res)->tag, .MPI_ERROR =
-			                                        MPI_SUCCESS});
+			                                    .MPI_SOURCE = (*res)->source, .MPI_TAG = (*res)->tag, .MPI_ERROR = MPI_SUCCESS});
 			unexpectedList.erase(res);
 			unexpectedLock.unlock();
 
 		}
-
 
 		return result;
 	}
