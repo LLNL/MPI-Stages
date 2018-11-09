@@ -28,6 +28,8 @@
 
 #include <array.h>
 
+#include "debug.h"
+
 namespace exampi
 {
 
@@ -43,7 +45,6 @@ static inline std::thread::id thisThread()
 	return std::this_thread::get_id();
 }
 
-
 // TODO remove this once all debug statements are properly wrapped!
 static inline std::string debug()
 {
@@ -52,25 +53,6 @@ static inline std::string debug()
 	           8) << thisThread() << "] ";
 	return stream.str();
 }
-
-#ifdef DEBUG
-//std::string debug_init()
-//{
-//	std::stringstream stream;
-//
-//	//debug_stringstream << "\t[0x" << std::hex << std::setfill('0') << std::setw(
-//	//                       8) << thisThread() << "] ";
-//
-//	return stream.str();
-//}
-
-// TODO rename this to debug once everything is wrapped, then sed to global replace
-//#define debugpp(msg) std::clog << debug_init() << msg << std::endl;
-#define debugpp(msg) std::clog << msg << std::endl;
-#else
-#define debugpp(msg)
-#endif
-
 
 static inline std::string mpiStatusString(MPI_Status st)
 {
