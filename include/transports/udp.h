@@ -91,7 +91,9 @@ public:
 		//          << "\t\t" << hdr.msg_iovlen << " iovecs\n"
 		//          << "\t\t" << str << "\n";
 
-		ssize_t length = sendmsg(sock.getFd(), &hdr, 0);
+		// TODO make use of length to check
+		//ssize_t length = sendmsg(sock.getFd(), &hdr, 0);
+		sendmsg(sock.getFd(), &hdr, 0);
 		//std::cout << "Send to UDP " << length << "\n";
 	}
 	ssize_t receive(Socket &sock)
