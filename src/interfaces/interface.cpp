@@ -114,6 +114,7 @@ int BasicInterface::MPI_Recv(void *buf, int count, MPI_Datatype datatype,
 
 	//
 	debugpp("MPI_Recv post recv call");
+	// wait for received message
 	MPI_Status st = exampi::progress->postRecv(
 	{
 		const_cast<void *>(buf), &(exampi::datatypes[datatype]),
@@ -122,14 +123,23 @@ int BasicInterface::MPI_Recv(void *buf, int count, MPI_Datatype datatype,
 	debugpp("Finished MPI_Recv: " << mpiStatusString(st));
 
 	// 
+	// TODO test if STATUS = MPI_IGNORE STATUS
+
 	if (st.MPI_ERROR == MPIX_TRY_RELOAD)
 	{
+		debugpp("MPIX_TRY_RELOAD FOUND");
 		memmove(status, &st, sizeof(MPI_Status));
 		return MPIX_TRY_RELOAD;
 	}
-	memmove(status, &st, sizeof(MPI_Status));
-
-	return 0;
+	else
+	{
+		// XXX thread gets stuck here!
+		// TRIED TO COPY TO NULL
+		if(status != MPI_STATUS_IGNORE)
+			memmove(status, &st, sizeof(MPI_Status));
+		
+		return 0;
+	}
 }
 
 int BasicInterface::MPI_Isend(const void *buf, int count, MPI_Datatype datatype,

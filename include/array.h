@@ -14,6 +14,7 @@ public:
 	void *ptr;
 	Datatype *datatype;
 	size_t count;
+
 	struct iovec getIovec()
 	{
 		struct iovec iov = {ptr, datatype->getExtent() *count};

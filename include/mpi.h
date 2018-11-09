@@ -50,6 +50,8 @@ typedef struct
 typedef void (*MPIX_Serialize_handler) (MPIX_Handles *handle);
 typedef void (*MPIX_Deserialize_handler) (MPIX_Handles handle);
 
+
+#define MPI_STATUS_IGNORE 0
 #define MPI_SUCCESS 0 /* this is the default error class for success */
 #define MPI_REVERT 100  /* Need to revert to a checkpoint epoch */
 #define MPIX_TRY_RELOAD 101
@@ -125,6 +127,7 @@ struct int_int_type
 #define MPI_SHORT_INT       ((MPI_Datatype)67)
 #define MPI_2INT            ((MPI_Datatype)68)
 #define MPI_LONG_DOUBLE_INT ((MPI_Datatype)69)
+
 
 #define MPI_PACKED          ((MPI_Datatype)128)
 #endif

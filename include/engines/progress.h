@@ -107,6 +107,7 @@ public:
 	Endpoint endpoint;
 	int stage;
 	MPI_Status status; // maybe not needed --sf
+
 	std::promise<MPI_Status> completionPromise;
 
 	void pack()
@@ -179,12 +180,16 @@ class BasicProgress: public Progress
 {
 private:
 	AsyncQueue<Request> outbox;
+
 	std::list<std::unique_ptr<Request>> matchList;
 	std::list<std::unique_ptr<Request>> unexpectedList;
+
 	std::mutex matchLock;
 	std::mutex unexpectedLock;
+
 	std::thread sendThread;
 	std::thread matchThread;
+
 	bool alive;
 	exampi::Group *group;
 	exampi::Comm *communicator;
@@ -234,8 +239,11 @@ private:
 
 		while (*alive)
 		{
+			debugpp("sendThread: fetching promise");
 			std::unique_ptr<Request> r = outbox->promise().get();
 			debugpp("sendThread:  got result from outbox future");
+
+			// send message to remote in this thread
 			exampi::transport->send(r->getIovecs(), r->endpoint.rank, 0);
 			// TODO:  check that sending actually completed
 			r->completionPromise.set_value( { .count = 0, .cancelled = 0,
@@ -272,9 +280,12 @@ private:
 
 			debugpp("context " << c);
 
+			// search for match
 			auto result =
 			    std::find_if(matchList->begin(), matchList->end(),
 			                 [t, s, c, e](const std::unique_ptr<Request> &i) -> bool {return (i->tag == t && i->source == s && i->stage == e && i->comm == c);});
+
+			// failed to find match
 			if (result == matchList->end())
 			{
 				matchLock->unlock();
@@ -316,11 +327,14 @@ private:
 				ssize_t length;
 				exampi::transport->receive((*result)->getIovecs(), 0, &length);
 				(*result)->unpack();
+
+				// set MPI_Status for calling thread
 				(*result)->completionPromise.set_value( { .count = length - 32,
 				                                        .cancelled = 0, .MPI_SOURCE = (*result)->source,
 				                                        .MPI_TAG = (*result)->tag, .MPI_ERROR = MPI_SUCCESS });
 				matchList->erase(result);
 				matchLock->unlock();
+				debugpp(" matching done, matchthread done");
 			}
 
 			//matchLock->unlock();

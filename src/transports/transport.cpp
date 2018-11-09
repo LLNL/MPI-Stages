@@ -41,7 +41,8 @@ size_t BasicTransport::addEndpoint(const int rank,
 std::future<int> BasicTransport::send(std::vector<struct iovec> iov, int dest,
                                       MPI_Comm comm)
 {
-	//std::cout << "\tbasic::Transport::send(..., " << dest <<", " << comm << ")\n";
+	debugpp("basic::Transport::send(..., " << dest << ", " << comm);
+
 	Socket s;
 	Message msg(iov);
 
