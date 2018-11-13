@@ -11,7 +11,12 @@ def local_cleanup():
 		if path[-3:] == "tmp":
 			os.remove(path)
 
-def run_local(numproc, program):
+def run_local(arguments):
+	numproc = arguments.n
+	program = arguments.program
+
+	# TODO check if executable exists
+	
 	local_cleanup()
 
 	# start numproc processes of program
@@ -28,7 +33,7 @@ def run_local(numproc, program):
 	sock.setblocking(0)
 
 	# generate config string
-	configstr = 'ppid:0\n'
+	configstr = 'ppid:' + str(os.getpid()) + '\n'
 	configstr += 'size:' + str(numproc) + '\n'
 	
 	for rank in xrange(numproc):
@@ -52,6 +57,7 @@ def run_local(numproc, program):
 
 		child.append(configname)
 		child.append(str(rank))
+		# TODO use global config file
 
 		# setup epoch
 		epochname = 'mpi.%i.epoch.tmp' % rank
@@ -71,8 +77,8 @@ def run_local(numproc, program):
 		# TODO pass environment?
 		
 		# create file handles
-		outname = 'mpi.%i.out' % rank
-		errname = 'mpi.%i.err' % rank
+		outname = 'mpi.%i.%i.out' % (os.getpid(), rank)
+		errname = 'mpi.%i.%i.err' % (os.getpid(), rank)
 		ohandle = open(outname, 'w')
 		ehandle = open(errname, 'w')
 		outputs[rank] = (ohandle, ehandle)
@@ -93,6 +99,7 @@ def run_local(numproc, program):
 			
 			msg, rank, pid = data.split()
 
+			# process global barrier
 			if msg == 'barrier':
 				processes_barrier += 1
 
@@ -121,7 +128,6 @@ def run_local(numproc, program):
 					# another option? 
 	
 	# clean up config & epoch files
-	local_cleanup();
 	sock.close()
 	
 	for rank in xrange(numproc):
@@ -129,6 +135,10 @@ def run_local(numproc, program):
 
 		ohandle.close()
 		ehandle.close()
+
+	if not arguments.d:
+		local_cleanup();
+
 
 def run_slurm():
 	# TODO execute srun externally, plugin required
@@ -147,7 +157,10 @@ if __name__ == '__main__':
 
 	parser.add_argument('-s', default=schedulers[0], metavar='<scheduler>', type=str, help='Job scheduler environment to use.', choices=schedulers)
 	
+	parser.add_argument('-d', default=False, metavar='<dirty>', type=str, help='Do not temporary files after execution.')
+	
 	parser.add_argument('program', metavar='<program>', type=str, nargs=argparse.REMAINDER, help='Program binary to execute with flags.')
+	
 
 	# TODO add additional argument possible by standard, section 8.8
 	
@@ -156,7 +169,7 @@ if __name__ == '__main__':
 	# switch between local, slurm and osg
 	if arguments.s is schedulers[0]:
 		# local scheduler ie run locally multiple processes
-		run_local(arguments.n, arguments.program)
+		run_local(arguments)
 	
 	elif arguments.s is scheduler[1]:
 		# use SLURM
