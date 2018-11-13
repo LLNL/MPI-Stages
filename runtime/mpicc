@@ -1,0 +1,14 @@
+#!/bin/bash
+
+cflags="-I/Users/martin/Projects/exampi/include -L/Users/martin/Projects/exampi/lib"
+ldflags="-lexampi"
+
+arguments="$cflags $@ $ldflags"
+
+echo $arguments
+
+combined="$CC $arguments"
+
+echo $combined
+
+$combined
