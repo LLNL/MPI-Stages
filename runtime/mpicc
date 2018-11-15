@@ -1,14 +1,9 @@
 #!/bin/bash
 
-cflags="-I/Users/martin/Projects/exampi/include -L/Users/martin/Projects/exampi/lib"
-ldflags="-lexampi"
+CXX=g++
 
-arguments="$cflags $@ $ldflags"
+basedir=/home/martinr/Projects/exampi
+libdir=$basedir/lib
+incdir=$basedir/include
 
-echo $arguments
-
-combined="$CC $arguments"
-
-echo $combined
-
-$combined
+$CXX $@ -I$incdir -pthread -Wl,-rpath -Wl,$libdir -Wl,--enable-new-dtags -L$libdir -lexampi

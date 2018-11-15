@@ -1,10 +1,1 @@
-#!/bin/bash
-
-cxxflags="-I/Users/martin/Projects/exampi/include -L/Users/martin/Projects/exampi/lib"
-ldflags="-lexampi"
-
-arguments="$cxxflags $@ $ldflags"
-
-#echo $arguments
-
-$CXX $arguments
+mpicc
