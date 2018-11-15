@@ -1,9 +1,14 @@
 #!/bin/bash
 
-CXX=g++
+# set base and derivative directories
+basedir=/Users/martin/Projects/exampi
 
-basedir=/home/martinr/Projects/exampi
 libdir=$basedir/lib
 incdir=$basedir/include
 
-$CXX $@ -I$incdir -pthread -Wl,-rpath -Wl,$libdir -Wl,--enable-new-dtags -L$libdir -lexampi
+# assign CXX if not defined externally
+if [ -z "$CXX" ]; then
+	CXX="g++-mp-8"
+fi
+
+$CXX -Wl,$libdir -L$libdir -lexampi $@ -I$incdir -pthread -Wl,-rpath 
