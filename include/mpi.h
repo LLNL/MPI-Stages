@@ -86,6 +86,8 @@ typedef void (*MPIX_Deserialize_handler) (MPIX_Handles handle);
 #define MPI_DOUBLE_INT      ((MPI_Datatype)66)
 #define MPI_2INT            ((MPI_Datatype)67)
 
+#define MPI_AINT			((MPI_Datatype)101)
+
 typedef struct float_int_type float_int_type;
 typedef struct long_int_type long_int_type;
 typedef struct double_int_type double_int_type;
