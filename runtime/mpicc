@@ -17,7 +17,7 @@ cxx="g++"
 #fi
 
 #echo $0
-echo "$@" >> mpicc.log
+#echo "$@" >> mpicc.log
 
 $cxx "$@" -I$incdir -L$libdir -lexampi -pthread
 
