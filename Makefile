@@ -2,6 +2,8 @@
 #                                 User Section
 ################################################################################
 
+CXX ?= g++-mp-8
+
 # flags
 override CXXFLAGS += -g -std=c++11 -pthread -Wall -DDEBUG
 LDFLAGS = 

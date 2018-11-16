@@ -35,7 +35,9 @@ Daemon::Daemon()
 	this->local.sin_family = AF_INET;
 	this->local.sin_port = htons(port);
 	this->local.sin_addr.s_addr = inet_addr(UDP_IP.c_str());
-	int err = bind(this->sock, (sockaddr *)&this->local, sizeof(this->local));
+	// TODO check error code
+	//int err = bind(this->sock, (sockaddr *)&this->local, sizeof(this->local));
+	bind(this->sock, (sockaddr *)&this->local, sizeof(this->local));
 
 	// set daemon sock addr
 	this->daemon.sin_family = AF_INET;
@@ -83,7 +85,7 @@ int Daemon::recv_barrier_release()
 	debugpp("waiting in recv_barrier_release" << exampi::rank);
 
 	char msg[64];
-	int err = ::recv(this->sock, msg, 64, NULL);
+	int err = ::recv(this->sock, msg, 64, 0);
 
 	debugpp("rank " << exampi::rank << " recv msg " << std::string(msg));
 
@@ -121,7 +123,7 @@ int Daemon::send(std::string packet)
 		return -54563;
 
 	// send packet to daemon
-	return sendto(this->sock, packet.c_str(), packet.length(), NULL,
+	return sendto(this->sock, packet.c_str(), packet.length(), 0,
 	              (sockaddr *)&this->daemon, sizeof(this->daemon));
 }
 
