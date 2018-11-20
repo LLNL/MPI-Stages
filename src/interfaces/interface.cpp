@@ -212,9 +212,12 @@ int BasicInterface::MPI_Wait(MPI_Request *request, MPI_Status *status)
 	{
 		return MPIX_TRY_RELOAD;
 	}
-	std::future<MPI_Status> *f =
-	    reinterpret_cast<std::future<MPI_Status> *>(*request);
-	(*status) = f->get();
+
+	if(status != MPI_STATUS_IGNORE) {
+		std::future<MPI_Status> *f =
+		    reinterpret_cast<std::future<MPI_Status> *>(*request);
+		(*status) = f->get();
+	}
 
 	return MPI_SUCCESS;
 }
@@ -226,7 +229,8 @@ int BasicInterface::MPI_Waitall(int count, MPI_Request array_of_requests[],
 	{
 		return MPIX_TRY_RELOAD;
 	}
-	if (array_of_statuses)
+
+	if (array_of_statuses != MPI_STATUSES_IGNORE)
 	{
 		for (int i = 0; i < count; i++)
 		{
