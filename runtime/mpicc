@@ -21,4 +21,4 @@ cxx="g++"
 
 $cxx "$@" -I$incdir -L$libdir -lexampi -pthread
 
-#exit $?
+exit $?
