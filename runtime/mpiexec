@@ -90,29 +90,30 @@ def run_local(arguments):
 	processes_barrier = 0
 	processes_running = len(processes)
 	while processes_running > 0:
-		# wait time between processes
+		# wait time between checks
 		time.sleep(0.1)
 
 		# check socket
+		msg = None
 		try:
 			data = sock.recv(64)
-			
+
 			msg, rank, pid = data.split()
-
-			# process global barrier
-			if msg == 'barrier':
-				processes_barrier += 1
-
-				# is barrier complete?
-				if processes_barrier == len(processes):
-					for rank in xrange(numproc):
-						msg = 'release\0';
-						msg = msg.encode('utf-8')
-						sock.sendto(msg, (udp_ip, 40000+rank))
 
 		except:
 			pass
 
+		# process global barrier
+		if msg == 'barrier':
+			processes_barrier += 1
+
+			# is barrier complete?
+			if processes_barrier == len(processes):
+				for rank in xrange(numproc):
+					msg = 'release\0';
+					msg = msg.encode('utf-8')
+					sock.sendto(msg, (udp_ip, 40000+rank))
+		
 		# check process alive
 		for rank, process in processes.iteritems():
 			# check if process is dead
@@ -138,7 +139,6 @@ def run_local(arguments):
 
 	if not arguments.d:
 		local_cleanup();
-
 
 def run_slurm():
 	# TODO execute srun externally, plugin required
