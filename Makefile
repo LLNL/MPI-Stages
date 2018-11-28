@@ -2,10 +2,11 @@
 #                                 User Section
 ################################################################################
 
-CXX ?= g++-mp-8
+CXX ?= c++
 
 # flags
-override CXXFLAGS += -g -std=c++11 -pthread -Wall -DDEBUG
+CXXFLAGS += -Wall -Wextra -pedantic -Wmissing-prototypes -Wstrict-prototypes -Wold-style-definition 
+CXXFLAGS += -std=c++11 -g -pthread -DDEBUG
 LDFLAGS = 
 
 # target definitions
