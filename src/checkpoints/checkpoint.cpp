@@ -6,10 +6,6 @@
 namespace exampi
 {
 
-BasicCheckpoint::BasicCheckpoint()
-{
-}
-
 void BasicCheckpoint::save()
 {
 	// get a file.  this is actually nontrivial b/c of shared filesystems; we'll salt for now

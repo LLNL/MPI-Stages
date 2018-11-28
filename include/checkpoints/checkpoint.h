@@ -10,8 +10,6 @@ namespace exampi
 class BasicCheckpoint: public Checkpoint
 {
 public:
-	BasicCheckpoint();
-
 	void save();
 	int load();
 };
