@@ -5,15 +5,18 @@
 #include <address.h>
 #include <netinet/tcp.h>
 #include <climits>
+#include <fcntl.h>
 
 namespace exampi
 {
-class Socket
+
+class TCPSocket
 {
 private:
 	int sd;
+
 public:
-	Socket()
+	TCPSocket()
 	{
 		sd = socket(AF_INET, SOCK_STREAM, 0);
 		if (sd < 0)
@@ -23,7 +26,7 @@ public:
 		int flag = 1;
 		setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &flag, sizeof(int));
 		int nagle = 1;
-		setsockopt(sd, IPPROTP_TCP, TCP_NODELAY, (cahr *)&nagle, sizeof(int));
+		setsockopt(sd, IPPROTO_TCP, TCP_NODELAY, (char *)&nagle, sizeof(int));
 	}
 
 	void bindPort(uint16_t port)
@@ -67,19 +70,19 @@ public:
 	}
 };
 
-class Message
+class TCPMessage
 {
 private:
 	struct msghdr hdr;
 	std::vector<struct iovec> iov;
 public:
-	Message() : iov()
+	TCPMessage() : iov()
 	{
 		hdr.msg_control = NULL;
 		hdr.msg_controllen = 0;
 	}
 
-	Message(std::vector<struct iovec> i) : iov(i)
+	TCPMessage(std::vector<struct iovec> i) : iov(i)
 	{
 		hdr.msg_control = NULL;
 		hdr.msg_controllen = 0;
@@ -94,7 +97,8 @@ public:
 	void updateHeader()
 	{
 		//std::cout << "length of message" << iov[1].iov_len << " header "<<
-		iov[0].iov_len << "\n";
+		//iov[0].iov_len << "\n";
+
 		hdr.msg_iov = iov.data();
 		hdr.msg_iovlen = iov.size();
 	}
@@ -114,8 +118,8 @@ public:
 		char str[INET_ADDRSTRLEN];
 		inet_ntop(AF_INET, &(addr.get()->sin_addr), str, INET_ADDRSTRLEN);
 		//std::cout << "\tbasic::Transport::tcp::send\n"
-		        << "\t\t" << hdr.msg_iovlen << " iovecs\n"
-		        << "\t\t" << str << "\n";
+		//        << "\t\t" << hdr.msg_iovlen << " iovecs\n"
+		//       << "\t\t" << str << "\n";
 
 		ssize_t length = sendmsg(sock, &hdr, 0);
 		//std::cout << "Send to TCP " << length << "\n";
@@ -136,5 +140,6 @@ public:
 		return len;
 	}
 };
+
 }//exampi
 #endif
