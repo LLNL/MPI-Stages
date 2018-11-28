@@ -4,11 +4,6 @@
 namespace exampi
 {
 
-BasicTransport::BasicTransport() : endpoints(), recvSocket()
-{
-	
-}
-
 void BasicTransport::init()
 {
 	debugpp("binding udp port " << this->port + exampi::rank);

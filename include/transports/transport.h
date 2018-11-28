@@ -20,8 +20,6 @@ private:
 	int port = 20000;
 	
 public:
-	BasicTransport();
-
 	void init();
 
 	void init(std::istream &t);
