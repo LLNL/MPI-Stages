@@ -59,8 +59,8 @@ $(blddir)/*/%.o: $(srcdir)/*/%.cpp $(headers) | directories
 	$(CXX) -I$(incdir) -c $(CXXFLAGS) $< -o $@
 
 ### directory rules
+
 directories:
-	@echo "Creating build directories."
 	@mkdir -p $(bindir)
 	@mkdir -p $(libdir)
 	@mkdir -p $(blddir)
