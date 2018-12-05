@@ -1,24 +1,24 @@
 #!/bin/bash
 
+
+
 # set base and derivative directories
-#basedir=/Users/martin/Projects/exampi
-basedir=/home/martinr/Projects/exampi
+basedir=$(dirname "$(dirname "$0")")
 
 libdir=$basedir/lib
 incdir=$basedir/include
 
 # assign CXX if not defined externally
-#if [ -z "$CXX" ]; then
-cxx="g++"
-#fi
+if [ -z "$CXX" ]; then
+	CXX="c++"
+fi
 
-#if [ $# -eq 0 ]; then
-#	$CXX
-#fi
+# require arguments, something to compile
+if [ "$#" -eq 0 ]; then
+	$CXX
+	exit
+fi
 
-#echo $0
-#echo "$@" >> mpicc.log
-
-$cxx "$@" -I$incdir -L$libdir -lexampi -pthread
+$CXX "$@" -I$incdir -L$libdir -lexampi -pthread
 
 exit $?
