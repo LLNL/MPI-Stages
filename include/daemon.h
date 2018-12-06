@@ -12,6 +12,9 @@ class Daemon
 public:
 	static Daemon& get_instance();
 
+	Daemon(Daemon&)					= delete;
+	void operator=(Daemon const&)	= delete;
+
 	int send_barrier_ready();
 	int recv_barrier_release();
 	int send_clean_up();
@@ -22,9 +25,7 @@ private:
 	sockaddr_in local;
 
 	Daemon();
-	Daemon(Daemon&)					= delete;
-	void operator=(Daemon const&)	= delete;
-
+	
 	~Daemon();
 
 	int send(std::string);
