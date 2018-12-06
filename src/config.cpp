@@ -3,7 +3,11 @@
 namespace exampi
 {
 
-Config *Config::instance = nullptr;
+Config& Config::get_instance() {
+	static Config instance;
+	
+	return instance;
+}
 
 Config::Config() : dict()
 {

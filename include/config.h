@@ -27,19 +27,21 @@ namespace exampi
 class Config
 {
 public:
-	static Config *get_instance();
-	static void destroy_instance();
-	Config(const Config &c) = delete;
-	Config &operator=(const Config &c) = delete;
+	static Config& get_instance();
+
+	Config(const Config &c) 			= delete;
+	Config &operator=(const Config &c)	= delete;
+
 	void load(std::string filename);
 	std::map<std::string,std::string> asMap();
 	const std::string &operator[](const std::string &i);
 
 private:
 	std::map<std::string,std::string> dict;
-	static Config *instance;
+
 	Config();
 	~Config();
+
 	void parse(std::string line);
 };
 
