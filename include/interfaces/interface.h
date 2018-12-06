@@ -9,6 +9,7 @@
 #include "engines/progress.h"
 #include "abstract/interface.h"
 #include "daemon.h"
+#include "config.h"
 
 namespace exampi
 {
@@ -16,12 +17,19 @@ namespace exampi
 class BasicInterface: public Interface
 {
 private:
+	BasicInterface();
+	~BasicInterface();
+	static BasicInterface *instance;
 	std::vector<MPIX_Serialize_handler> serialize_handlers;
 	std::vector<MPIX_Deserialize_handler> deserialize_handlers;
 	int recovery_code;
 
 public:
-	BasicInterface();
+	//BasicInterface();
+	static BasicInterface *get_instance();
+	static void destroy_instance();
+	BasicInterface(const BasicInterface &c) = delete;
+	BasicInterface &operator=(const BasicInterface &c) = delete;
 
 	/*
 	 * 1st param: config file

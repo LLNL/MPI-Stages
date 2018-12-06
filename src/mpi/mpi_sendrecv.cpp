@@ -12,9 +12,8 @@ extern "C"
 	                  int dest, int sendtag, void *recvbuf, int recvcount, MPI_Datatype recvtype,
 	                  int source, int recvtag, MPI_Comm comm, MPI_Status *status)
 	{
-		int rc = exampi::interface->MPI_Sendrecv(sendbuf, sendcount, sendtype,
+		int rc = exampi::BasicInterface::get_instance()->MPI_Sendrecv(sendbuf, sendcount, sendtype,
 			         dest, sendtag, recvbuf, recvcount, recvtype, source, recvtag, comm, status);
-		(void)rc;
 		return rc;
 	}
 

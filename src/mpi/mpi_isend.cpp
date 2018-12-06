@@ -12,9 +12,8 @@ extern "C"
 	int PMPI_Isend(void *buf, int count, MPI_Datatype datatype, int dest, int tag,
 	               MPI_Comm comm, MPI_Request *request)
 	{
-		int rc = exampi::interface->MPI_Isend(buf, count, datatype, dest, tag,
+		int rc = exampi::BasicInterface::get_instance()->MPI_Isend(buf, count, datatype, dest, tag,
 			                                      comm, request);
-		(void)rc;
 		return rc;
 	}
 

@@ -26,47 +26,21 @@ namespace exampi
 
 class Config
 {
+public:
+	static Config *get_instance();
+	static void destroy_instance();
+	Config(const Config &c) = delete;
+	Config &operator=(const Config &c) = delete;
+	void load(std::string filename);
+	std::map<std::string,std::string> asMap();
+	const std::string &operator[](const std::string &i);
+
 private:
 	std::map<std::string,std::string> dict;
-	void parse(std::string line)
-	{
-		std::size_t delim = line.find_first_of(":");
-		std::string key = line.substr(0, delim);
-		std::string val = line.substr(delim+1);
-
-		// TODO THIS VOMITS ONTO THE COMMAND LINE
-		//std::cout << "Config:  Adding " << key << " as " << val << std::endl;
-
-		dict[key] = val;
-	}
-public:
-	Config() : dict()
-	{
-	}
-
-	Config(const Config &c)
-	{
-		dict = c.dict;
-	}
-
-	void load(std::string filename)
-	{
-		std::ifstream file(filename, std::ifstream::in);
-		std::string next;
-		while(std::getline(file, next))
-			parse(next);
-
-	}
-
-	std::map<std::string,std::string> asMap()
-	{
-		return dict;
-	}
-
-	const std::string &operator[](const std::string &i)
-	{
-		return dict[i];
-	}
+	static Config *instance;
+	Config();
+	~Config();
+	void parse(std::string line);
 };
 
 

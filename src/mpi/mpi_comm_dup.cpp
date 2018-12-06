@@ -11,7 +11,7 @@ extern "C"
 
 	int PMPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm)
 	{
-		int rc = exampi::interface->MPI_Comm_dup(comm, newcomm);
+		int rc = exampi::BasicInterface::get_instance()->MPI_Comm_dup(comm, newcomm);
 		return rc;
 	}
 
