@@ -11,14 +11,20 @@
 namespace exampi
 {
 
-Daemon *Daemon::instance = nullptr;
-
 std::string UDP_IP("127.0.0.1");
 
 // TODO these ports should be given in the environment variables
 // handle through config
 int DAEMON_UDP_PORT = 50000;
 int PROC_BASE_UDP_PORT = 40000;
+
+Daemon& Daemon::get_instance()
+{
+	// Create singleton object if first time
+	static Daemon instance;
+
+	return instance;
+}
 
 Daemon::Daemon()
 {
@@ -49,17 +55,6 @@ Daemon::~Daemon()
 {
 	// destroy socket
 	close(this->sock);
-}
-
-Daemon *Daemon::get_instance()
-{
-	// Create singleton object if first time
-	if(instance == 0)
-	{
-		instance = new Daemon();
-	}
-
-	return instance;
 }
 
 int Daemon::send_barrier_ready()
@@ -132,4 +127,4 @@ std::string Daemon::recv()
 	return std::string("");
 }
 
-}; // ::exampi
+} // ::exampi

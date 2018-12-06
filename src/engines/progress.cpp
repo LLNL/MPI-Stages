@@ -404,8 +404,8 @@ void BasicProgress::cleanUp()
 
 	// send SIGUSR1 signal to daemon
 	// TODO convert to socket comms
-	Daemon *daemon = Daemon::get_instance();
-	daemon->send_clean_up();
+	Daemon& daemon = Daemon::get_instance();
+	daemon.send_clean_up();
 
 	//kill(parent_pid, SIGUSR1);
 
@@ -429,11 +429,11 @@ void BasicProgress::cleanUp()
 
 void BasicProgress::barrier()
 {
-	Daemon *daemon = Daemon::get_instance();
+	Daemon& daemon = Daemon::get_instance();
 
-	daemon->send_barrier_ready();
+	daemon.send_barrier_ready();
 
-	daemon->recv_barrier_release();
+	daemon.recv_barrier_release();
 
 	//// this is the MPI_init barrier release
 
