@@ -10,10 +10,8 @@ extern "C"
 
 	int PMPI_Finalize(void)
 	{
-		int rc = exampi::interface->MPI_Finalize();
-		//delete exampi::Interface::global;
-		(void)rc;
-		return MPI_SUCCESS;
+		int rc = exampi::BasicInterface::get_instance()->MPI_Finalize();
+		return rc;
 	}
 
 }

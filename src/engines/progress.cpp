@@ -165,7 +165,9 @@ namespace exampi
 void BasicProgress::addEndpoints()
 {
 	// read in size
-	int size = std::stoi((*exampi::config)["size"]);
+	Config *config = Config::get_instance();
+
+	int size = std::stoi((*config)["size"]);
 
 	// read in endpoints
 	std::vector < std::string > elem;
@@ -176,7 +178,7 @@ void BasicProgress::addEndpoints()
 		rankList.push_back(i);
 		std::string rank = std::to_string(i);
 
-		std::string remote = (*exampi::config)[rank];
+		std::string remote = (*config)[rank];
 		debugpp(remote);
 
 		size_t beg = remote.find_first_of(":");
@@ -416,7 +418,7 @@ void BasicProgress::cleanUp()
 	if (size > 0)
 	{
 		exampi::handler->setErrToZero();
-		exampi::interface->MPI_Send((void *) 0, 0, MPI_INT,
+		exampi::BasicInterface::get_instance()->MPI_Send((void *) 0, 0, MPI_INT,
 				                        exampi::rank, MPIX_CLEANUP_TAG, MPI_COMM_WORLD);
 		exampi::handler->setErrToOne();
 	}

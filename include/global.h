@@ -23,7 +23,6 @@
 #include <arpa/inet.h>
 #include <future>
 
-#include <config.h>
 #include <datatype.h>
 #include <comm.h>
 #include <group.h>
@@ -32,7 +31,6 @@
 #include <map>
 #include <array.h>
 
-#include <abstract/interface.h>
 #include <abstract/progress.h>
 #include <abstract/transport.h>
 #include <abstract/checkpoint.h>
@@ -45,8 +43,6 @@ extern int worldSize;
 extern std::string epochConfig;
 extern int epoch;
 
-extern exampi::Config *config;
-extern exampi::Interface *interface;
 extern exampi::Progress *progress;
 extern exampi::Transport *transport;
 

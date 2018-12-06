@@ -3,7 +3,33 @@
 namespace exampi
 {
 
-BasicInterface::BasicInterface() {}
+BasicInterface *BasicInterface::instance = nullptr;
+
+BasicInterface::BasicInterface()
+{
+}
+
+BasicInterface *BasicInterface::get_instance()
+{
+	if (instance == 0)
+	{
+		instance = new BasicInterface();
+	}
+	return instance;
+}
+
+BasicInterface::~BasicInterface()
+{
+}
+
+void BasicInterface::destroy_instance()
+{
+	if (instance != nullptr)
+	{
+		delete instance;
+		instance = nullptr;
+	}
+}
 
 int BasicInterface::MPI_Init(int *argc, char ***argv)
 {
@@ -22,9 +48,12 @@ int BasicInterface::MPI_Init(int *argc, char ***argv)
 	(*argc) -= 2;
 
 	debugpp("Loading config from " << **argv);
-	exampi::config->load(**argv);
-	debugpp("MPI_Comm_world size " << (*exampi::config)["size"]);
-	exampi::worldSize = std::stoi((*exampi::config)["size"]);
+	Config *config = Config::get_instance();
+
+	config->load(**argv);
+
+	debugpp("MPI_Comm_world size " << (*config)["size"]);
+	exampi::worldSize = std::stoi((*config)["size"]);
 	(*argv)++;
 	(*argc)--;
 

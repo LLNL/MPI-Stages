@@ -1,6 +1,5 @@
 #include <global.h>
 
-#include <interfaces/interface.h>
 #include <engines/progress.h>
 #include <transports/transport.h>
 #include <checkpoints/checkpoint.h>
@@ -23,9 +22,6 @@ std::string epochConfig;
 // NOTE:  I construct the objects here to give them the chance
 // to do preinit at startup -- init calls will be required anyway
 // to avoid OoI problems, so might as well take advantage of them.
-Config *config = new Config();
-
-Interface *interface = new BasicInterface();
 
 Progress *progress = new BasicProgress();
 

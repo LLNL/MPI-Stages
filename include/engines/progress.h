@@ -12,7 +12,9 @@
 #include <sigHandler.h>
 #include <comm.h>
 #include "transports/transport.h"
+#include "interfaces/interface.h"
 #include "daemon.h"
+#include "config.h"
 
 namespace exampi
 {

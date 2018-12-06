@@ -11,8 +11,8 @@ extern "C"
 
 	int PMPI_Comm_rank(MPI_Comm c, int *r)
 	{
-		exampi::interface->MPI_Comm_rank(c, r);
-		return MPI_SUCCESS;
+		int rc = exampi::BasicInterface::get_instance()->MPI_Comm_rank(c, r);
+		return rc;
 	}
 
 }
