@@ -1,8 +1,10 @@
 #! /bin/bash
 
 # check for running, exit if so
-script_name=$(basename "$0")
-this_script=$(basename "${BASH_SOURCE[0]}")
+script_name="$(basename "$0")"
+this_script="$(basename "${BASH_SOURCE[0]}")"
+
+# test if sourced or executed
 if [ $script_name = $this_script ]; then
 	echo "source $script_name"
 	exit 
