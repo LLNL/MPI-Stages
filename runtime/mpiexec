@@ -1,6 +1,6 @@
 #! /usr/bin/env python2
 
-import sys, os, re, argparse, subprocess, time, signal, socket
+import sys, os, re, argparse, subprocess, time, signal, socket, enum
 
 schedulers = ['local', 'slurm', 'osg', 'sge']
 
@@ -141,40 +141,77 @@ def run_local(arguments):
 		local_cleanup();
 
 def run_slurm():
-	# TODO execute srun externally, plugin required
-	print("SLURM NOT IMPLEMENTED, THIS IS A STUB")
+	
+	
 	
 def run_sge():
 	# TODO
 	print("SGE/OSG NOT IMPLEMENTED, THIS IS A STUB")
 	print("WE DON'T WANT THIS, SWITCH TO SLURM")
 
-if __name__ == '__main__':
+@enum.unique
+class Scheduler(enum.Enum):
+	local = 0
+	slurm = 1
+
+def detect_scheduler():
+	if os.environ.get('SLURM_JOB_NAME'):
+		return Scheduler.slurm
+
+	elif os.environ.get('PBS_'):
+		raise Exception
+
+	else:
+		# fallback onto local
+		return Scheduler.local 
+	
+def parse_arguments():
 	# command line argument parsing
 	parser = argparse.ArgumentParser(description="ExaMPI Process Initiator")
 
-	parser.add_argument('-n', metavar='<numprocs>', type=int, required=True, help='Number of processes to start (required).')
+	parser.add_argument('-n', metavar='<numprocs>', type=int, required=True)
+	parser.add_argument('-d', default=False, metavar='<dirty>', type=str)
+	parser.add_argument('program', metavar='<program>', type=str, nargs=argparse.REMAINDER)
 
-	parser.add_argument('-s', default=schedulers[0], metavar='<scheduler>', type=str, help='Job scheduler environment to use.', choices=schedulers)
-	
-	parser.add_argument('-d', default=False, metavar='<dirty>', type=str, help='Do not temporary files after execution.')
-	
-	parser.add_argument('program', metavar='<program>', type=str, nargs=argparse.REMAINDER, help='Program binary to execute with flags.')
-	
+	return parser.parse_args()
 
-	# TODO add additional argument possible by standard, section 8.8
-	
-	arguments = parser.parse_args()
-	
-	# switch between local, slurm and osg
-	if arguments.s is schedulers[0]:
-		# local scheduler ie run locally multiple processes
-		run_local(arguments)
-	
-	elif arguments.s is scheduler[1]:
-		# use SLURM
-		run_slurm()
+def execute_runtime(schedule, arguments):
+	# modify environment variables
+	# TODO export EXAMPI_CONFIG_FILE
+	# TODO export EXAMPI_RANK
+	# TODO export EXAMPI_EPOCH_FILE
+	# TODO export EXAMPI_EPOCH
+	env = os.environ
 
-	elif arguments.s is scheduler[2] or arguments.s is scheduler[3]:
-		# use SGE or OSG
-		run_sge()
+	# execute for scheduler
+	if scheduler is Scheduler.slurm:
+		run_slurm(arguments, env)
+
+	elif scheduler is Scheduler.local:
+		run_local(arguments, env)
+	
+	else:
+		raise Exception
+
+if __name__ == '__main__':
+	# prase command line arguments
+	arguments = parse_arguments()
+
+	# detect scheduler
+	scheduler = detect_scheduler()
+
+	# run scheduler appropriate runtime
+	execute_runtime(scheduler, arguments)
+	
+	## switch between local, slurm and osg
+	#if scheduler is Scheduler.local:
+	#	# local scheduler ie run locally multiple processes
+	#	run_local(arguments)
+	#
+	#elif scheduler is Scheduler.slurm:
+	#	# use SLURM
+	#	run_slurm(arguments)
+
+	##elif arguments.s is scheduler[2] or arguments.s is scheduler[3]:
+	##	# use SGE or OSG
+	##	run_sge()
