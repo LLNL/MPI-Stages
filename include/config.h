@@ -32,7 +32,6 @@ public:
 	Config(const Config &c) 			= delete;
 	Config &operator=(const Config &c)	= delete;
 
-	void load(std::string filename);
 	std::map<std::string,std::string> asMap();
 	const std::string &operator[](const std::string &i);
 
@@ -40,8 +39,7 @@ private:
 	std::map<std::string,std::string> dict;
 
 	Config();
-	~Config();
-
+	void load(std::string filename);
 	void parse(std::string line);
 };
 

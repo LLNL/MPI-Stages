@@ -9,26 +9,18 @@ Config& Config::get_instance() {
 	return instance;
 }
 
-Config::Config() : dict()
+Config::Config()
 {
-}
-
-Config::~Config()
-{
-}
-
-Config *Config::get_instance()
-{
-	if (instance == 0)
-	{
-		instance = new Config();
-	}
-	return instance;
+	// load configuration file from environment variable
+	std::string filename = std::string(std::getenv("EXAMPI_CONFIG_FILE"));
+	load(filename);	
 }
 
 void Config::load(std::string filename)
 {
+	// read configuration file
 	std::ifstream file(filename, std::ifstream::in);
+
 	std::string next;
 	while(std::getline(file, next))
 		parse(next);
@@ -51,15 +43,6 @@ std::map<std::string, std::string> Config::asMap()
 const std::string& Config::operator[](const std::string &i)
 {
 	return dict[i];
-}
-
-void Config::destroy_instance()
-{
-	if (instance != nullptr)
-	{
-		delete instance;
-		instance = nullptr;
-	}
 }
 
 }; //exampi
