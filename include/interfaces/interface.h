@@ -5,6 +5,7 @@
 #include <time.h>
 #include <errHandler.h>
 #include <funcType.h>
+#include <cstdlib>
 
 #include "engines/progress.h"
 #include "abstract/interface.h"

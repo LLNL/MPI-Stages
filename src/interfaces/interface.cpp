@@ -34,48 +34,31 @@ void BasicInterface::destroy_instance()
 int BasicInterface::MPI_Init(int *argc, char ***argv)
 {
 	debugpp("MPI_Init entered. argc=" << *argc);
-
-	if((*argc < 6) || (std::string((*argv)[1]) != std::string("exampilauncher")))
-	{
+	
+	// check that exampi-mpiexec was used to launch the application
+	if(std::getenv("EXAMPI_LAUNCHED") == NULL) {
 		debugpp("Application was not launched with mpiexec.");
-		return -123123;
+		// TODO add proper error code
+		// TODO ideally similar utility as libfabrics -> fi_strerror
+		return 244;
 	}
+	
+	debugpp("MPI_Init passed EXAMPI_LAUNCHED check.");
 
-	// TODO convert these to environment variables, command line is for users
-	// ignoring executable and exampilauncher message
-	(*argv)++;
-	(*argv)++;
-	(*argc) -= 2;
+	//debugpp("Taking rank to be arg " << **argv);
+	rank = std::stoi(std::string(getenv("EXAMPI_RANK")));
 
-	debugpp("Loading config from " << **argv);
-	Config *config = Config::get_instance();
+	//debugpp("Taking epoch config to be " << **argv);
+	exampi::epochConfig = std::string(getenv("EXAMPI_EPOCH_FILE"));
 
-	config->load(**argv);
-
-	debugpp("MPI_Comm_world size " << (*config)["size"]);
-	exampi::worldSize = std::stoi((*config)["size"]);
-	(*argv)++;
-	(*argc)--;
-
-	debugpp("Taking rank to be arg " << **argv);
-	rank = atoi(**argv);
-	(*argv)++;
-	(*argc)--;
-
-	debugpp("Taking epoch config to be " << **argv);
-	exampi::epochConfig = std::string(**argv);
-	(*argv)++;
-	(*argc)--;
-
-	debugpp("Taking epoch to be " << **argv);
-	exampi::epoch = atoi(**argv);
-	(*argv)++;
-	(*argc)--;
+	//debugpp("Taking epoch to be " << **argv);
+	exampi::epoch = std::stoi(std::string(getenv("EXAMPI_EPOCH")));
 
 	exampi::rank = rank;
 	recovery_code = exampi::checkpoint->load();
 
 	// execute global barrier, signal usage
+	// TODO Why do we need a barrier here?
 	if(exampi::epoch == 0)
 	{
 		debugpp("Executing barrier" << exampi::rank);
