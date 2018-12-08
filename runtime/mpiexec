@@ -18,6 +18,7 @@ def local_cleanup():
 def run_local(arguments):
 	numproc = arguments.n
 	program = arguments.program
+	print('check if this is just the program or also the script', program)
 
 	# TODO check if executable exists
 	
@@ -45,6 +46,7 @@ def run_local(arguments):
 		configstr += str(rank) + ':' + '127.0.0.1:' + str(udp_daemon_port + rank) + ':' + str(udp_comm + rank) + '\n'
 
 	print('Configfile contents:')
+
 	print(configstr)
 
 	# launch children
@@ -56,7 +58,7 @@ def run_local(arguments):
 		env = dict(copy.deepcopy(os.environ))
 
 		# assure library we launched ourselves
-		env['EXAMPI_LAUNCHED'] = "TRUE"
+		env['EXAMPI_LAUNCHED'] = 'TRUE'
 
 		# setup config
 		configname = 'mpi.%i.config.tmp' % rank
@@ -67,7 +69,6 @@ def run_local(arguments):
 
 		# give rank to process
 		env['EXAMPI_RANK'] = str(rank)
-
 		# TODO use global config file
 
 		# setup epoch
@@ -75,7 +76,7 @@ def run_local(arguments):
 		epoch = 0
 
 		env['EXAMPI_EPOCH_FILE'] = epochname
-		env['EXAMPI_EPOCH'] = str(epoch)
+		env['EXAMPI_EPOCH'] = str(epoch)$ sbatch -N4 <<EOF 
 
 		with open(epochname, 'w') as epochfile:
 			epochfile.write(str(epoch))
@@ -164,9 +165,24 @@ def run_local(arguments):
 	# TODO exit with largest return code
 	sys.exit(returncode)
 
-def run_slurm(arguments, environment):
-	# environment, fault tolerant daemon, srun
-	raise NotImplementedError
+def run_slurm(arguments):
+	#env['EXAMPI_LAUNCHED'] = 'TRUE'
+	#env['EXAMPI_RANK'] = PROBLEM
+	#env['EXAMPI_CONFIG_FILE'] = PROBLEM 
+	#env['EXAMPI_EPOCH_FILE'] = PROBLEM
+	#env['EXAMPI_EPOCH'] = PROBLEM
+
+	# launch srun
+	# TODO launch one fault daemon per node?
+
+	command = ['srun']
+	command.append('exampi_fault_daemon')
+	command.extend(arguments.program)
+
+	print('srun command:', command)
+		
+	process = subprocess.Popen(command)
+	return process.wait()
 
 class Scheduler:
 	local = 0
@@ -191,7 +207,6 @@ def parse_arguments():
 	return parser.parse_args()
 
 def execute_runtime(schedule, arguments):
-	# execute for scheduler
 	if scheduler is Scheduler.slurm:
 		run_slurm(arguments)
 

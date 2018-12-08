@@ -1,0 +1,47 @@
+#! /usr/bin/env python2
+
+import os
+import copy
+import tempfile
+import subprocess
+import signal
+import socket
+
+if __name__ == '__main__':
+	
+	
+	# modify environment
+	env = dict(copy.deepcopy(os.environ))
+
+	# tell application fault daemon is watching
+	# TODO this allows us to do dynamic mpi fault stuff
+	env['EXAMPI_MONITORED'] = ''
+
+	# application MPI rank
+	rank = int(env['SLURM_JOB_ID'])
+    env['EXAMPI_RANK'] = str(rank)
+
+	# write config file
+	config  = 'ppid:' + str(os.getpid()) + '\n'
+	config += 'size:' + str(env['SLURM_NTASKS'])
+	
+	# TODO how to do remote discovery	
+	
+	with tempfile.NamedTemporaryFile(delete=False) as config_file:
+		env['EXAMPI_CONFIG_FILE'] = config_file.name
+
+	# application epoch
+	epoch = 0
+    env['EXAMPI_EPOCH'] = str(epoch)
+
+	# write epoch file
+	epoch_filename = '/tmp/exampi/exampi.%i.epoch.tmp' % rank
+    env['EXAMPI_EPOCH_FILE'] = epoch_filename 
+
+	# launch application
+	process = subprocess.Popen(command, env=env)
+
+	# wait until the process dies
+	process.wait()
+
+	# signal handlers
