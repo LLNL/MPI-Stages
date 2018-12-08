@@ -165,9 +165,9 @@ namespace exampi
 void BasicProgress::addEndpoints()
 {
 	// read in size
-	Config *config = Config::get_instance();
+	Config& config = Config::get_instance();
 
-	int size = std::stoi((*config)["size"]);
+	int size = std::stoi(config["size"]);
 
 	// read in endpoints
 	std::vector < std::string > elem;
@@ -178,7 +178,7 @@ void BasicProgress::addEndpoints()
 		rankList.push_back(i);
 		std::string rank = std::to_string(i);
 
-		std::string remote = (*config)[rank];
+		std::string remote = config[rank];
 		debugpp(remote);
 
 		size_t beg = remote.find_first_of(":");
