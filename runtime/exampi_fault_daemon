@@ -5,75 +5,10 @@ import sys
 import copy
 import tempfile
 import subprocess
-import signal
 import socket
-import re
-
-def prefix_sum(array):
-	out = []
-
-	for idx, item in enumerate(array):
-		if idx == 0:
-			out.append(item)
-		else:
-			out.append(item + out[idx-1])
-
-	return out
-
-def decompress_hostnames():
-	nodes = os.environ['SLURM_JOB_NODELIST']
-
-	command = ['scontrol']
-	command.append('show')
-	command.append('hostnames')
-	command.append(nodes)
-
-	process = subprocess.Popen(command, stdout=subprocess.PIPE)
-	stdout, stderr = process.communicate()
-
-	global nodelist
-	nodelist = stdout.splitlines()
-
-def lookup_setup():
-	global local_global_ids
-	local_global_ids = [int(gid) for gid in os.environ['SLURM_GTIDS'].split(',')]
-
-	global local_nodename
-	local_nodename = os.environ['SLURMD_NODENAME']
-
-	# uncompress task list
-	prefixes = []
-	for element in os.environ['SLURM_TASKS_PER_NODE'].split(','):
-		if '(' in element:
-			143(x27)
-			count, mult = element.split('(x')
-			
-			for idx in xrange(int(mult[:-1])):
-				prefixes.append(count)
-			
-		else:
-			prefixes.append(int(element))
-	
-	# generate prefix sum array
-	global task_count_offsets 
-	task_count_offsets = prefix_sum(prefixes)
-
-	# flatten node list
-	decompress_hostnames()	
-		
-def lookup_rank(rank):
-		
-	# local rank
-	if rank in local_global_ids:
-		return local_nodename
-
-	# global rank 
-	else:
-		for idx, bound in enumerate(task_count_offsets):
-			if bound <= rank:
-				return nodelist[idx]
 
 def modify_environment(daemon_port, mpi_port, udp_transport_base):
+	# TODO THIS ASSUMES SLURM ENVIRONMENT, MAKE COMPATIBLE WITH LOCAL
 	env = dict(copy.deepcopy(os.environ))
 
 	# announce proper launch	
@@ -83,6 +18,11 @@ def modify_environment(daemon_port, mpi_port, udp_transport_base):
 	env['EXAMPI_DAEMON_PORT'] = str(daemon_port)
 	env['EXAMPI_MPI_PORT'] = str(mpi_port)
 	env['EXAMPI_UDP_TRANSPORT_BASE'] = str(udp_transport_base)
+
+	#
+	env['EXAMPI_LOCALID'] = env['SLURM_LOCALID']
+	env['EXAMPI_JOB_ID'] = env['SLURM_JOB_ID']
+	env['EXAMPI_PROCID'] = env['SLURM_PROCID']
 
 	# application MPI rank
 	rank = int(env['SLURM_PROCID'])
@@ -104,7 +44,6 @@ def modify_environment(daemon_port, mpi_port, udp_transport_base):
 		hostname = lookup_rank(irank) 
 		# TODO hostname -> ip
 		ip = socket.gethostbyname(hostname)
-		print(hostname, ip)
 		config += str(irank) + ':' + ip + ':' + str(daemon_port) + ':' + str(udp_transport_base + irank) + '\n'
 
 	# TODO tmp
@@ -112,11 +51,12 @@ def modify_environment(daemon_port, mpi_port, udp_transport_base):
 	
 	with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='_'+job_id+'_'+str(rank)) as config_file:
 		env['EXAMPI_CONFIG_FILE'] = config_file.name
-		# write config to file
+		
+		config_file.write(config)		
+	print('config file:', env['EXAMPI_CONFIG_FILE'])
 	
-	# TODO config file doesn't seem to be written!!
-
 	# write config variables to environment
+	# TODO do we need PID?
 	env['EXAMPI_DAEMON_PID'] = str(os.getpid())
 	env['EXAMPI_WORLD_SIZE'] = str(worldsize)
 
@@ -131,51 +71,76 @@ def modify_environment(daemon_port, mpi_port, udp_transport_base):
 
 	return env
 
-def monitor(sock, process):
-	pass
-
-if __name__ == '__main__':
-	lookup_setup()
-
-	# TODO udp transport, this should not live here!
-	udp_transport_base = 33324
-
-	# determine daemon-mpi communication ports on 127.0.0.1
-	daemon_base_port = 13324
-	daemon_port = daemon_base_port + int(os.environ['SLURM_PROCID'])
-
-	mpi_base_port = 23324
-	mpi_port = mpi_base_port + int(os.environ['SLURM_PROCID'])
-
-	# modify environment
-	env = modify_environment(daemon_port, mpi_port, udp_transport_base)
-	
-	# create output and error files
-	rank = int(os.environ['SLURM_PROCID'])
-	job_id = int(os.environ['SLURM_JOB_ID'])
+def launch_application(environment):
+	# prepare stdout and stderr files
+	rank = int(os.environ['EXAMPI_PROCID'])
+	job_id = int(os.environ['EXAMPI_JOB_ID'])
 
 	output_name = 'mpi.%i.%i.out' % (job_id, rank)
 	error_name = 'mpi.%i.%i.err' % (job_id, rank)
 
-	output_file = open(output_name, 'w')
-	error_file = open(error_name, 'w')
-
-	# set up socket
-	sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-	sock.bind(('127.0.0.1', daemon_port))
-	sock.setblocking(0)
+	output_file = open(output_name, 'a')
+	error_file = open(error_name, 'a')
 
 	# launch application
 	command = sys.argv[1:]
 
-	print(command)
-	process = subprocess.Popen(command, env=env, stdout=output_file, stderr=error_file)
+	print('fault_daemon launching:', command)
 
-	# monitor until process dies
-	monitor(sock, process)	
+	process = subprocess.Popen(command, env=environment, stdout=output_file, stderr=error_file)
+
+	process.wait()
 	
-	# clean up
-	sock.close()
+	# clean up file handles
 	output_file.close()
 	error_file.close()
 
+	return process.returncode
+
+def inform_head_daemon(return_code):
+	if return_code is MPI_SUCCESS:
+		pass
+	elif return_code is MPI_ABORT:
+		pass
+	elif return_code is 244:
+		pass
+	else:
+		raise NotImplementedError
+	
+	# TODO send child return code to head daemon
+
+	# potentially relaunch application
+	
+	# TODO finally return returncode
+
+	return return_code
+
+def start_head_daemon(env):
+	if env['EXAMPI_LOCALID'] == 0:
+		head_daemon = subprocess.Popen(command, env=os.environ)
+		return head_daemon
+	
+if __name__ == '__main__':
+	daemon_port = 13324
+	udp_transport_base = 33324
+	mpi_base_port = 23324
+	mpi_port = mpi_base_port + int(os.environ['SLURM_PROCID'])
+
+	# modify environment
+	environment = modify_environment(daemon_port, mpi_port, udp_transport_base)
+
+	# check if this daemon is node head daemon
+	head_daemon = start_head_daemon(environment):
+
+	# launch application process	
+	returncode = launch_application(environment)
+
+	# resolve
+	returncode = inform_head_daemon(returncode)
+	
+	# we this fault daemon launch the head daemon
+	if head_daemon is not None:
+		head_daemon.wait()
+	
+	# propagate error code
+	sys.exit(process.returncode)
