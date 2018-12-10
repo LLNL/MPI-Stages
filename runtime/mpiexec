@@ -18,7 +18,7 @@ def run_local(arguments):
 		command = ['exampi_fault_daemon']
 		command.extend(arguments.program)
 
-		env = os.environ
+		env = dict(copy.deepcopy(os.environ))
 		env['EXAMPI_ENV'] = 'local'
 		env['EXAMPI_LOCALID'] = str(rank)
 		env['EXAMPI_JOB_ID'] = str(os.getpid())
@@ -37,8 +37,8 @@ def run_slurm(arguments):
 	command.extend(arguments.program)
 	
 	# declare EXAMPI_ENV
-	env = copy.deepcopy(os.environ)	
-	env['EXAMPI_ENV'] = 'local'
+	env = dict(copy.deepcopy(os.environ))
+	env['EXAMPI_ENV'] = 'slurm'
 
 	print('srun command:', command)
 		
