@@ -15,8 +15,8 @@ std::string UDP_IP("127.0.0.1");
 
 // TODO these ports should be given in the environment variables
 // handle through config
-int DAEMON_UDP_PORT = 50000;
-int PROC_BASE_UDP_PORT = 40000;
+//int DAEMON_UDP_PORT = 50000;
+//int PROC_BASE_UDP_PORT = 40000;
 
 Daemon& Daemon::get_instance()
 {
@@ -37,17 +37,20 @@ Daemon::Daemon()
 	}
 
 	// bind to local
-	int port = PROC_BASE_UDP_PORT + exampi::rank;
+	debugpp("daemon mpi port " << std::string(std::getenv("EXAMPI_MPI_PORT")));
+	int mpi_port = std::stoi(std::string(std::getenv("EXAMPI_MPI_PORT")));
 	this->local.sin_family = AF_INET;
-	this->local.sin_port = htons(port);
+	this->local.sin_port = htons(mpi_port);
 	this->local.sin_addr.s_addr = inet_addr(UDP_IP.c_str());
 	// TODO check error code
 	//int err = bind(this->sock, (sockaddr *)&this->local, sizeof(this->local));
 	bind(this->sock, (sockaddr *)&this->local, sizeof(this->local));
 
 	// set daemon sock addr
+	debugpp("daemon mpi port " << std::string(std::getenv("EXAMPI_DAEMON_PORT")));
+	int daemon_port = std::stoi(std::string(std::getenv("EXAMPI_DAEMON_PORT")));
 	this->daemon.sin_family = AF_INET;
-	this->daemon.sin_port = htons(DAEMON_UDP_PORT);
+	this->daemon.sin_port = htons(daemon_port);
 	this->daemon.sin_addr.s_addr = inet_addr(UDP_IP.c_str());
 }
 

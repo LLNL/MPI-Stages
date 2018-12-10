@@ -4,6 +4,12 @@
 namespace exampi
 {
 
+BasicTransport::BasicTransport() 
+{
+	debugpp("transport port: " << std::string(std::getenv("EXAMPI_UDP_TRANSPORT_BASE")));
+	port = std::stoi(std::string(std::getenv("EXAMPI_UDP_TRANSPORT_BASE")));
+}
+
 void BasicTransport::init()
 {
 	debugpp("binding udp port " << this->port + exampi::rank);
@@ -23,6 +29,7 @@ void BasicTransport::finalize()
 size_t BasicTransport::addEndpoint(const int rank,
                                    const std::vector<std::string> &opts)
 {
+	debugpp("adding endpoint " << opts[0] << " " << opts[1]);
 	uint16_t port = std::stoi(opts[1]);
 	// TODO:  see basic/udp.h; need move constructor to avoid copy here
 	Address addr(opts[0], port);

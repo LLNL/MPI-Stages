@@ -17,9 +17,12 @@ private:
 	Socket recvSocket;
 	//int tcpSock;
 
-	int port = 20000;
+	// TODO this is being used from an environment variable
+	int port;
 	
 public:
+	BasicTransport();
+	
 	void init();
 
 	void init(std::istream &t);

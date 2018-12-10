@@ -43,10 +43,9 @@ def run_local(arguments):
 	
 	for rank in xrange(numproc):
 		# all processes are local
-		configstr += str(rank) + ':' + '127.0.0.1:' + str(udp_daemon_port + rank) + ':' + str(udp_comm + rank) + '\n'
+		configstr += str(rank) + ':127.0.0.1:' + str(udp_daemon_port + rank) + ':' + str(udp_comm + rank) + '\n'
 
 	print('Configfile contents:')
-
 	print(configstr)
 
 	# launch children
@@ -76,7 +75,7 @@ def run_local(arguments):
 		epoch = 0
 
 		env['EXAMPI_EPOCH_FILE'] = epochname
-		env['EXAMPI_EPOCH'] = str(epoch)$ sbatch -N4 <<EOF 
+		env['EXAMPI_EPOCH'] = str(epoch)  
 
 		with open(epochname, 'w') as epochfile:
 			epochfile.write(str(epoch))
@@ -123,6 +122,7 @@ def run_local(arguments):
 					msg = 'release\0';
 					msg = msg.encode('utf-8')
 					sock.sendto(msg, (udp_ip, 40000+rank))
+		# additional message, error state initiated by daemon
 		
 		# check process alive
 		for rank in processes.keys():
@@ -166,14 +166,10 @@ def run_local(arguments):
 	sys.exit(returncode)
 
 def run_slurm(arguments):
-	#env['EXAMPI_LAUNCHED'] = 'TRUE'
-	#env['EXAMPI_RANK'] = PROBLEM
-	#env['EXAMPI_CONFIG_FILE'] = PROBLEM 
-	#env['EXAMPI_EPOCH_FILE'] = PROBLEM
-	#env['EXAMPI_EPOCH'] = PROBLEM
-
 	# launch srun
 	# TODO launch one fault daemon per node?
+	# What kind of topology do we want?
+	# many per node, with child processes, but only primary daemon does the socket work.
 
 	command = ['srun']
 	command.append('exampi_fault_daemon')

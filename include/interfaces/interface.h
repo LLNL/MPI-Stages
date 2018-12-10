@@ -18,9 +18,11 @@ namespace exampi
 class BasicInterface: public Interface
 {
 private:
-	BasicInterface();
-	~BasicInterface();
+	BasicInterface() {};
+	~BasicInterface() {};
+
 	static BasicInterface *instance;
+
 	std::vector<MPIX_Serialize_handler> serialize_handlers;
 	std::vector<MPIX_Deserialize_handler> deserialize_handlers;
 	int recovery_code;

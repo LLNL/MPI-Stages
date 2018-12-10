@@ -167,13 +167,16 @@ void BasicProgress::addEndpoints()
 	// read in size
 	Config& config = Config::get_instance();
 
-	int size = std::stoi(config["size"]);
+	debugpp("BasicProgress addEngpoints " << config["size"]);
+	//int size = std::stoi(config["size"]);
+	int size = std::stoi(std::string(std::getenv("EXAMPI_WORLD_SIZE")));
 
 	// read in endpoints
 	std::vector < std::string > elem;
 	std::list<int> rankList;
 	for (int i = 0; i < size; i++)
 	{
+		// TODO something breaks!
 		elem.clear();
 		rankList.push_back(i);
 		std::string rank = std::to_string(i);

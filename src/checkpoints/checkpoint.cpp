@@ -51,6 +51,7 @@ int BasicCheckpoint::load()
 	{
 		exampi::transport->init();
 		exampi::progress->init();
+
 		return MPI_SUCCESS;
 	}
 	else   // subsequent init

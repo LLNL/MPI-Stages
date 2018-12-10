@@ -5,10 +5,6 @@ namespace exampi
 
 BasicInterface *BasicInterface::instance = nullptr;
 
-BasicInterface::BasicInterface()
-{
-}
-
 BasicInterface *BasicInterface::get_instance()
 {
 	if (instance == 0)
@@ -16,10 +12,6 @@ BasicInterface *BasicInterface::get_instance()
 		instance = new BasicInterface();
 	}
 	return instance;
-}
-
-BasicInterface::~BasicInterface()
-{
 }
 
 void BasicInterface::destroy_instance()
@@ -36,29 +28,32 @@ int BasicInterface::MPI_Init(int *argc, char ***argv)
 	debugpp("MPI_Init entered. argc=" << *argc);
 	
 	// check that exampi-mpiexec was used to launch the application
-	if(std::getenv("EXAMPI_LAUNCHED") == NULL) {
+	if(std::getenv("EXAMPI_MONITORED") == NULL) {
 		debugpp("Application was not launched with mpiexec.");
 		// TODO add proper error code
 		// TODO ideally similar utility as libfabrics -> fi_strerror
+		// TODO error code 0-255! not bigger nor smaller?
 		return 244;
 	}
 	
 	debugpp("MPI_Init passed EXAMPI_LAUNCHED check.");
 
-	//debugpp("Taking rank to be arg " << **argv);
-	rank = std::stoi(std::string(getenv("EXAMPI_RANK")));
+	debugpp("Taking rank to be arg " << std::string(std::getenv("EXAMPI_RANK")));
+	rank = std::stoi(std::string(std::getenv("EXAMPI_RANK")));
 
 	//debugpp("Taking epoch config to be " << **argv);
-	exampi::epochConfig = std::string(getenv("EXAMPI_EPOCH_FILE"));
+	exampi::epochConfig = std::string(std::getenv("EXAMPI_EPOCH_FILE"));
 
-	//debugpp("Taking epoch to be " << **argv);
-	exampi::epoch = std::stoi(std::string(getenv("EXAMPI_EPOCH")));
+	debugpp("Taking epoch to be " << std::string(std::getenv("EXAMPI_EPOCH")));
+	exampi::epoch = std::stoi(std::string(std::getenv("EXAMPI_EPOCH")));
 
 	exampi::rank = rank;
+	
+	// TODO this initializes progress and transport
 	recovery_code = exampi::checkpoint->load();
 
-	// execute global barrier, signal usage
-	// TODO Why do we need a barrier here?
+	// execute global barrier
+	// this is so that P1 doesn't init and send before P0 is ready to recv
 	if(exampi::epoch == 0)
 	{
 		debugpp("Executing barrier" << exampi::rank);
