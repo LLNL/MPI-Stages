@@ -1,191 +1,57 @@
 #! /usr/bin/env python2
 
-import sys, os, re, argparse, subprocess, time, signal, socket
+import sys
+import os
+import re
+import argparse
+import subprocess
+import time
+import signal
+import socket
 import copy
 
-from exceptions import *
-
-schedulers = ['local', 'slurm', 'osg', 'sge']
-
-MPI_SUCCESS = 0
-MPI_ABORT = 255
-
-def local_cleanup():
-	for path in os.listdir('.'):
-		if path[-3:] == "tmp":
-			os.remove(path)
-
 def run_local(arguments):
-	numproc = arguments.n
-	program = arguments.program
-	print('check if this is just the program or also the script', program)
+	# act as srun
+	processes = []
 
-	# TODO check if executable exists
-	
-	local_cleanup()
+	for rank in xrange(arguments.n):
+		command = ['exampi_fault_daemon']
+		command.extend(arguments.program)
 
-	# start numproc processes of program
-
-	# open socket on loopback network as server
-	udp_ip = "127.0.0.1"
-	udp_port = 50000
-
-	udp_daemon_port = 40000
-	udp_comm = 20000
-
-	sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-	sock.bind((udp_ip, udp_port))
-	sock.setblocking(0)
-
-	# generate config string
-	configstr = 'ppid:' + str(os.getpid()) + '\n'
-	configstr += 'size:' + str(numproc) + '\n'
-	
-	for rank in xrange(numproc):
-		# all processes are local
-		configstr += str(rank) + ':127.0.0.1:' + str(udp_daemon_port + rank) + ':' + str(udp_comm + rank) + '\n'
-
-	print('Configfile contents:')
-	print(configstr)
-
-	# launch children
-	processes = {}
-	outputs = {}
-	for rank in xrange(numproc):
-		# seperate binary
-		child = [program[0]]
-		env = dict(copy.deepcopy(os.environ))
-
-		# assure library we launched ourselves
-		env['EXAMPI_LAUNCHED'] = 'TRUE'
-
-		# setup config
-		configname = 'mpi.%i.config.tmp' % rank
-
-		env['EXAMPI_CONFIG_FILE'] = configname
-		with open(configname, 'w') as configfile:
-			configfile.write(configstr)
-
-		# give rank to process
-		env['EXAMPI_RANK'] = str(rank)
-		# TODO use global config file
-
-		# setup epoch
-		epochname = 'mpi.%i.epoch.tmp' % rank
-		epoch = 0
-
-		env['EXAMPI_EPOCH_FILE'] = epochname
-		env['EXAMPI_EPOCH'] = str(epoch)  
-
-		with open(epochname, 'w') as epochfile:
-			epochfile.write(str(epoch))
-
-		# append user arguments
-		# TODO check for valid executable, check for local cwd path, otherwise give nice error 
-		child.extend(program[1:])
-
-		# create file handles
-		outname = 'mpi.%i.%i.out' % (os.getpid(), rank)
-		errname = 'mpi.%i.%i.err' % (os.getpid(), rank)
-		ohandle = open(outname, 'w')
-		ehandle = open(errname, 'w')
-		outputs[rank] = (ohandle, ehandle)
-
-		process = subprocess.Popen(child, stdout=ohandle, stderr=ehandle, env=env)
-		processes[rank] = process
-
-	# monitor processes
-	returncode = 0
-	processes_barrier = 0
-	while 0 < len(processes):
-		# wait time between checks
-		time.sleep(0.1)
-
-		# check socket
-		msg = None
-		try:
-			data = sock.recv(64)
-
-			msg, rank, pid = data.split()
-
-		except:
-			pass
-
-		# process global barrier
-		if msg == 'barrier':
-			processes_barrier += 1
-
-			# is barrier complete?
-			if processes_barrier == len(processes):
-				print('barrier complete')
-				for rank in xrange(numproc):
-					msg = 'release\0';
-					msg = msg.encode('utf-8')
-					sock.sendto(msg, (udp_ip, 40000+rank))
-		# additional message, error state initiated by daemon
+		env = os.environ
+		env['EXAMPI_ENV'] = 'local'
+		env['EXAMPI_LOCALID'] = str(rank)
+		env['EXAMPI_JOB_ID'] = str(os.getpid())
+		env['EXAMPI_WORLD_SIZE'] = str(arguments.n)
 		
-		# check process alive
-		for rank in processes.keys():
-			# instead of iteritems, to delete entries
-			process = processes[rank]
+		process = subprocess.Popen(command, env=env);
+		processes.append(process)
 
-			# check if process is dead
-			if process.poll() is not None:
-				# TODO do we need this checking?
-				if process.returncode is MPI_SUCCESS:
-					# MPI exited cleanly
-					pass
-
-				elif process.returncode is MPI_ABORT:
-					# MPI abort called
-					print('MPI ABORT')
-				
-				elif process.returncode is 244:
-					print('EXAMPI_LAUNCHED NOT')
-				
-				else:
-					print(process.pid, process.returncode)
-					raise NotImplementedError
-
-				returncode = max(returncode, process.returncode)
-				del processes[rank]
-	
-	# clean up config & epoch files
-	sock.close()
-	
-	for rank in xrange(numproc):
-		(ohandle, ehandle) = outputs[rank]
-
-		ohandle.close()
-		ehandle.close()
-
-	if not arguments.d:
-		local_cleanup();
-
-	# TODO exit with largest return code
-	sys.exit(returncode)
+	# wait for processes
+	for process in processes:
+		process.wait()
 
 def run_slurm(arguments):
-	# launch srun
-	# TODO launch one fault daemon per node?
-	# What kind of topology do we want?
-	# many per node, with child processes, but only primary daemon does the socket work.
-
 	command = ['srun']
 	command.append('exampi_fault_daemon')
 	command.extend(arguments.program)
+	
+	# declare EXAMPI_ENV
+	env = copy.deepcopy(os.environ)	
+	env['EXAMPI_ENV'] = 'local'
 
 	print('srun command:', command)
 		
-	process = subprocess.Popen(command)
+	process = subprocess.Popen(command, env=env)
 	return process.wait()
 
+# poor mans Enum
 class Scheduler:
 	local = 0
 	slurm = 1
 
 def detect_scheduler():
-	if os.environ.get('SLURM_JOB_NAME'):
+	if os.environ.get('SLURM_JOB_ID'):
 		return Scheduler.slurm
 
 	else:
@@ -222,16 +88,3 @@ if __name__ == '__main__':
 
 	# run scheduler appropriate runtime
 	execute_runtime(scheduler, arguments)
-	
-	## switch between local, slurm and osg
-	#if scheduler is Scheduler.local:
-	#	# local scheduler ie run locally multiple processes
-	#	run_local(arguments)
-	#
-	#elif scheduler is Scheduler.slurm:
-	#	# use SLURM
-	#	run_slurm(arguments)
-
-	##elif arguments.s is scheduler[2] or arguments.s is scheduler[3]:
-	##	# use SGE or OSG
-	##	run_sge()
