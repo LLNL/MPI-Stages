@@ -50,7 +50,7 @@ def lookup_setup():
 			count, mult = element.split('(x')
 
 			for idx in xrange(int(mult[:-1])):
-				prefixes.append(count)
+				prefixes.append(int(count))
 
 		else:
 			prefixes.append(int(element))
@@ -69,12 +69,14 @@ def lookup_rank(rank):
 	else:
 		# local rank
 		if rank in local_global_ids:
+			print('local global ids contains', rank)
 			return local_nodename
 
 		# global rank 
 		else:
+			print('global', rank, ' tasks dist ', task_count_offsets)
 			for idx, bound in enumerate(task_count_offsets):
-				if bound <= rank:
+				if rank < bound:
 					return nodelist[idx]
 
 def modify_environment(daemon_port, mpi_base_port, udp_transport_base):
@@ -118,6 +120,7 @@ def modify_environment(daemon_port, mpi_base_port, udp_transport_base):
 	# TODO ask them which node that process lives on?
 	for irank in xrange(worldsize):
 		hostname = lookup_rank(irank) 
+		print(irank, hostname)
 		# TODO hostname -> ip
 		ip = socket.gethostbyname(hostname)
 		config += str(irank) + ':' + ip + ':' + str(daemon_port) + ':' + str(udp_transport_base + irank) + '\n'
