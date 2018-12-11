@@ -1,4 +1,4 @@
-#! /usr/bin/env python2
+#!/usr/bin/env python2
 
 # this daemon is in charge of communication between it and application instances
 # and other head daemons in the job
@@ -180,6 +180,8 @@ class HeadDaemon:
 
 		# exit once all local have completed
 		if len(self.rank_done_set) == self.local_rank_count:
+			# todo send global shutdown request
+			print('head daemon: completed all local ranks')
 			self.shutdown = True
 		
 	def process_rank_lookup(self):

@@ -1,4 +1,4 @@
-#! /usr/bin/env python2
+#!/usr/bin/env python2
 
 import os
 import sys
@@ -46,7 +46,7 @@ def lookup_setup():
 	prefixes = []
 	for element in os.environ['SLURM_TASKS_PER_NODE'].split(','):
 		if '(' in element:
-			143(x27)
+			#143(x27)
 			count, mult = element.split('(x')
 
 			for idx in xrange(int(mult[:-1])):
@@ -64,7 +64,7 @@ def lookup_setup():
 
 def lookup_rank(rank):
 	if os.environ['EXAMPI_ENV'] == 'local':
-		return 'localhost'
+		return socket.gethostname()
 
 	else:
 		# local rank
@@ -101,7 +101,7 @@ def modify_environment(daemon_port, mpi_base_port, udp_transport_base):
 		job_id = int(env['EXAMPI_JOB_ID'])
 		worldsize = int(env['EXAMPI_WORLD_SIZE'])
 
-	# announce daemon socket port on 127.0.0.1
+	# announce daemon socket port
 	env['EXAMPI_DAEMON_PORT'] = str(daemon_port)
 	env['EXAMPI_UDP_TRANSPORT_BASE'] = str(udp_transport_base)
 	env['EXAMPI_MPI_PORT'] = str(mpi_base_port + int(env['EXAMPI_RANK']))
@@ -129,7 +129,7 @@ def modify_environment(daemon_port, mpi_base_port, udp_transport_base):
 	with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='_'+str(job_id)+'_'+str(rank)) as config_file:
 		env['EXAMPI_CONFIG_FILE'] = config_file.name
 		
-		config_file.write(config)		
+		config_file.write(config)
 	print('config file:', env['EXAMPI_CONFIG_FILE'])
 	
 	# write config variables to environment
