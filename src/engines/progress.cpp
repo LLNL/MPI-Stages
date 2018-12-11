@@ -436,9 +436,7 @@ void BasicProgress::barrier()
 {
 	Daemon& daemon = Daemon::get_instance();
 
-	daemon.send_barrier_ready();
-
-	daemon.recv_barrier_release();
+	daemon.barrier();
 
 	//// this is the MPI_init barrier release
 
