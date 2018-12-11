@@ -15,11 +15,14 @@ public:
 	Daemon(Daemon&)					= delete;
 	void operator=(Daemon const&)	= delete;
 
-	int send_barrier_ready();
-	int recv_barrier_release();
+	
+	int barrier();
 	int send_clean_up();
 
 private:
+	int send_barrier_ready();
+	int recv_barrier_release();
+
 	int sock;
 	sockaddr_in daemon;
 	sockaddr_in local;
