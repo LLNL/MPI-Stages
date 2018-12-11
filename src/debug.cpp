@@ -1,5 +1,7 @@
 #include "debug.h"
 
+#include <iostream>
+
 namespace exampi {
 
 // TODO refactor/redo this indentation depending on thread and level?
