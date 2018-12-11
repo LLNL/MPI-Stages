@@ -231,4 +231,5 @@ if __name__ == '__main__':
 	# TODO
 	
 	# propagate error code
+	print('fault daemon', environment['EXAMPI_RANK'], 'exiting')
 	sys.exit(returncode)
