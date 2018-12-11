@@ -16,7 +16,7 @@ std::string debug_init();
 
 // TODO rename this to debug once everything is wrapped, then sed to global replace
 //#define debugpp(msg) std::clog << debug_init() << msg << std::endl;
-#define debugpp(msg) debug_mutex.lock(); std::clog << msg << std::endl; debug_mutex.unlock();
+#define debugpp(msg) debug_mutex.lock(); std::clog << msg << std::endl << std::flush; debug_mutex.unlock();
 
 #else
 
