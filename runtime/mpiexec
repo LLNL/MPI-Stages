@@ -15,16 +15,20 @@ def run_local(arguments):
 	processes = []
 
 	for rank in xrange(arguments.n):
+		env = dict(copy.deepcopy(os.environ))
+
+		env['EXAMPI_ENV'] = 'local'
+		env['EXAMPI_LOCALID'] = str(rank)
+		env['EXAMPI_RANK'] = str(rank)
+		env['EXAMPI_JOB_ID'] = str(os.getpid())
+		env['EXAMPI_WORLD_SIZE'] = str(arguments.n)
+
 		command = ['exampi_fault_daemon']
 		command.extend(arguments.program)
 
-		env = dict(copy.deepcopy(os.environ))
-		env['EXAMPI_ENV'] = 'local'
-		env['EXAMPI_LOCALID'] = str(rank)
-		env['EXAMPI_JOB_ID'] = str(os.getpid())
-		env['EXAMPI_WORLD_SIZE'] = str(arguments.n)
+		print('mpiexec launching:', command)
 		
-		process = subprocess.Popen(command, env=env);
+		process = subprocess.Popen(command, env=env)
 		processes.append(process)
 
 	# wait for processes
