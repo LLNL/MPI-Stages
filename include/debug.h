@@ -6,7 +6,6 @@
 
 namespace exampi {
 
-#ifdef DEBUG
 // debug print mutex, so threads don't overwrite each others output
 // this makes debug really slow
 extern std::mutex debug_mutex;
@@ -16,7 +15,13 @@ std::string debug_init();
 
 // TODO rename this to debug once everything is wrapped, then sed to global replace
 //#define debugpp(msg) std::clog << debug_init() << msg << std::endl;
-#define debugpp(msg) debug_mutex.lock(); std::clog << msg << std::endl << std::flush; debug_mutex.unlock();
+
+#ifdef DEBUG
+
+#define debug_function_init(name) 
+#define debug_function_exit(name) 
+
+#define debugpp(msg) debug_mutex.lock(); std::clog << debug_init() << msg << std::endl << std::flush; debug_mutex.unlock();
 
 #else
 
