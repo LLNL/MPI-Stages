@@ -27,6 +27,7 @@ public:
 		addr.sin_port = htons(port);
 		addr.sin_addr.s_addr = INADDR_ANY;
 		if(bind(fd, (struct sockaddr *)&addr, sizeof(addr)) == -1)
+			// TODO needs errorcode!
 			std::cout << "WARNING:  Bind failed\n";
 	}
 	int getFd()
@@ -46,6 +47,7 @@ class Message
 private:
 	struct msghdr hdr;
 	std::vector<struct iovec> iov;
+
 public:
 	Message() : iov()
 	{
@@ -67,8 +69,7 @@ public:
 	}
 	void updateHeader()
 	{
-		//std::cout << "length of message" << iov[1].iov_len << " header "<<
-		//          iov[0].iov_len << "\n";
+		debugpp("updateHeader length of message" << iov[1].iov_len << " header "<< iov[0].iov_len );
 		hdr.msg_iov = iov.data();
 		hdr.msg_iovlen = iov.size();
 	}
@@ -87,28 +88,33 @@ public:
 		// debug output
 		char str[INET_ADDRSTRLEN];
 		inet_ntop(AF_INET, &(addr.get()->sin_addr), str, INET_ADDRSTRLEN);
-		//std::cout << "\tbasic::Transport::udp::send\n"
-		//          << "\t\t" << hdr.msg_iovlen << " iovecs\n"
-		//          << "\t\t" << str << "\n";
+		debugpp("basic::Transport::udp::send\t" << hdr.msg_iovlen << " iovecs\t" << str);
 
 		// TODO make use of length to check
 		//ssize_t length = sendmsg(sock.getFd(), &hdr, 0);
 		sendmsg(sock.getFd(), &hdr, 0);
-		//std::cout << "Send to UDP " << length << "\n";
+		//debugpp("Send to UDP " << length);
 	}
 	ssize_t receive(Socket &sock)
 	{
-		//std::cout << debug() << "basic::Transport::udp::recv\n";
+		debugpp("basic::Transport::udp::recv");
 		updateHeader();
 		ssize_t length = recvmsg(sock.getFd(), &hdr, MSG_WAITALL);
-		//std::cout << "Received from UDP " << length << "\n";
-		//std::cout << debug() << "basic::Transport::udp::recv exiting\n";
+		debugpp("Received from UDP " << length);
+		debugpp("basic::Transport::udp::recv exiting");
 		return length;
 	}
 	void peek(Socket &sock)
 	{
+		debugpp("msg::peek");
+
 		updateHeader();
+
+		debugpp("msg::peek recvmsg");
+
 		recvmsg(sock.getFd(), &hdr, MSG_WAITALL | MSG_PEEK);
+
+		debugpp("msg::peek recvmsg completed");
 	}
 };
 

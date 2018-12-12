@@ -14,10 +14,13 @@ private:
 	std::string address;
 	std::unordered_map<int, Address> endpoints;
 	//uint16_t port;
+	
 	Socket recvSocket;
+
 	//int tcpSock;
 
 	// TODO this is being used from an environment variable
+	int base_port;
 	int port;
 	
 public:

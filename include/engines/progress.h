@@ -97,8 +97,10 @@ class Request
 {
 public:
 	static constexpr size_t HeaderSize = (8 * 4);
+
 protected:
 	char hdr[HeaderSize];
+
 public:
 	Op op;
 	int tag;

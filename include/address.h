@@ -4,6 +4,8 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
+#include "debug.h"
+
 namespace exampi
 {
 
@@ -14,6 +16,8 @@ private:
 public:
 	void set(const std::string &ip, const uint16_t &port)
 	{
+		debugpp("Address::set " << ip << " " << port);
+
 		addr.sin_family = AF_INET;
 		addr.sin_port = htons(port);
 		addr.sin_addr.s_addr = inet_addr(ip.c_str());
