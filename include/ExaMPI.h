@@ -49,8 +49,7 @@ static inline std::thread::id thisThread()
 static inline std::string debug()
 {
 	std::stringstream stream;
-	stream << "\t[0x" << std::hex << std::setfill('0') << std::setw(
-	           8) << thisThread() << "] ";
+	stream << "\t[0x" << std::hex << std::setfill('0') << std::setw(8) << thisThread() << "] ";
 	return stream.str();
 }
 
