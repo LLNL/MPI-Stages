@@ -87,12 +87,12 @@ def modify_environment(daemon_port, mpi_base_port, udp_transport_base):
 
 	if env['EXAMPI_ENV'] == 'slurm':
 		#
-		env['EXAMPI_LOCALID'] = env['SLURM_LOCALID']
-		env['EXAMPI_JOB_ID'] = env['SLURM_JOB_ID']
+		env['EXAMPI_LOCALID'] = str(env['SLURM_LOCALID'])
+		env['EXAMPI_JOB_ID'] = str(env['SLURM_JOB_ID'])
 
 		# application MPI rank
 		rank = int(env['SLURM_PROCID'])
-		job_id = env['SLURM_JOB_ID']
+		job_id = int(env['SLURM_JOB_ID'])
 		worldsize = int(env['SLURM_NTASKS'])
 
 		env['EXAMPI_RANK'] = str(rank)
@@ -166,7 +166,6 @@ def launch_application(environment):
 	command = sys.argv[1:]
 
 	print('fault_daemon launching:', command)
-
 	process = subprocess.Popen(command, env=environment, stdout=output_file, stderr=error_file)
 
 	process.wait()
@@ -177,7 +176,7 @@ def launch_application(environment):
 
 	return process.returncode
 
-def inform_head_daemon(code, daemon_port):
+def inform_head_daemon(code, daemon_port, env):
 	sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 	hostname = socket.gethostname()
@@ -185,7 +184,7 @@ def inform_head_daemon(code, daemon_port):
 
 	# todo need to bind to port
 
-	msg = 'termination ' + str(os.environ['EXAMPI_RANK']) + ' ' + str(code)
+	msg = 'termination ' + str(env['EXAMPI_RANK']) + ' ' + str(code)
 	msg = msg.ljust(64)
 	msg = msg.encode('utf-8')
 
@@ -198,18 +197,19 @@ def inform_head_daemon(code, daemon_port):
 	return code
 
 def start_head_daemon(env):
+	print('test head daemon viability', env['EXAMPI_LOCALID'], env['EXAMPI_RANK'])
 	if env['EXAMPI_LOCALID'] == '0':
-		print('fault daemon launching head daemon')
+		print('fault daemon', env['EXAMPI_RANK'], ' launching head daemon')
 
 		command = ['exampi_head_daemon']
 
-		head_daemon = subprocess.Popen(command, env=os.environ)
+		head_daemon = subprocess.Popen(command, env=env)
 		return head_daemon
 	
 if __name__ == '__main__':
 	lookup_setup()
 
-	daemon_port = 11314
+	daemon_port = 12424
 	mpi_base_port = 23324
 
 	udp_transport_base = 33324
@@ -224,7 +224,7 @@ if __name__ == '__main__':
 	returncode = launch_application(environment)
 
 	# resolve
-	returncode = inform_head_daemon(returncode, daemon_port)
+	returncode = inform_head_daemon(returncode, daemon_port, environment)
 	
 	# we this fault daemon launch the head daemon
 	if head_daemon is not None:

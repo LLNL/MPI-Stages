@@ -170,7 +170,7 @@ class HeadDaemon:
 
 	def process_termination(self, data, addr):
 		msg, rank, errorcode = data.split()
-		print('head daemon: termination', msg, rank, errorcode)
+		print('head daemon: ', msg, rank, errorcode)
 
 		# check error code
 		if int(errorcode) == 0:
@@ -181,7 +181,7 @@ class HeadDaemon:
 		# exit once all local have completed
 		if len(self.rank_done_set) == self.local_rank_count:
 			# todo send global shutdown request
-			print('head daemon: completed all local ranks')
+			print('head daemon: completed all local ranks', socket.gethostname())
 			self.shutdown = True
 		
 	def process_rank_lookup(self):
@@ -226,8 +226,10 @@ class HeadDaemon:
 
 if __name__ == '__main__':
 	# todo read from environment
-	daemon_port = 11314
+	daemon_port = 12424
 	mpi_base_port = 23324
+
+	print('head daemon initializing', os.environ['EXAMPI_RANK'])
 
 	#
 	daemon = HeadDaemon(daemon_port, mpi_base_port)
