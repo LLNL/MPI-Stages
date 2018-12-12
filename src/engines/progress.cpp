@@ -47,7 +47,9 @@ void BasicProgress::addEndpoints()
 
 void BasicProgress::sendThreadProc(bool *alive, AsyncQueue<Request> *outbox)
 {
+	debug_add_thread("send");
 	debugpp("Launching sendThreadProc(...)");
+	//debug_function_entry("BasicProgress::sendThreadProc");
 
 	while (*alive)
 	{
@@ -60,11 +62,12 @@ void BasicProgress::sendThreadProc(bool *alive, AsyncQueue<Request> *outbox)
 		debugpp("sendThread: sent message");
 		// TODO:  check that sending actually completed
 		r->completionPromise.set_value( { .count = 0, .cancelled = 0,
-			                              .MPI_SOURCE = r->source, .MPI_TAG = r->tag, .MPI_ERROR =
-			                                  MPI_SUCCESS });
+			                              .MPI_SOURCE = r->source, .MPI_TAG = r->tag, .MPI_ERROR = MPI_SUCCESS });
 		// let r drop scope and die (unique_ptr)
 		debugpp("sendThread: completed message");
 	}
+
+	debug_function_exit();
 }
 
 void BasicProgress::matchThreadProc(bool *alive,
@@ -72,6 +75,8 @@ void BasicProgress::matchThreadProc(bool *alive,
 	                        std::list<std::unique_ptr<Request>> *unexpectedList,
 	                        std::mutex *matchLock, std::mutex *unexpectedLock)
 {
+	debug_add_thread("match");
+	//debug_function_entry("BasicProgress::matchThreadProc");
 	debugpp("Launching matchThreadProc(...)");
 
 	while (*alive)
@@ -157,6 +162,8 @@ void BasicProgress::matchThreadProc(bool *alive,
 
 		//matchLock->unlock();
 	}
+
+	debug_function_exit();
 }
 
 int BasicProgress::init()
