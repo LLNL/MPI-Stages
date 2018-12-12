@@ -226,8 +226,8 @@ class HeadDaemon:
 
 if __name__ == '__main__':
 	# todo read from environment
-	daemon_port = 12424
-	mpi_base_port = 23324
+	daemon_port = 15325
+	mpi_base_port = 23354
 
 	print('head daemon initializing', os.environ['EXAMPI_RANK'])
 

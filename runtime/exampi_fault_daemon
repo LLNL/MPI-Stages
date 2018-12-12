@@ -167,7 +167,6 @@ def launch_application(environment):
 
 	print('fault_daemon launching:', command)
 	process = subprocess.Popen(command, env=environment, stdout=output_file, stderr=error_file)
-
 	process.wait()
 	
 	# clean up file handles
@@ -209,10 +208,9 @@ def start_head_daemon(env):
 if __name__ == '__main__':
 	lookup_setup()
 
-	daemon_port = 12424
-	mpi_base_port = 23324
-
-	udp_transport_base = 33324
+	daemon_port = 15325
+	mpi_base_port = 23354
+	udp_transport_base = 33124
 
 	# modify environment
 	environment = modify_environment(daemon_port, mpi_base_port, udp_transport_base)
