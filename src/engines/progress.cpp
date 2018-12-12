@@ -3,165 +3,6 @@
 namespace exampi
 {
 
-// POD types
-//class Header
-//{
-//public:
-//	static constexpr size_t HeaderSize = (8 * 4);
-//
-//	int rank;
-//	uint32_t tag;
-//	int context;
-//	MPI_Comm comm;
-//	char hdr[HeaderSize];
-//
-//	Header()
-//	{
-//		std::memset(hdr, 0xD0, HeaderSize);
-//	}
-//
-//	// TODO:  Don't forget these debugs, this can create a lot of spam
-//	void dump()
-//	{
-//		//std::ios oldState(nullptr);
-//		//oldState.copyfmt(//std::cout);
-//
-//		//uint32_t *dword = (uint32_t *) hdr;
-//		//std::cout << "\texampi::Header has:\n";
-//		//std::cout << std::setbase(16) << std::internal << std::setfill('0')
-//		//          << "\t" << std::setw(8) << dword[0] << " " << std::setw(8)
-//		//          << dword[1] << " " << std::setw(8) << dword[2] << " "
-//		//          << std::setw(8) << dword[3] << " " << "\n\t" << std::setw(8)
-//		//          << dword[4] << " " << std::setw(8) << dword[5] << " "
-//		//          << std::setw(8) << dword[6] << " " << std::setw(8) << dword[7]
-//		//          << " " << "\n";
-//
-//		//std::cout.copyfmt(oldState);
-//	}
-//
-//	void pack()
-//	{
-//		uint16_t *word = (uint16_t *) hdr;
-//		uint32_t *dword = (uint32_t *) hdr;
-//		word[0] = 0xDEAF; // magic word
-//		word[1] = 22;  // protocol
-//		word[2] = 42;  // message type
-//		word[3] = 0x0; // align
-//		dword[2] = 0x0;  // align
-//		dword[3] = 0x0;  // align/reserved
-//		dword[4] = rank;
-//		dword[5] = tag;
-//		dword[6] = context;
-//		dword[7] = 0xAABBCCDD;  // CRC
-//		//std::cout << "\tpack:\n";
-//		dump();
-//
-//	}
-//
-//	void unpack()
-//	{
-//		uint32_t *dword = (uint32_t *) hdr;
-//		rank = dword[4];
-//		tag = dword[5];
-//		context = dword[6];
-//		//std::cout << "\tunpack:\n";
-//		dump();
-//		//std::cout << "\tUnderstood rank as " << rank << "\n";
-//	}
-//
-//	struct iovec getIovec()
-//	{
-//		pack();
-//		struct iovec iov = { hdr, HeaderSize };
-//		return iov;
-//	}
-//};
-//
-//class Request
-//{
-//public:
-//	static constexpr size_t HeaderSize = (8 * 4);
-//protected:
-//	char hdr[HeaderSize];
-//public:
-//	Op op;
-//	int tag;
-//	int source;
-//	MPI_Comm comm;
-//	UserArray array;
-//	struct iovec temp;
-//	Endpoint endpoint;
-//	int stage;
-//	MPI_Status status; // maybe not needed --sf
-//
-//	std::promise<MPI_Status> completionPromise;
-//
-//	void pack()
-//	{
-//		uint16_t *word = (uint16_t *) hdr;
-//		uint32_t *dword = (uint32_t *) hdr;
-//		word[0] = 0xDEAF; // magic word
-//		word[1] = 22;  // protocol
-//		word[2] = 42;  // message type
-//		word[3] = 0x0; // function
-//		dword[2] = 0x0;  // align
-//		dword[3] = stage;  // align/reserved
-//		dword[4] = source;
-//		dword[5] = tag;
-//		dword[6] = comm; // context; not yet
-//		dword[7] = 0xAABBCCDD;  // CRC
-//	}
-//
-//	void unpack()
-//	{
-//		uint32_t *dword = (uint32_t *) hdr;
-//		stage = dword[3];
-//		source = dword[4];
-//		tag = dword[5];
-//		comm = dword[6];
-//	}
-//
-//	struct iovec getHeaderIovec()
-//	{
-//		pack();
-//		struct iovec iov = { hdr, HeaderSize };
-//		return iov;
-//	}
-//
-//	std::vector<struct iovec> getHeaderIovecs()
-//	{
-//		std::vector<struct iovec> iov;
-//		iov.push_back(getHeaderIovec());
-//		return iov;
-//	}
-//
-//	std::vector<struct iovec> getArrayIovecs()
-//	{
-//		std::vector<struct iovec> iov;
-//		iov.push_back(array.getIovec());
-//		return iov;
-//	}
-//
-//	std::vector<struct iovec> getIovecs()
-//	{
-//		std::vector<struct iovec> iov;
-//		iov.push_back(getHeaderIovec());
-//		iov.push_back(array.getIovec());
-//		return iov;
-//	}
-//
-//	std::vector<struct iovec> getTempIovecs()
-//	{
-//		std::vector<struct iovec> iov;
-//		iov.push_back(getHeaderIovec());
-//		char tempBuff[65000];
-//		temp.iov_base = tempBuff;
-//		temp.iov_len = sizeof(tempBuff);
-//		iov.push_back(temp);
-//		return iov;
-//	}
-//};
-
 void BasicProgress::addEndpoints()
 {
 	// read in size
@@ -216,11 +57,13 @@ void BasicProgress::sendThreadProc(bool *alive, AsyncQueue<Request> *outbox)
 
 		// send message to remote in this thread
 		exampi::transport->send(r->getIovecs(), r->endpoint.rank, 0);
+		debugpp("sendThread: sent message");
 		// TODO:  check that sending actually completed
 		r->completionPromise.set_value( { .count = 0, .cancelled = 0,
 			                              .MPI_SOURCE = r->source, .MPI_TAG = r->tag, .MPI_ERROR =
 			                                  MPI_SUCCESS });
 		// let r drop scope and die (unique_ptr)
+		debugpp("sendThread: completed message");
 	}
 }
 
@@ -233,23 +76,26 @@ void BasicProgress::matchThreadProc(bool *alive,
 
 	while (*alive)
 	{
+		debugpp("matchThread: before request");
+		// TODO this is a malloc!
 		std::unique_ptr<Request> r = make_unique<Request>();
-
 		debugpp("matchThread:  made request, about to peek...");
 
 		exampi::transport->peek(r->getHeaderIovecs(), 0);
+		debugpp("matchThread:  finished peeking");
 		r->unpack();
 
-		debugpp("matchThread:  received");
-		
+		debugpp("matchThread:  received, unexpectedlock locking");
 		unexpectedLock->lock();
+		debugpp("matchThread:  match lock locking");
 		matchLock->lock();
+		debugpp("matchThread:  locked everything");
 		int t = r->tag;
 		int s = r->source;
 		int c = r->comm;
 		int e = r->stage;
 
-		debugpp("context " << c);
+		debugpp("matchThread context " << c);
 
 		// search for match
 		auto result =
@@ -259,6 +105,7 @@ void BasicProgress::matchThreadProc(bool *alive,
 		// failed to find match
 		if (result == matchList->end())
 		{
+			//
 			matchLock->unlock();
 			debugpp("WARNING:  Failed to match incoming msg");
 
@@ -517,6 +364,8 @@ std::future<MPI_Status> BasicProgress::postRecv(UserArray array, Endpoint source
 	if (res == unexpectedList.end())
 	{
 		debugpp("NO match in unexpectedList, push");
+
+		// put request into match list for later matching
 		unexpectedLock.unlock();
 		matchList.push_back(std::move(r));
 		matchLock.unlock();

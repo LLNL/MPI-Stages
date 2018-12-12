@@ -6,14 +6,24 @@ namespace exampi
 
 BasicTransport::BasicTransport() 
 {
-	debugpp("transport port: " << std::string(std::getenv("EXAMPI_UDP_TRANSPORT_BASE")));
-	port = std::stoi(std::string(std::getenv("EXAMPI_UDP_TRANSPORT_BASE")));
+	// TODO this is a dirty hack to "fix" the problem of rank not being correctly initialized yet
+	// that is due to conversion from global to singletons
+	if(exampi::rank == -1)
+	{
+		exampi::rank = std::stoi(std::string(std::getenv("EXAMPI_RANK")));
+	}
+
+	debugpp("transport base_port: " << std::string(std::getenv("EXAMPI_UDP_TRANSPORT_BASE")));
+	base_port = std::stoi(std::string(std::getenv("EXAMPI_UDP_TRANSPORT_BASE")));
+	port = base_port + exampi::rank;
+
+	debugpp("transport ports: " << base_port << " " << port << " for rank " << exampi::rank);
 }
 
 void BasicTransport::init()
 {
-	debugpp("binding udp port " << this->port + exampi::rank);
-	recvSocket.bindPort(this->port + exampi::rank);
+	debugpp("binding udp port " << this->port);
+	recvSocket.bindPort(this->port);
 }
 
 void BasicTransport::init(std::istream &t)
@@ -30,11 +40,12 @@ size_t BasicTransport::addEndpoint(const int rank,
                                    const std::vector<std::string> &opts)
 {
 	debugpp("adding endpoint " << opts[0] << " " << opts[1]);
-	uint16_t port = std::stoi(opts[1]);
+	uint16_t rport = std::stoi(opts[1]);
 	// TODO:  see basic/udp.h; need move constructor to avoid copy here
-	Address addr(opts[0], port);
+	
+	Address addr(opts[0], rport);
 
-	debugpp("Transport add endpoint rank " << exampi::rank << " assigning " << rank << " to " << opts[0] << ":" << port);
+	debugpp("Transport add endpoint rank " << exampi::rank << " assigning " << rank << " to " << opts[0] << ":" << rport);
 
 	endpoints[rank] = addr;
 	return endpoints.size();
@@ -48,6 +59,7 @@ std::future<int> BasicTransport::send(std::vector<struct iovec> iov, int dest,
 	Socket s;
 	Message msg(iov);
 
+	//debugpp("basic::Transport::send: endpoints" << endpoints[dest]);
 	msg.send(s, endpoints[dest]);
 	return std::promise<int>().get_future();
 }
@@ -99,9 +111,12 @@ int BasicTransport::cleanUp(MPI_Comm comm)
 
 int BasicTransport::peek(std::vector<struct iovec> iov, MPI_Comm comm)
 {
+	debugpp("peek: msg.peek()");
+
 	Message msg(iov);
 	//msg.peek(recvSocket, tcpSock); /*For TCP transport*/
 	msg.peek(recvSocket);
+
 	return 0;
 }
 

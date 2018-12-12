@@ -1,5 +1,7 @@
 #include "interfaces/interface.h"
 
+#include "debug.h"
+
 namespace exampi
 {
 
