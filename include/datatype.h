@@ -11,35 +11,44 @@ class Datatype
 {
 protected:
 	const MPI_Datatype &mpiDatatype;
-	const size_t extent;
-	const bool associative;
-	const bool weakAssociative;
-	const bool commutative;
+	size_t extent;
+	bool associative;
+	bool weakAssociative;
+	bool commutative;
+
 public:
+	// TODO THIS IS A NULL REFERENCE
+	// TODO Why do we need this?
 	Datatype() : mpiDatatype(0), extent(0), associative(false),
 		weakAssociative(false), commutative(false) {;}
+
 	Datatype(const MPI_Datatype &dt, size_t ex, bool assoc, bool wassoc, bool comm)
 		: mpiDatatype(dt), extent(ex), associative(assoc), weakAssociative(wassoc),
 		  commutative(comm) {;}
+
 	virtual ~Datatype() {;}
 
-	const MPI_Datatype &getMpiDatatype() const
+	const MPI_Datatype& getMpiDatatype() const
 	{
 		return mpiDatatype;
 	}
-	const size_t getExtent() const
+
+	size_t getExtent() const
 	{
 		return extent;
 	}
-	const bool isAssociative() const
+
+	bool isAssociative() const
 	{
 		return associative;
 	}
-	const bool isWeakAssociative() const
+
+	bool isWeakAssociative() const
 	{
 		return weakAssociative;
 	}
-	const bool isCommutative() const
+
+	bool isCommutative() const
 	{
 		return commutative;
 	}
