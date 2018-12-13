@@ -18,7 +18,7 @@ bool sigHandler::setSignalToHandle(int sig)
 	return true;
 }
 
-void sigHandler::setSignal(int unused)
+void sigHandler::setSignal()
 {
 	is_signalSet = 1;
 }

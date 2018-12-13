@@ -13,7 +13,7 @@ public:
 
 	bool setSignalToHandle(int sig);
 	static int isSignalSet();
-	static void setSignal(int unused);
+	static void setSignal();
 	static void setSignalToZero();
 
 private:
