@@ -226,8 +226,10 @@ class HeadDaemon:
 
 if __name__ == '__main__':
 	# todo read from environment
-	daemon_port = 15325
-	mpi_base_port = 23354
+	daemon_port = int(os.environ["EXAMPI_DAEMON_PORT"])
+	mpi_base_port = int(os.environ["EXAMPI_MPI_BASE_PORT"])
+
+	print('head daemon port decision', daemon_port, mpi_base_port)
 
 	print('head daemon initializing', os.environ['EXAMPI_RANK'])
 

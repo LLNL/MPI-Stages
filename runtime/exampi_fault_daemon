@@ -105,8 +105,9 @@ def modify_environment(daemon_port, mpi_base_port, udp_transport_base):
 
 	# announce daemon socket port
 	env['EXAMPI_DAEMON_PORT'] = str(daemon_port)
-	env['EXAMPI_UDP_TRANSPORT_BASE'] = str(udp_transport_base)
+	env['EXAMPI_MPI_BASE_PORT'] = str(mpi_base_port)
 	env['EXAMPI_MPI_PORT'] = str(mpi_base_port + int(env['EXAMPI_RANK']))
+	env['EXAMPI_UDP_TRANSPORT_BASE'] = str(udp_transport_base)
 	
 	# write config file
 
@@ -208,9 +209,10 @@ def start_head_daemon(env):
 if __name__ == '__main__':
 	lookup_setup()
 
-	daemon_port = 15325
-	mpi_base_port = 23354
-	udp_transport_base = 33124
+	daemon_port = 14115
+	mpi_base_port = 22314
+	udp_transport_base = 32124
+	print('fault daemon ports decision', daemon_port, mpi_base_port, udp_transport_base)
 
 	# modify environment
 	environment = modify_environment(daemon_port, mpi_base_port, udp_transport_base)
