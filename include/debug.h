@@ -11,32 +11,32 @@ namespace exampi {
 #ifdef DEBUG
 extern std::mutex debug_mutex;
 
-// indent/level/thread info function for debug utility
-std::string debug_init();
+// indent/thread/location info function for debug utility
+std::string debug_init(const char* file, int line, const char*);
+
 void debug_add_thread(std::string);
+
+// are these useful?
+// use automatic indentation somehow? 
+// these would restrict code structure
+// exit specifically
 void debug_function_entry(std::string);
 void debug_function_exit();
 
 #endif
 
-// TODO rename this to debug once everything is wrapped, then sed to global replace
-//#define debugpp(msg) std::clog << debug_init() << msg << std::endl;
-
 #ifdef DEBUG
 
 #define debug_add_thread(name) debug_add_thread(name)
 
-#define debug_function_entry(name) debug_function_entry(name)  
-#define debug_function_exit() debug_function_exit()
-
-#define debugpp(msg) debug_mutex.lock(); std::clog << debug_init() << msg << std::endl << std::flush; debug_mutex.unlock();
+#define debugpp(msg) debug_mutex.lock(); \
+                     std::clog << debug_init(__FILE__, __LINE__,__PRETTY_FUNCTION__) \
+                     << msg << std::endl << std::flush; \
+                     debug_mutex.unlock();
 
 #else
 
 #define debug_add_thread(name)
-
-#define debug_function_init(name) 
-#define debug_function_exit() 
 
 #define debugpp(msg)
 

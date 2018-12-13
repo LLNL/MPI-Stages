@@ -9,12 +9,16 @@ namespace exampi {
 
 #ifdef DEBUG
 
-std::thread::id last_thread;
 std::mutex debug_mutex;
+std::thread::id last_thread;
+//std::thread::id main_thread_id = std::thread::get_id();
 
 thread_local std::string thread_name("undef");
-thread_local size_t thread_level = 0;
 thread_local std::stack<std::string> thread_function_stack;
+
+thread_local std::string last_file;
+thread_local std::string last_function;
+thread_local size_t func_depth = 0;
 
 size_t thread_counter = 0;
 
@@ -31,29 +35,17 @@ void debug_add_thread(std::string name)
 	thread_name = fullname.str();
 }
 
-void debug_function_entry(std::string name)
+std::string debug_init(const char* file, int line, const char* func)
 {
-	thread_level++;
-	thread_function_stack.push(name);
-	
-	// write to log
-	debugpp("function entry: " << name);
-}
+	std::string function(func);
 
-void debug_function_exit()
-{
-	std::string name = thread_function_stack.top();
-	thread_function_stack.pop();
+	last_function = function;
+	last_file = file;
 
-	// write to log
-	debugpp("function exit: " << name);
-
-	thread_level--;
-}
-
-std::string debug_init()
-{
 	// check for main thread at init
+	// TODO this should be in global space, that is the main
+	// THIS HAS TO BE MOVED
+	// TO GLOBAL IN DEBUG, this is the main thread
 	if(thread_counter == 0)
 	{
 		thread_counter++;
@@ -63,14 +55,36 @@ std::string debug_init()
 
 	std::stringstream stream;
 
+	// indent appropriately
+	for(size_t depth=0; depth < func_depth-1; ++depth)
+		stream << std::string("\t\|");
+	stream << std::string("\t");
+
 	// check for new line needed on thread switch
 	if(last_thread != std::this_thread::get_id()) {
 		last_thread = std::this_thread::get_id();
 	
-		stream << "\n";
+		stream << "\n" << thread_name << " " << file;
+		stream << "\n\t" << function;
+		stream << "\n\t\t" << line << ": ";
 	}
+	else if(last_function.compare(function) != 0) {
+		// this is the detection for level
+		func_depth++;
+		
+		stream << "\t" << function;
+		stream << "\n\t\t" << line << ": ";
+	}
+	else
+	{
+		stream << "\t\t" << line << ": ";
+	}	
 	
-	stream << std::string(thread_level, '\t') << thread_name;
+	//stream << std::string(thread_level, '\t') << thread_name;
+	//stream << thread_name << "[" << file << ":" <<  line << "]\n\t[" << function << "] ";
+	//stream << thread_name;
+	
+	//stream << line << ": ";
 
 	return stream.str();
 }
