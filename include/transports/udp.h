@@ -29,9 +29,11 @@ public:
 		addr.sin_port = htons(port);
 		addr.sin_addr.s_addr = INADDR_ANY;
 		if(bind(fd, (struct sockaddr *)&addr, sizeof(addr)) == -1)
+		{
 			// TODO needs errorcode!
 			std::cout << "WARNING:  Bind failed\n";
 			exit(234);
+		}
 	}
 	int getFd()
 	{
