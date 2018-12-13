@@ -4,6 +4,7 @@
 
 #include <sstream>
 #include <iostream>
+#include <cstdlib>
 
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -50,7 +51,11 @@ Daemon::Daemon()
 	this->local.sin_addr = *host;
 	// TODO check error code
 	//int err = bind(this->sock, (sockaddr *)&this->local, sizeof(this->local));
-	bind(this->sock, (sockaddr *)&this->local, sizeof(this->local));
+	int err = bind(this->sock, (sockaddr *)&this->local, sizeof(this->local));
+	if(err != 0)
+	{
+		exit(124);
+	}
 
 	// set recv timeout
 	struct timeval tv;
