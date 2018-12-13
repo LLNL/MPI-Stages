@@ -4,6 +4,8 @@
 #include <basic.h>
 #include <address.h>
 
+#include <cstdlib>
+
 namespace exampi
 {
 
@@ -29,6 +31,7 @@ public:
 		if(bind(fd, (struct sockaddr *)&addr, sizeof(addr)) == -1)
 			// TODO needs errorcode!
 			std::cout << "WARNING:  Bind failed\n";
+			exit(234);
 	}
 	int getFd()
 	{
