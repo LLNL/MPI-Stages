@@ -5,8 +5,6 @@ namespace exampi
 
 int Group::id = 0;
 
-Group::Group() {};
-
 Group::Group(std::list<int> processes) : process_list(processes),
 	group_id(id++) {}
 
