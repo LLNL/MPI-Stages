@@ -49,7 +49,6 @@ void BasicProgress::sendThreadProc(bool *alive, AsyncQueue<Request> *outbox)
 {
 	debug_add_thread("send");
 	debugpp("Launching sendThreadProc(...)");
-	//debug_function_entry("BasicProgress::sendThreadProc");
 
 	while (*alive)
 	{
@@ -66,8 +65,6 @@ void BasicProgress::sendThreadProc(bool *alive, AsyncQueue<Request> *outbox)
 		// let r drop scope and die (unique_ptr)
 		debugpp("sendThread: completed message");
 	}
-
-	debug_function_exit();
 }
 
 void BasicProgress::matchThreadProc(bool *alive,
@@ -76,7 +73,6 @@ void BasicProgress::matchThreadProc(bool *alive,
 	                        std::mutex *matchLock, std::mutex *unexpectedLock)
 {
 	debug_add_thread("match");
-	//debug_function_entry("BasicProgress::matchThreadProc");
 	debugpp("Launching matchThreadProc(...)");
 
 	while (*alive)
@@ -162,8 +158,6 @@ void BasicProgress::matchThreadProc(bool *alive,
 
 		//matchLock->unlock();
 	}
-
-	debug_function_exit();
 }
 
 int BasicProgress::init()
