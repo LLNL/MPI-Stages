@@ -1,5 +1,7 @@
 #include <sigHandler.h>
 
+#include "debug.h"
+
 namespace exampi
 {
 
@@ -18,8 +20,10 @@ bool sigHandler::setSignalToHandle(int sig)
 	return true;
 }
 
-void sigHandler::setSignal()
+void sigHandler::setSignal(int signal)
 {
+	debugpp("sigHandler::setSignal " << std::to_string(signal));
+
 	is_signalSet = 1;
 }
 

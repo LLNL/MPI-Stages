@@ -3,6 +3,8 @@
 
 #include <mutex>
 #include <string>
+#include <iostream>
+#include <sstream>
 
 namespace exampi {
 

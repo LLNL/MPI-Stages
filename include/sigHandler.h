@@ -12,8 +12,11 @@ public:
 	~sigHandler();
 
 	bool setSignalToHandle(int sig);
+
 	static int isSignalSet();
-	static void setSignal();
+
+	static void setSignal(int signal);
+
 	static void setSignalToZero();
 
 private:

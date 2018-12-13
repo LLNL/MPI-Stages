@@ -455,7 +455,9 @@ int BasicProgress::load(std::istream &t)
 	t.read(reinterpret_cast<char *>(&group_size), sizeof(int));
 	while(group_size)
 	{
+		// todo heap allocation
 		grp = new exampi::Group();
+
 		t.read(reinterpret_cast<char *>(&id), sizeof(int));
 		grp->set_group_id(id);
 		t.read(reinterpret_cast<char *>(&num_of_processes), sizeof(int));

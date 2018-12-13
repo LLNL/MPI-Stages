@@ -9,6 +9,7 @@ namespace exampi
 class Group
 {
 public:
+	Group();
 	Group(std::list<int> processes);
 
 	int get_group_id() const;
