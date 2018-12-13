@@ -5,7 +5,7 @@
 CXX ?= c++
 
 # flags
-CXXFLAGS += -Wall -Wextra -pedantic -Wmissing-prototypes -Wstrict-prototypes -Wold-style-definition 
+CXXFLAGS += -Wall -Wextra -pedantic 
 CXXFLAGS += -std=c++11 -g -pthread -DDEBUG
 LDFLAGS = 
 
