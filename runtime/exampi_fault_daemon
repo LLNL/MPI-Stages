@@ -156,36 +156,27 @@ def modify_environment(daemon_port, mpi_base_port, udp_transport_base):
 	return env
 
 def launch_application(environment):
-	# prepare stdout and stderr files
-	rank = int(environment['EXAMPI_RANK'])
-	job_id = int(environment['EXAMPI_JOB_ID'])
-
-	output_name = 'mpi.%i.%i.out' % (job_id, rank)
-	error_name = 'mpi.%i.%i.err' % (job_id, rank)
-
-	output_file = open(output_name, 'a')
-	error_file = open(error_name, 'a')
-
 	# launch application
 	command = sys.argv[1:]
 
 	print('fault_daemon launching:', command)
-	process = subprocess.Popen(command, env=environment, stdout=output_file, stderr=error_file)
+	process = subprocess.Popen(command, env=environment)
 
+def wait_application(process_application, process_head_daemon):
+	# define signal handler for sigint
 	def signal_handler_sigint(signal, frame):
-		print('fault daemon', environment['EXAMPI_RANK'], 'received', signal, 'closing open files')
-		process.send_signal(signal)
+		print('FAULT_DAEMON', environment['EXAMPI_RANK'], 'signal received', signal, 'forwarding to all child processes.')
+		process_application.send_signal(signal)
+		
+		if process_head_daemon is not None:
+			process_head_daemon.send_signal(signal)
 
-		output_file.close()
-		error_file.close()
+	# set signal handler
 	signal.signal(signal.SIGINT, signal_handler_sigint)
 
-	process.wait()
+	# wait for application
+	process_application.wait()
 	
-	# clean up file handles
-	output_file.close()
-	error_file.close()
-
 	return process.returncode
 
 def inform_head_daemon(code, daemon_port, env):
@@ -212,7 +203,7 @@ def inform_head_daemon(code, daemon_port, env):
 def start_head_daemon(env):
 	print('test head daemon viability', env['EXAMPI_LOCALID'], env['EXAMPI_RANK'])
 	if env['EXAMPI_LOCALID'] == '0':
-		print('fault daemon', env['EXAMPI_RANK'], ' launching head daemon')
+		print('fault daemon', env['EXAMPI_RANK'], 'launching head daemon')
 
 		command = ['exampi_head_daemon']
 
@@ -222,9 +213,10 @@ def start_head_daemon(env):
 if __name__ == '__main__':
 	lookup_setup()
 
-	daemon_port = 14115
-	mpi_base_port = 22314
-	udp_transport_base = 32124
+	# TODO read from system config
+	daemon_port = 16112
+	mpi_base_port = 27353
+	udp_transport_base = 37524
 	print('fault daemon ports decision', daemon_port, mpi_base_port, udp_transport_base)
 
 	# modify environment
@@ -233,16 +225,11 @@ if __name__ == '__main__':
 	# check if this daemon is node head daemon
 	head_daemon = start_head_daemon(environment)
 
-	# create signal handler
-	#TODO
-	#def signal_handler_sigint(signal, frame):
-	#	if head_daemon:
-	#		head_daemon.send_signal(signal)
-
-	#signal.signal(signal.SIGINT, signal_handler_sigint)
-
 	# launch application process	
-	returncode = launch_application(environment)
+	process_application = launch_application(environment)
+
+	# wait
+	returncode = wait_application(process_application, head_daemon)
 
 	# resolve
 	returncode = inform_head_daemon(returncode, daemon_port, environment)
