@@ -1,11 +1,14 @@
 #!/usr/bin/env python2
 
+from __future__ import print_function
+
 import os
 import sys
 import copy
 import tempfile
 import subprocess
 import socket
+import signal
 
 def prefix_sum(array):
 	out = []
@@ -168,6 +171,15 @@ def launch_application(environment):
 
 	print('fault_daemon launching:', command)
 	process = subprocess.Popen(command, env=environment, stdout=output_file, stderr=error_file)
+
+	def signal_handler_sigint(signal, frame):
+		print('fault daemon', environment['EXAMPI_RANK'], 'received', signal, 'closing open files')
+		process.send_signal(signal)
+
+		output_file.close()
+		error_file.close()
+	signal.signal(signal.SIGINT, signal_handler_sigint)
+
 	process.wait()
 	
 	# clean up file handles
@@ -178,6 +190,7 @@ def launch_application(environment):
 
 def inform_head_daemon(code, daemon_port, env):
 	sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+	# TODO will need to bind to receive
 
 	hostname = socket.gethostname()
 	host = socket.gethostbyname(hostname)
@@ -205,7 +218,7 @@ def start_head_daemon(env):
 
 		head_daemon = subprocess.Popen(command, env=env)
 		return head_daemon
-	
+
 if __name__ == '__main__':
 	lookup_setup()
 
@@ -216,9 +229,17 @@ if __name__ == '__main__':
 
 	# modify environment
 	environment = modify_environment(daemon_port, mpi_base_port, udp_transport_base)
-
+	
 	# check if this daemon is node head daemon
 	head_daemon = start_head_daemon(environment)
+
+	# create signal handler
+	#TODO
+	#def signal_handler_sigint(signal, frame):
+	#	if head_daemon:
+	#		head_daemon.send_signal(signal)
+
+	#signal.signal(signal.SIGINT, signal_handler_sigint)
 
 	# launch application process	
 	returncode = launch_application(environment)

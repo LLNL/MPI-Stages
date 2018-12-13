@@ -3,6 +3,8 @@
 # this daemon is in charge of communication between it and application instances
 # and other head daemons in the job
 
+from __future__ import print_function
+
 import os
 import sys
 import copy
@@ -63,7 +65,7 @@ class HeadDaemon:
 		# create socket
 		self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		self.sock.bind((socket.gethostname(), daemon_port))
-
+			
 		# local data
 		self.mpi_base_port = mpi_base_port
 		self.rank_waiting_set = set()
@@ -231,7 +233,7 @@ if __name__ == '__main__':
 
 	print('head daemon port decision', daemon_port, mpi_base_port)
 
-	print('head daemon initializing', os.environ['EXAMPI_RANK'])
+	print('head daemon initializing on', socket.gethostname())
 
 	#
 	daemon = HeadDaemon(daemon_port, mpi_base_port)
