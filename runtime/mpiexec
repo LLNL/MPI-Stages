@@ -2,112 +2,127 @@
 
 from __future__ import print_function
 
-import sys
 import os
-import re
 import argparse
 import subprocess
-import time
 import signal
 import copy
+import logging
 
-def run_local(arguments):
-	# act as srun
-	processes = []
+class RuntimeHandler:
+	def __init__(self):
+		self.detect_environment()
 
-	for rank in xrange(arguments.n):
+		logname = 'mpiexec' + str(self.job_id) + '.log'
+		logging.basicConfig(filename=logname, local=logging.DEBUG)
+
+	def detect_environment(self):
+		if os.environ.get('SLURM_JOB_ID'):
+			self.runtime = 'slurm'
+			self.job_id = int(os.environ['SLURM_JOB_ID'])
+		
+		# fallback onto local
+		else:
+			self.runtime = 'local'
+			self.job_id = int(os.getpid())
+
+		logging.info('detected runtime: ' + self.runtime + ' job_id ' + str(self.job_id))
+
+	def launch(self, arguments):
+		# TODO check if executable is valid, if not try local directory appending
+
+		# NOTE could replace with dictionary
+		# runtimes[self.runtime](arguments)
+		if self.runtime == 'slurm':
+			self.run_slurm(arguments)
+
+		elif self.runtime == 'local':
+			self.run_local(arguments)
+		
+		else:
+			raise ValueError
+
+	def launch_local(self, arguments):
+		# act as srun
+		processes = []
+
 		env = dict(copy.deepcopy(os.environ))
-
 		env['EXAMPI_ENV'] = 'local'
 		env['EXAMPI_LOCALID'] = str(rank)
 		env['EXAMPI_RANK'] = str(rank)
 		env['EXAMPI_JOB_ID'] = str(os.getpid())
 		env['EXAMPI_WORLD_SIZE'] = str(arguments.n)
 
-		command = ['exampi_fault_daemon']
+		for rank in xrange(arguments.n):
+			command = ['exampi_fault_daemon']
+			command.extend(arguments.program)
+		
+			logging.info('mpiexec launching ' + str(command))
+		
+			process = subprocess.Popen(command, env=env)
+			processes.append(process)
+			logging.info('started process ' + str(process.pid))
+
+		def wait_processes():
+			for process in processes:
+				process.wait()
+
+		# create signal handler
+		def signal_handler(signal, frame):
+			logging.warning('mpiexec received signal' + str(signal))
+
+			# forward signal to all processes
+			for process in processes:
+				process.send_signal(signal)
+
+			logging.info('sent signal to all child processes.')
+
+			# wait for processes to end
+			wait_processes()
+
+			logging.info('waited for all child processes to die')
+
+		signal.signal(signal.SIGINT, signal_handler)
+		logging.info('set signal handler')
+		
+		# without signal wait for processes
+		wait_processes()
+		logging.info('waited for all child processes to die')
+
+		self.errorcode = max(process.returncode for process in processes)
+		logging.info('local return code: ' + str(self.errorcode))
+
+	def launch_slurm(self, arguments):
+		command = ['srun']
+		command.append('exampi_fault_daemon')
 		command.extend(arguments.program)
 
-		print('mpiexec launching:', command)
-	
-		# TODO add single file output combined with STDOUT AND STDERR
-		
+		# declare EXAMPI_ENV
+		env = dict(copy.deepcopy(os.environ))
+		env['EXAMPI_ENV'] = 'slurm'
+
+		logging.info('srun command:' + str(command))
+			
+		# launch srun process
 		process = subprocess.Popen(command, env=env)
-		processes.append(process)
+		process.wait()
 
-	def wait_processes():
-		for process in processes:
-			process.wait()
+		self.errorcode = process.returncode
+		logging.info('srun return code: ' + str(self.errorcode))
 
-	# create signal handler
-	def signal_handler(signal, frame):
-		print('MPIEXEC signal received', signal, 'forwarding to all child processes.')
-
-		# forward signal to all processes
-		for process in processes:
-			process.send_signal(signal)
-
-		# wait for processes to end
-		wait_processes()
-
-	signal.signal(signal.SIGINT, signal_handler)
-	
-	# without signal wait for processes
-	wait_processes()
-
-def run_slurm(arguments):
-	command = ['srun']
-	command.append('exampi_fault_daemon')
-	command.extend(arguments.program)
-	
-	# declare EXAMPI_ENV
-	env = dict(copy.deepcopy(os.environ))
-	env['EXAMPI_ENV'] = 'slurm'
-
-	print('srun command:', command)
-		
-	process = subprocess.Popen(command, env=env)
-	return process.wait()
-
-# poor mans Enum
-class Scheduler:
-	local = 0
-	slurm = 1
-
-def detect_scheduler():
-	if os.environ.get('SLURM_JOB_ID'):
-		return Scheduler.slurm
-
-	else:
-		# fallback onto local
-		return Scheduler.local 
-	
 def parse_arguments():
 	# command line argument parsing
 	parser = argparse.ArgumentParser(description="ExaMPI Process Initiator")
 
-	parser.add_argument('-n', metavar='<numprocs>', type=int, required=True)
+	parser.add_argument('-n', metavar='<numprocs>', type=int)
 	parser.add_argument('-d', default=False, metavar='<dirty>', type=str)
 	parser.add_argument('program', metavar='<program>', type=str, nargs=argparse.REMAINDER)
 
 	return parser.parse_args()
 
-def execute_runtime(schedule, arguments):
-	if scheduler is Scheduler.slurm:
-		run_slurm(arguments)
-
-	elif scheduler is Scheduler.local:
-		run_local(arguments)
-	
-	else:
-		raise ValueError
-
 if __name__ == '__main__':
 	# prase command line arguments
 	arguments = parse_arguments()
 
-	# detect scheduler
-	scheduler = detect_scheduler()
-	print('Detected scheduler:', scheduler)
-
-	# run scheduler appropriate runtime
-	execute_runtime(scheduler, arguments)
+	handler = RuntimeHandler()
+	handler.launch(arguments)
