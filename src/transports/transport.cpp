@@ -6,6 +6,8 @@ namespace exampi
 
 BasicTransport::BasicTransport() 
 {
+	debugpp("library begins here");
+
 	// TODO this is a dirty hack to "fix" the problem of rank not being correctly initialized yet
 	// that is due to conversion from global to singletons
 	if(exampi::rank == -1)
