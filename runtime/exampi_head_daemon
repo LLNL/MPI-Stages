@@ -64,7 +64,11 @@ class HeadDaemon:
 
 		# create socket
 		self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+		self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 		self.sock.bind((socket.gethostname(), daemon_port))
+
+		# create signal handler
+		signal.signal(signal.SIGINT, self.signal_handler)
 			
 		# local data
 		self.mpi_base_port = mpi_base_port
@@ -83,7 +87,15 @@ class HeadDaemon:
 		self.prepare_lookup()
 
 	def __del__(self):
+		if self.sock is not None:
+			self.sock.close()
+
+	def signal_handler(self, signal, frame):
+		print("HEAD DAEMON signal received")
+		self.shutdown = True
+
 		self.sock.close()
+		self.sock = None
 
 	def prepare_lookup(self):
 		if os.environ['EXAMPI_ENV'] == 'local':
@@ -124,7 +136,7 @@ class HeadDaemon:
 		else:
 			raise NotImplementedError
 
-	def loop(self):
+	def launch(self):
 		while not self.shutdown:
 			# receive 64B message
 			data, addr = self.sock.recvfrom(64)	
@@ -177,8 +189,6 @@ class HeadDaemon:
 		# check error code
 		if int(errorcode) == 0:
 			self.rank_done_set.add(rank)
-
-		# TODO
 
 		# exit once all local have completed
 		if len(self.rank_done_set) == self.local_rank_count:
@@ -237,4 +247,4 @@ if __name__ == '__main__':
 
 	#
 	daemon = HeadDaemon(daemon_port, mpi_base_port)
-	daemon.loop()
+	daemon.launch()

@@ -82,165 +82,192 @@ def lookup_rank(rank):
 				if rank < bound:
 					return nodelist[idx]
 
-def modify_environment(daemon_port, mpi_base_port, udp_transport_base):
-	env = dict(copy.deepcopy(os.environ))
+class FaultDaemon:
+	def __init__(self, daemon_port, mpi_base_port, udp_transport_base):
+		self.daemon_port = daemon_port
+		self.mpi_base_port = mpi_base_port
+		self.udp_transport_base = udp_transport_base
+		self.epoch = 0
+		self.head_daemon = None
 
-	# announce proper launch	
-	env['EXAMPI_MONITORED'] = 'TRUE'
+		self.setup_environment()
+		self.setup_file_handles()
+		self.write_configuration()
+		self.write_epoch()
 
-	if env['EXAMPI_ENV'] == 'slurm':
-		#
-		env['EXAMPI_LOCALID'] = str(env['SLURM_LOCALID'])
-		env['EXAMPI_JOB_ID'] = str(env['SLURM_JOB_ID'])
+		# TODO setup signal handler
 
-		# application MPI rank
-		rank = int(env['SLURM_PROCID'])
-		job_id = int(env['SLURM_JOB_ID'])
-		worldsize = int(env['SLURM_NTASKS'])
+	def __del__(self):
+		# finalize sub process
+		self.process.wait()
 
-		env['EXAMPI_RANK'] = str(rank)
+		# close sub process file handles
+		self.output_file.close()
+		self.error_file.close()
+		self.config_file.close()
+		self.epoch_file.close()
+
+		# TODO delete config and epoch files
+
+		# terminate head daemon
+		if self.head_daemon is not None:
+			self.head_daemon.terminate()
+			self.head_daemon.wait()
+
+			# close head daemon file handles
+			self.hd_output_file.close()
+			self.hd_error_file.close()
+
+	def setup_file_handles(self):
+		rank = os.environ['EXAMPI_RANK']
+		job_id = os.environ['EXAMPI_JOB_ID']
+	
+		# create temporary files
+		suffix = '.' + str(self.job_id) + '.' + str(self.rank)
+
+		self.config_file = tempfile.NamedTemporaryFile(mode='w', delete=False, suffix=suffix) 
+		self.epoch_file = tempfile.NamedTemporaryFile(mode='w', delete=False, suffix=suffix)
+
+		self.sub_env['EXAMPI_CONFIG_FILE'] = self.config_file.name
+		self.sub_env['EXAMPI_EPOCH_FILE'] = self.epoch_file.name
+
+		# create full output file
+		output_name = 'mpi.' + rank + '.o' + job_id
+		self.output_file = open(output_name, 'a') 
+
+		# create full error file
+		error_name = 'mpi.' + rank + '.e' + job_id
+		self.error_file = open(error_name, 'a') 
+
+		# TODO do we need to close these so that the process can write to them?
+	
+	def setup_environment(self):
+		# copy general environment
+		self.sub_env = dict(copy.deepcopy(os.environ))
+
+		# announce proper launch	
+		self.sub_env['EXAMPI_MONITORED'] = 'TRUE'
+
+		# change environment depending on scheduler
+		if self.sub_env['EXAMPI_ENV'] == 'slurm':
+			# application MPI rank
+			self.rank = int(self.sub_env['SLURM_PROCID'])
+			self.job_id = int(self.sub_env['SLURM_JOB_ID'])
+			self.world_size = int(self.sub_env['SLURM_NTASKS'])
+
+			self.sub_env['EXAMPI_RANK'] = str(self.rank)
+			self.sub_env['EXAMPI_WORLD_SIZE'] = self.sub_env['SLURM_NTASKS']
+			self.sub_env['EXAMPI_JOB_ID'] = str(self.sub_env['SLURM_JOB_ID'])
+			self.sub_env['EXAMPI_LOCALID'] = str(self.sub_env['SLURM_LOCALID'])
+			
+		else: # local
+			self.rank = int(self.sub_env['EXAMPI_RANK'])
+			self.job_id = int(self.sub_env['EXAMPI_JOB_ID'])
+			self.world_size = int(self.sub_env['EXAMPI_WORLD_SIZE'])
+
+		# announce daemon socket port
+		self.sub_env['EXAMPI_DAEMON_PORT'] = str(self.daemon_port)
+		self.sub_env['EXAMPI_MPI_BASE_PORT'] = str(self.mpi_base_port)
+		self.sub_env['EXAMPI_MPI_PORT'] = str(self.mpi_base_port + self.rank) 
+		self.sub_env['EXAMPI_UDP_TRANSPORT_BASE'] = str(self.udp_transport_base)
+		# TODO remove pid, should not be needed
+		self.sub_env['EXAMPI_DAEMON_PID'] = str(os.getpid())
+		self.sub_env['EXAMPI_EPOCH'] = str(self.epoch)
+
+		# remove any keys with SLURM association
+		# from here on we are in EXAMPI territory
+		for key in self.sub_env.keys():
+			if 'SLURM' in key:
+				del self.sub_env[key]
+
+	def write_epoch(self):
+		# TODO could this be handled with a socket?
+		self.epoch_file.write(str(self.epoch))
+		self.epoch_file.close()
+
+	def write_configuration(self):
+		config = 'ppid:' + str(os.getpid()) + '\n'
+		config += 'size:' + self.sub_env['EXAMPI_WORLD_SIZE'] + '\n'
 		
-	else:
-		# local
-		rank = int(env['EXAMPI_RANK'])
-		job_id = int(env['EXAMPI_JOB_ID'])
-		worldsize = int(env['EXAMPI_WORLD_SIZE'])
+		# static connection building
+		# TODO convert to dynamic connection building through socket callback to head daemon
+		for irank in xrange(self.world_size):
+			hostname = lookup_rank(irank) 
+			ip = socket.gethostbyname(hostname)
+			config += str(irank) + ':' + ip + ':' + str(self.daemon_port) + ':' + str(self.udp_transport_base + irank) + '\n'
 
-	# announce daemon socket port
-	env['EXAMPI_DAEMON_PORT'] = str(daemon_port)
-	env['EXAMPI_MPI_BASE_PORT'] = str(mpi_base_port)
-	env['EXAMPI_MPI_PORT'] = str(mpi_base_port + int(env['EXAMPI_RANK']))
-	env['EXAMPI_UDP_TRANSPORT_BASE'] = str(udp_transport_base)
-	
-	# write config file
+		self.config_file.write(config)
+		self.config_file.close()
 
-	# TODO these both should be environment variables if needed at all
-	config	= 'ppid:' + str(os.getpid()) + '\n'
-	config += 'size:' + str(worldsize) + '\n'
-	
-	# TODO don't do this, this is static connection building
-	# should at the very least be a runtime option
-	# TODO this should be done through a runtime request throguh daemon sockets
-	# TODO ask them which node that process lives on?
-	for irank in xrange(worldsize):
-		hostname = lookup_rank(irank) 
-		print(irank, hostname)
-		# TODO hostname -> ip
-		ip = socket.gethostbyname(hostname)
-		config += str(irank) + ':' + ip + ':' + str(daemon_port) + ':' + str(udp_transport_base + irank) + '\n'
+	def launch_head_daemon(self):
+		if int(self.sub_env['EXAMPI_LOCALID']) == 0:
+			print('fault daemon', self.sub_env['EXAMPI_RANK'], 'launching head daemon')
 
-	# TODO tmp
-	print(config)
-	sys.stdout.flush()
-	
-	with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='_'+str(job_id)+'_'+str(rank)) as config_file:
-		env['EXAMPI_CONFIG_FILE'] = config_file.name
+			output_name = 'mpi.hd.o' + str(self.job_id)
+			self.hd_output_file = open(output_name, 'a')
+			
+			error_name = 'mpi.hd.e' + str(self.job_id)
+			self.hd_error_file = open(error_name, 'a')
+
+			command = ['exampi_head_daemon']
+
+			self.head_daemon = subprocess.Popen(command, env=self.sub_env, stdout=self.hd_output_file, stderr=self.hd_error_file)
+
+	def inform_head_daemon(self):
+		sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+		hostname = socket.gethostname()
+		host = socket.gethostbyname(hostname)
+
+		# todo need to bind to port
+
+		msg = 'termination ' + str(env['EXAMPI_RANK']) + ' ' + str(code)
+		msg = msg.ljust(64)
+		msg = msg.encode('utf-8')
+
+		sock.sendto(msg, (host, daemon_port))
 		
-		config_file.write(config)
-	print('config file:', env['EXAMPI_CONFIG_FILE'])
-	
-	# write config variables to environment
-	# TODO do we need PID?
-	env['EXAMPI_DAEMON_PID'] = str(os.getpid())
-	env['EXAMPI_WORLD_SIZE'] = str(worldsize)
-
-	# application epoch
-	epoch = 0
-	env['EXAMPI_EPOCH'] = str(epoch)
-
-	# write epoch file
-	with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='_'+str(job_id)+'_'+str(rank)) as epoch_file:
-		env['EXAMPI_EPOCH_FILE'] = epoch_file.name
-		epoch_file.write(str(epoch))
-
-	return env
-
-def launch_application(environment):
-	# launch application
-	command = sys.argv[1:]
-
-	print('fault_daemon launching:', command)
-	process = subprocess.Popen(command, env=environment)
-
-def wait_application(process_application, process_head_daemon):
-	# define signal handler for sigint
-	def signal_handler_sigint(signal, frame):
-		print('FAULT_DAEMON', environment['EXAMPI_RANK'], 'signal received', signal, 'forwarding to all child processes.')
-		process_application.send_signal(signal)
+		# potentially relaunch application
+		# TODO MPI STAGES
 		
-		if process_head_daemon is not None:
-			process_head_daemon.send_signal(signal)
+		sock.close()
+		return code
 
-	# set signal handler
-	signal.signal(signal.SIGINT, signal_handler_sigint)
+	def launch(self):
+		# launch head daemon if required
+		self.launch_head_daemon()
 
-	# wait for application
-	process_application.wait()
-	
-	return process.returncode
+		# launch command
+		command = sys.argv[1:]
+		self.process = subprocess.Popen(command, env=self.sub_env, stdout=self.output_file, stderr=self.error_file)
+		self.process.wait()
 
-def inform_head_daemon(code, daemon_port, env):
-	sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-	# TODO will need to bind to receive
+		# TODO inform head daemon
 
-	hostname = socket.gethostname()
-	host = socket.gethostbyname(hostname)
+	def setup_signal_handler(self):
+		raise NotImplementedError
 
-	# todo need to bind to port
+	def signal_handler(self, signal, frame):
+		raise NotImplementedError
+		#print('FAULT_DAEMON', environment['EXAMPI_RANK'], 'signal received', signal, 'forwarding to all child processes.')
+		#	process.send_signal(signal)
 
-	msg = 'termination ' + str(env['EXAMPI_RANK']) + ' ' + str(code)
-	msg = msg.ljust(64)
-	msg = msg.encode('utf-8')
+		#	if head_daemon is not None:
+		#		head_daemon.send_signal(signal)
 
-	sock.sendto(msg, (host, daemon_port))
-	
-	# potentially relaunch application
-	# TODO
-	
-	sock.close()
-	return code
-
-def start_head_daemon(env):
-	print('test head daemon viability', env['EXAMPI_LOCALID'], env['EXAMPI_RANK'])
-	if env['EXAMPI_LOCALID'] == '0':
-		print('fault daemon', env['EXAMPI_RANK'], 'launching head daemon')
-
-		command = ['exampi_head_daemon']
-
-		head_daemon = subprocess.Popen(command, env=env)
-		return head_daemon
 
 if __name__ == '__main__':
 	lookup_setup()
 
 	# TODO read from system config
-	daemon_port = 16112
-	mpi_base_port = 27353
-	udp_transport_base = 37524
+	daemon_port = 12452
+	mpi_base_port = 23353
+	udp_transport_base = 34524
 	print('fault daemon ports decision', daemon_port, mpi_base_port, udp_transport_base)
 
-	# modify environment
-	environment = modify_environment(daemon_port, mpi_base_port, udp_transport_base)
-	
-	# check if this daemon is node head daemon
-	head_daemon = start_head_daemon(environment)
+	# fault daemon
+	daemon = FaultDaemon(daemon_port, mpi_base_port, udp_transport_base)
+	daemon.launch()	
 
-	# launch application process	
-	process_application = launch_application(environment)
-
-	# wait
-	returncode = wait_application(process_application, head_daemon)
-
-	# resolve
-	returncode = inform_head_daemon(returncode, daemon_port, environment)
-	
-	# we this fault daemon launch the head daemon
-	if head_daemon is not None:
-		head_daemon.wait()
-	
-	# delete config file
-	# TODO
-	
-	# propagate error code
-	print('fault daemon', environment['EXAMPI_RANK'], 'exiting')
-	sys.exit(returncode)
+	# return error code
+	sys.exit(daemon.process.returncode)
