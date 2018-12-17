@@ -90,8 +90,8 @@ class FaultDaemon:
 		self.setup_environment()
 
 		logname = 'mpi_fault_daemon_' + str(self.sub_env['EXAMPI_RANK']) + '.log'
-		logging.basicConfig(filename = logname, level=logging.DEBUG)
-		logging.info('fault daemon initialing')
+		#logging.basicConfig(filename = logname, level=logging.DEBUG)
+		#logging.info('fault daemon initialing')
 
 		self.setup_file_handles()
 		self.write_configuration()
@@ -100,7 +100,7 @@ class FaultDaemon:
 		# TODO setup signal handler
 
 	def __del__(self):
-		logging.info('fault daemon shutting down')
+		#logging.info('fault daemon shutting down')
 
 		# finalize sub process
 		self.process.wait()
@@ -115,11 +115,11 @@ class FaultDaemon:
 
 		# terminate head daemon
 		if self.head_daemon is not None:
-			logging.info('shutting down head daemon')
+			#logging.info('shutting down head daemon')
 			self.head_daemon.terminate()
 			self.head_daemon.wait()
 
-		logging.info('shut down complete')
+		#logging.info('shut down complete')
 
 	def setup_file_handles(self):
 		rank = self.sub_env['EXAMPI_RANK']
@@ -229,7 +229,7 @@ class FaultDaemon:
 
 	def launch_head_daemon(self):
 		if int(self.sub_env['EXAMPI_LOCALID']) == 0:
-			logging.info('fault daemon ' + self.sub_env['EXAMPI_RANK'] + ' launching head daemon')
+			#logging.info('fault daemon ' + self.sub_env['EXAMPI_RANK'] + ' launching head daemon')
 
 			command = ['exampi_head_daemon']
 			self.head_daemon = subprocess.Popen(command, env=self.sub_env)

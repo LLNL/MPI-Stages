@@ -59,7 +59,7 @@ import logging
 class HeadDaemon:
 	def __init__(self, daemon_port, mpi_base_port):
 		logname = 'mpi_head_daemon_' + str(os.environ['EXAMPI_RANK']) + '.log'
-		logging.basicConfig(filename=logname, level=logging.DEBUG)
+		#logging.basicConfig(filename=logname, level=logging.DEBUG)
 
 		self.daemon_port = daemon_port
 		self.shutdown = False
@@ -72,11 +72,11 @@ class HeadDaemon:
 		self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
 		self.sock.bind((socket.gethostname(), daemon_port))
-		logging.info('socket bound on ' + str(socket.gethostname()) + ' ' + str(socket.gethostbyname(socket.gethostname())) + ' ' + str(self.daemon_port))
+		#logging.info('socket bound on ' + str(socket.gethostname()) + ' ' + str(socket.gethostbyname(socket.gethostname())) + ' ' + str(self.daemon_port))
 
 		# create signal handler
 		signal.signal(signal.SIGINT, self.signal_handler)
-		logging.info('set up signal handler')
+		#logging.info('set up signal handler')
 			
 		# local data
 		self.mpi_base_port = mpi_base_port
@@ -96,13 +96,13 @@ class HeadDaemon:
 		self.prepare_lookup()
 
 	def __del__(self):
-		logging.info('shutting down socket')
+		#logging.info('shutting down socket')
 		if self.sock is not None:
 			self.sock.close()
-		logging.info('shutting down')
+		#logging.info('shutting down')
 
 	def signal_handler(self, signal, frame):
-		logging.warning("HEAD DAEMON signal received " + str(signal))
+		#logging.warning("HEAD DAEMON signal received " + str(signal))
 		self.shutdown = True
 
 		self.sock.close()
@@ -154,7 +154,7 @@ class HeadDaemon:
 			data = data.decode('utf-8').replace('\0','')
 			msg = data.split()[0]
 
-			logging.info('received ' + str(msg) + ' from ' + str(addr))
+			#logging.info('received ' + str(msg) + ' from ' + str(addr))
 
 			# process message
 			if   msg == 'barrier':
@@ -178,19 +178,19 @@ class HeadDaemon:
 				self.process_global_error(data)
 
 			else:
-				logging.error('head daemon: unrecognized protocol message ' + str(data))
+				#logging.error('head daemon: unrecognized protocol message ' + str(data))
 				raise ValueError
 
 	def process_barrier(self, data):
 		msg, rank, pid = data.split()
-		logging.info('head daemon: barrier ' + str(msg)+ ' ' + str(rank) + ' ' + str(pid))
+		#logging.info('head daemon: barrier ' + str(msg)+ ' ' + str(rank) + ' ' + str(pid))
 
 		# register rank for barrier 
 		self.rank_waiting_set.add(rank)
 		
 		# check if all local ranks are waiting
 		if self.barrier_unannounced and len(self.rank_waiting_set) == self.local_rank_count:
-			logging.info('head daemon sending global barrier to root')
+			#logging.info('head daemon sending global barrier to root')
 
 			self.barrier_unannounced = False
 
@@ -200,7 +200,7 @@ class HeadDaemon:
 
 	def process_termination(self, data, addr):
 		msg, rank, errorcode = data.split()
-		logging.info('head daemon: ' + msg + ' ' + str(rank) + ' ' + str(errorcode))
+		#logging.info('head daemon: ' + msg + ' ' + str(rank) + ' ' + str(errorcode))
 
 		# check error code
 		if int(errorcode) == 0:
@@ -209,7 +209,7 @@ class HeadDaemon:
 		# exit once all local have completed
 		if len(self.rank_done_set) == self.local_rank_count:
 			# todo send global shutdown request
-			logging.info('head daemon: completed all local ranks ' + socket.gethostname())
+			#logging.info('head daemon: completed all local ranks ' + socket.gethostname())
 			self.shutdown = True
 		
 	def process_rank_lookup(self):
@@ -222,35 +222,35 @@ class HeadDaemon:
 
 	def process_global_barrier(self, data):
 		msg, nodename = data.split()
-		logging.info('head daemon: ' + str(msg) + ' ' + str(nodename))
+		#logging.info('head daemon: ' + str(msg) + ' ' + str(nodename))
 
 		# register, if all, then send release messages
 		self.node_waiting_set.add(nodename.replace('\0',''))
-		logging.info('present nodes ' + str(self.node_waiting_set))
+		#logging.info('present nodes ' + str(self.node_waiting_set))
 
-		logging.info('checking ' + str(len(self.node_waiting_set)) + ' == ' + str(self.global_node_count))
+		#logging.info('checking ' + str(len(self.node_waiting_set)) + ' == ' + str(self.global_node_count))
 		if len(self.node_waiting_set) == self.global_node_count:
-			logging.info('sending global release')
+			#logging.info('sending global release')
 			# send node release messages
 			for node in self.node_waiting_set:
 				msg = 'global_release\0'.ljust(64).encode('utf-8')
 				
 				host = socket.gethostbyname(node)
-				logging.info('send global release to ' + host + ' ' + node)
+				#logging.info('send global release to ' + host + ' ' + node)
 				self.sock.sendto(msg, (host, self.daemon_port))
 	
 	def process_global_release(self):
-		logging.info('head daemon: global release')
+		#logging.info('head daemon: global release')
 
 		# forward release to all ranks
-		logging.info('present ranks ' + str(self.rank_waiting_set))
+		#logging.info('present ranks ' + str(self.rank_waiting_set))
 		for rank in self.rank_waiting_set:
 			msg = 'release\0'.ljust(64).encode('utf-8')
 
 			# todo local port should use local id instead of global id
 			host = socket.gethostbyname(socket.gethostname())
 			self.sock.sendto(msg, (host, self.mpi_base_port + int(rank)))
-			logging.info('sent release to ' + str(rank))
+			#logging.info('sent release to ' + str(rank))
 
 	def process_global_error(self, data):
 		# TODO inform all ranks of error
