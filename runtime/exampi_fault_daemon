@@ -203,13 +203,6 @@ class FaultDaemon:
 		self.config_file.write(config)
 		self.config_file.close()
 
-	def launch_head_daemon(self):
-		if int(self.sub_env['EXAMPI_LOCALID']) == 0:
-			logging.info('fault daemon ' + self.sub_env['EXAMPI_RANK'] + ' launching head daemon')
-
-			command = ['exampi_head_daemon']
-			self.head_daemon = subprocess.Popen(command, env=self.sub_env)
-
 	def inform_head_daemon(self):
 		sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
@@ -234,13 +227,22 @@ class FaultDaemon:
 		sock.close()
 		return code
 
+	def launch_head_daemon(self):
+		if int(self.sub_env['EXAMPI_LOCALID']) == 0:
+			logging.info('fault daemon ' + self.sub_env['EXAMPI_RANK'] + ' launching head daemon')
+
+			command = ['exampi_head_daemon']
+			self.head_daemon = subprocess.Popen(command, env=self.sub_env)
+
 	def launch(self):
 		# launch head daemon if required
 		self.launch_head_daemon()
 
 		# launch command
 		command = sys.argv[1:]
-		self.process = subprocess.Popen(command, env=self.sub_env, stdout=self.output_file, stderr=self.error_file)
+		#self.process = subprocess.Popen(command, env=self.sub_env, stdout=self.output_file, stderr=self.error_file)
+		# print everything out to single file
+		self.process = subprocess.Popen(command, env=self.sub_env)
 		self.process.wait()
 
 		# TODO inform head daemon
