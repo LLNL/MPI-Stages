@@ -1,7 +1,6 @@
 #! /usr/bin/env python2
 
-from __future__ import print_function
-
+import sys
 import os
 import argparse
 import subprocess
@@ -13,8 +12,11 @@ class RuntimeHandler:
 	def __init__(self):
 		self.detect_environment()
 
-		logname = 'mpiexec' + str(self.job_id) + '.log'
-		logging.basicConfig(filename=logname, local=logging.DEBUG)
+		logname = 'mpiexec_' + str(self.job_id) + '.log'
+
+		for handler in logging.root.handlers[:]:
+		    logging.root.removeHandler(handler)
+		logging.basicConfig(filename=logname, level=logging.DEBUG)
 
 	def detect_environment(self):
 		if os.environ.get('SLURM_JOB_ID'):
@@ -34,10 +36,12 @@ class RuntimeHandler:
 		# NOTE could replace with dictionary
 		# runtimes[self.runtime](arguments)
 		if self.runtime == 'slurm':
-			self.run_slurm(arguments)
+			logging.info('launching slurm execution')
+			self.launch_slurm(arguments)
 
 		elif self.runtime == 'local':
-			self.run_local(arguments)
+			logging.info('launching local execution')
+			self.launch_local(arguments)
 		
 		else:
 			raise ValueError
@@ -46,21 +50,25 @@ class RuntimeHandler:
 		# act as srun
 		processes = []
 
-		env = dict(copy.deepcopy(os.environ))
-		env['EXAMPI_ENV'] = 'local'
-		env['EXAMPI_LOCALID'] = str(rank)
-		env['EXAMPI_RANK'] = str(rank)
-		env['EXAMPI_JOB_ID'] = str(os.getpid())
-		env['EXAMPI_WORLD_SIZE'] = str(arguments.n)
-
 		for rank in xrange(arguments.n):
+			# set individual process environment
+			env = dict(copy.deepcopy(os.environ))
+			env['EXAMPI_ENV'] = 'local'
+			env['EXAMPI_LOCALID'] = str(rank)
+			env['EXAMPI_RANK'] = str(rank)
+			env['EXAMPI_JOB_ID'] = str(os.getpid())
+			env['EXAMPI_WORLD_SIZE'] = str(arguments.n)
+			logging.info('created process environment')
+
+			# construct command
 			command = ['exampi_fault_daemon']
 			command.extend(arguments.program)
-		
+
 			logging.info('mpiexec launching ' + str(command))
-		
+
 			process = subprocess.Popen(command, env=env)
 			processes.append(process)
+
 			logging.info('started process ' + str(process.pid))
 
 		def wait_processes():
@@ -126,3 +134,5 @@ if __name__ == '__main__':
 
 	handler = RuntimeHandler()
 	handler.launch(arguments)
+	
+	sys.exit(handler.errorcode)

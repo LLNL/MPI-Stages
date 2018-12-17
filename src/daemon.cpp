@@ -36,11 +36,20 @@ Daemon::Daemon()
 		return;
 	}
 
+	int reuse = 1;
+	setsockopt(this->sock, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(int));
+	int buf_size = 0;
+	setsockopt(this->sock, SOL_SOCKET, SO_SNDBUF, &buf_size, sizeof(int));
+	setsockopt(this->sock, SOL_SOCKET, SO_RCVBUF, &buf_size, sizeof(int));
+	
+
 	// find hostname
 	char hostname[1024];
 	gethostname(hostname, 1024);
+	debugpp("getting hostname as " << hostname);
 
 	struct in_addr* host = (struct in_addr*)gethostbyname(hostname)->h_addr_list[0];
+	debugpp("getting local ip as " << inet_ntoa(*host));
 	
 	// bind to local
 	debugpp("recv mpi port " << std::string(std::getenv("EXAMPI_MPI_PORT")));
@@ -54,18 +63,21 @@ Daemon::Daemon()
 	int err = bind(this->sock, (sockaddr *)&this->local, sizeof(this->local));
 	if(err != 0)
 	{
+		debugpp("failed to bind port");
 		exit(124);
 	}
 
 	// set recv timeout
 	struct timeval tv;
 	tv.tv_sec = 0;
-	tv.tv_usec = 100 * 1000; // 100ms
+	tv.tv_usec = 500 * 1000;
 	setsockopt(this->sock, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
+	debugpp("set socket recv time to " << tv.tv_usec/1000 << " ms");
 
 	// set daemon sock addr
 	debugpp("daemon port " << std::string(std::getenv("EXAMPI_DAEMON_PORT")));
 	int daemon_port = std::stoi(std::string(std::getenv("EXAMPI_DAEMON_PORT")));
+
 	this->daemon.sin_family = AF_INET;
 	this->daemon.sin_port = htons(daemon_port);
 	//this->daemon.sin_addr.s_addr = inet_addr(ip->h_addr_list[0]);
@@ -90,7 +102,6 @@ int Daemon::barrier()
 		// resend barrier
 		err = send_barrier_ready();
 	}
-
 
 	debugpp("daemon: barrier complete");
 	return err;	
@@ -124,15 +135,20 @@ int Daemon::recv_barrier_release()
 	if(err != 64)
 	{
 		debugpp("rank " << exampi::rank << " msg failed, retrying barrier");
-		return err;
+		return 1;
 	}
 
 	debugpp("rank " << exampi::rank << " recv barrier " << std::string(msg));
+	debugpp("rank " << exampi::rank << " " << std::string(msg));
 
-	if(std::string(msg) == std::string("release"))
+	if(std::string(msg).compare(std::string("release")) == 0)
 		return 0;
+	else
+	{
+		debugpp("release invalid compare " << std::string(msg));
+	}
 
-	return err;
+	return 1;
 }
 
 int Daemon::send_clean_up()
@@ -156,13 +172,20 @@ int Daemon::send_clean_up()
 int Daemon::send(std::string packet)
 {
 	if(this->sock < 0)
+	{
+		debugpp("ERROR this->sock < 0");
 		return -35434;
+	}
 
 	// check if socket is open
 	else if(packet.length() > 64)
+	{ 
+		debugpp("ERROR packet.legnth > 64");
 		return -54563;
+	}
 
 	// send packet to daemon
+	debugpp("send packet to daemon: " << packet.c_str());
 	return sendto(this->sock, packet.c_str(), packet.length(), 0,
 	              (sockaddr *)&this->daemon, sizeof(this->daemon));
 }

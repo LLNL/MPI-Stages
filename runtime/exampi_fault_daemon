@@ -1,7 +1,5 @@
 #!/usr/bin/env python2
 
-from __future__ import print_function
-
 import os
 import sys
 import copy
@@ -9,6 +7,7 @@ import tempfile
 import subprocess
 import socket
 import signal
+import logging
 
 def prefix_sum(array):
 	out = []
@@ -72,12 +71,10 @@ def lookup_rank(rank):
 	else:
 		# local rank
 		if rank in local_global_ids:
-			print('local global ids contains', rank)
-			return local_nodename
+			return socket.gethostname()
 
 		# global rank 
 		else:
-			print('global', rank, ' tasks dist ', task_count_offsets)
 			for idx, bound in enumerate(task_count_offsets):
 				if rank < bound:
 					return nodelist[idx]
@@ -91,6 +88,11 @@ class FaultDaemon:
 		self.head_daemon = None
 
 		self.setup_environment()
+
+		logname = 'mpi_fault_daemon_' + str(self.sub_env['EXAMPI_RANK']) + '.log'
+		logging.basicConfig(filename = logname, level=logging.DEBUG)
+		logging.info('fault daemon initialing')
+
 		self.setup_file_handles()
 		self.write_configuration()
 		self.write_epoch()
@@ -98,6 +100,8 @@ class FaultDaemon:
 		# TODO setup signal handler
 
 	def __del__(self):
+		logging.info('fault daemon shutting down')
+
 		# finalize sub process
 		self.process.wait()
 
@@ -111,16 +115,15 @@ class FaultDaemon:
 
 		# terminate head daemon
 		if self.head_daemon is not None:
+			logging.info('shutting down head daemon')
 			self.head_daemon.terminate()
 			self.head_daemon.wait()
 
-			# close head daemon file handles
-			self.hd_output_file.close()
-			self.hd_error_file.close()
+		logging.info('shut down complete')
 
 	def setup_file_handles(self):
-		rank = os.environ['EXAMPI_RANK']
-		job_id = os.environ['EXAMPI_JOB_ID']
+		rank = self.sub_env['EXAMPI_RANK']
+		job_id = self.sub_env['EXAMPI_JOB_ID']
 	
 		# create temporary files
 		suffix = '.' + str(self.job_id) + '.' + str(self.rank)
@@ -176,9 +179,10 @@ class FaultDaemon:
 
 		# remove any keys with SLURM association
 		# from here on we are in EXAMPI territory
-		for key in self.sub_env.keys():
-			if 'SLURM' in key:
-				del self.sub_env[key]
+		# TODO required for slurm head daemon for lookup	
+		#for key in self.sub_env.keys():
+		#	if 'SLURM' in key:
+		#		del self.sub_env[key]
 
 	def write_epoch(self):
 		# TODO could this be handled with a socket?
@@ -201,20 +205,17 @@ class FaultDaemon:
 
 	def launch_head_daemon(self):
 		if int(self.sub_env['EXAMPI_LOCALID']) == 0:
-			print('fault daemon', self.sub_env['EXAMPI_RANK'], 'launching head daemon')
-
-			output_name = 'mpi.hd.o' + str(self.job_id)
-			self.hd_output_file = open(output_name, 'a')
-			
-			error_name = 'mpi.hd.e' + str(self.job_id)
-			self.hd_error_file = open(error_name, 'a')
+			logging.info('fault daemon ' + self.sub_env['EXAMPI_RANK'] + ' launching head daemon')
 
 			command = ['exampi_head_daemon']
-
-			self.head_daemon = subprocess.Popen(command, env=self.sub_env, stdout=self.hd_output_file, stderr=self.hd_error_file)
+			self.head_daemon = subprocess.Popen(command, env=self.sub_env)
 
 	def inform_head_daemon(self):
 		sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+		self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 0)
+		self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 0)
+		self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
 		hostname = socket.gethostname()
 		host = socket.gethostbyname(hostname)
@@ -249,7 +250,6 @@ class FaultDaemon:
 
 	def signal_handler(self, signal, frame):
 		raise NotImplementedError
-		#print('FAULT_DAEMON', environment['EXAMPI_RANK'], 'signal received', signal, 'forwarding to all child processes.')
 		#	process.send_signal(signal)
 
 		#	if head_daemon is not None:
@@ -260,10 +260,9 @@ if __name__ == '__main__':
 	lookup_setup()
 
 	# TODO read from system config
-	daemon_port = 12452
-	mpi_base_port = 23353
-	udp_transport_base = 34524
-	print('fault daemon ports decision', daemon_port, mpi_base_port, udp_transport_base)
+	daemon_port = 11111
+	mpi_base_port = 22222
+	udp_transport_base = 33333
 
 	# fault daemon
 	daemon = FaultDaemon(daemon_port, mpi_base_port, udp_transport_base)
