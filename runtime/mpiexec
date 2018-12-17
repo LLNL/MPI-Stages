@@ -16,7 +16,7 @@ class RuntimeHandler:
 
 		for handler in logging.root.handlers[:]:
 		    logging.root.removeHandler(handler)
-		logging.basicConfig(filename=logname, level=logging.DEBUG)
+		logging.basicConfig(filename=logname, level=logging.ERROR)
 
 	def detect_environment(self):
 		if os.environ.get('SLURM_JOB_ID'):
@@ -50,6 +50,10 @@ class RuntimeHandler:
 		# act as srun
 		processes = []
 
+		# create output file
+		output_name = 'local-' + str(os.getpid()) + '.log'
+		output_file = open(output_name, 'a')
+
 		for rank in xrange(arguments.n):
 			# set individual process environment
 			env = dict(copy.deepcopy(os.environ))
@@ -60,13 +64,16 @@ class RuntimeHandler:
 			env['EXAMPI_WORLD_SIZE'] = str(arguments.n)
 			logging.info('created process environment')
 
+			# set up output file
+
 			# construct command
 			command = ['exampi_fault_daemon']
 			command.extend(arguments.program)
 
 			logging.info('mpiexec launching ' + str(command))
 
-			process = subprocess.Popen(command, env=env)
+			# TODO capture into single output file
+			process = subprocess.Popen(command, env=env, stdout=output_file, stderr=subprocess.STDOUT)
 			processes.append(process)
 
 			logging.info('started process ' + str(process.pid))
@@ -74,6 +81,8 @@ class RuntimeHandler:
 		def wait_processes():
 			for process in processes:
 				process.wait()
+
+			output_file.close()
 
 		# create signal handler
 		def signal_handler(signal, frame):
