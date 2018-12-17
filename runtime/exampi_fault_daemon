@@ -106,8 +106,9 @@ class FaultDaemon:
 		self.process.wait()
 
 		# close sub process file handles
-		self.output_file.close()
-		self.error_file.close()
+		#self.output_file.close()
+		#self.error_file.close()
+
 		self.config_file.close()
 		self.epoch_file.close()
 
@@ -135,12 +136,12 @@ class FaultDaemon:
 		self.sub_env['EXAMPI_EPOCH_FILE'] = self.epoch_file.name
 
 		# create full output file
-		output_name = 'mpi.' + rank + '.o' + job_id
-		self.output_file = open(output_name, 'a') 
+		#output_name = 'mpi.' + rank + '.o' + job_id
+		#self.output_file = open(output_name, 'a') 
 
 		# create full error file
-		error_name = 'mpi.' + rank + '.e' + job_id
-		self.error_file = open(error_name, 'a') 
+		#error_name = 'mpi.' + rank + '.e' + job_id
+		#self.error_file = open(error_name, 'a') 
 
 		# TODO do we need to close these so that the process can write to them?
 	

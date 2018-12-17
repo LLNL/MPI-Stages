@@ -72,14 +72,14 @@ class RuntimeHandler:
 			else:
 				error_file = output_file
 			
-		for rank in xrange(arguments.n):
+		for rank in xrange(arguments.processes):
 			# set individual process environment
 			env = dict(copy.deepcopy(os.environ))
 			env['EXAMPI_ENV'] = 'local'
 			env['EXAMPI_LOCALID'] = str(rank)
 			env['EXAMPI_RANK'] = str(rank)
 			env['EXAMPI_JOB_ID'] = str(os.getpid())
-			env['EXAMPI_WORLD_SIZE'] = str(arguments.n)
+			env['EXAMPI_WORLD_SIZE'] = str(arguments.processes)
 			#logging.info('created process environment')
 
 			# set up output file
