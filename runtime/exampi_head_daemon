@@ -64,7 +64,7 @@ errorcodes = {
 
 class HeadDaemon:
 	def __init__(self, daemon_port, mpi_base_port):
-		if os.environ['EXAMPI_LOG_HEAD_DAEMON'] == 'TRUE':
+		if os.environ.get('EXAMPI_LOG_HEAD_DAEMON', None) == 'TRUE':
 			self.log = logging.getLogger(__name__+'-'+str(os.environ['EXAMPI_RANK']))
 			self.log.setLevel(logging.INFO)
 

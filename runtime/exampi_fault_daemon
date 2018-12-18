@@ -90,7 +90,7 @@ class FaultDaemon:
 		self.setup_environment()
 
 		# setup logging
-		if os.environ['EXAMPI_LOG_FAULT_DAEMON'] == 'TRUE':
+		if os.environ.get('EXAMPI_LOG_FAULT_DAEMON', None) == 'TRUE':
 			self.log = logging.getLogger(__name__)
 			self.log.setLevel(logging.INFO)
 
