@@ -9,22 +9,22 @@ import copy
 import logging
 
 class RuntimeHandler:
-	def __init__(self):
+	def __init__(self, log=False):
+		if log:
+			self.log = logging.getLogger(__name__)
+			self.log.setLevel(logging.INFO)
+			
+			logname = 'mpiexec.log'
+
+			handler = logging.FileHandler(logname)
+			handler.setLevel(logging.INFO)
+
+			self.log.addHandler(handler)
+		
+		else:
+			self.log = logging.getLogger(__name__).addHandler(logging.NullHandler())
+
 		self.detect_environment()
-
-		#if log:
-		#	logname = 'mpiexec_' + str(self.job_id) + '.log'
-
-		#	for handler in logging.root.handlers[:]:
-		#	    logging.root.removeHandler(handler)
-
-
-		#logging.basicConfig(filename=logname, level=logging.ERROR)
-
-	#	if log:
-	#	
-	#	else:
-	#		logging.
 
 	def detect_environment(self):
 		if os.environ.get('SLURM_JOB_ID'):
@@ -36,7 +36,7 @@ class RuntimeHandler:
 			self.runtime = 'local'
 			self.job_id = int(os.getpid())
 
-		#logging.info('detected runtime: ' + self.runtime + ' job_id ' + str(self.job_id))
+		self.log.info('detected runtime: ' + self.runtime + ' job_id ' + str(self.job_id))
 
 	def launch(self, arguments):
 		# TODO check if executable is valid, if not try local directory appending
@@ -44,11 +44,11 @@ class RuntimeHandler:
 		# NOTE could replace with dictionary
 		# runtimes[self.runtime](arguments)
 		if self.runtime == 'slurm':
-			#logging.info('launching slurm execution')
+			self.log.info('launching slurm execution')
 			self.launch_slurm(arguments)
 
 		elif self.runtime == 'local':
-			#logging.info('launching local execution')
+			self.log.info('launching local execution')
 			self.launch_local(arguments)
 		
 		else:
@@ -76,11 +76,18 @@ class RuntimeHandler:
 			# set individual process environment
 			env = dict(copy.deepcopy(os.environ))
 			env['EXAMPI_ENV'] = 'local'
+
+			if arguments.logfault:
+				env['EXAMPI_LOG_FAULT_DAEMON'] = 'TRUE'
+			if arguments.loghead:
+				env['EXAMPI_LOG_HEAD_DAEMON'] = 'TRUE'
+
 			env['EXAMPI_LOCALID'] = str(rank)
 			env['EXAMPI_RANK'] = str(rank)
 			env['EXAMPI_JOB_ID'] = str(os.getpid())
 			env['EXAMPI_WORLD_SIZE'] = str(arguments.processes)
-			#logging.info('created process environment')
+
+			self.log.info('created process environment')
 
 			# set up output file
 			if arguments.separate_rank:
@@ -100,13 +107,13 @@ class RuntimeHandler:
 			command = ['exampi_fault_daemon']
 			command.extend(arguments.program)
 
-			#logging.info('mpiexec launching ' + str(command))
+			self.log.info('mpiexec launching ' + str(command))
 
-			# TODO capture into single output file
+			# launch process
 			process = subprocess.Popen(command, env=env, stdout=output_file, stderr=error_file)
 			processes.append(process)
 
-			#logging.info('started process ' + str(process.pid))
+			self.log.info('started process ' + str(process.pid))
 
 		def wait_processes():
 			for process in processes:
@@ -116,28 +123,28 @@ class RuntimeHandler:
 
 		# create signal handler
 		def signal_handler(signal, frame):
-			#logging.warning('mpiexec received signal' + str(signal))
+			self.log.warning('mpiexec received signal' + str(signal))
 
 			# forward signal to all processes
 			for process in processes:
 				process.send_signal(signal)
 
-			#logging.info('sent signal to all child processes.')
+			self.log.info('sent signal to all child processes.')
 
 			# wait for processes to end
 			wait_processes()
 
-			#logging.info('waited for all child processes to die')
+			self.log.info('waited for all child processes to die')
 
 		signal.signal(signal.SIGINT, signal_handler)
-		#logging.info('set signal handler')
+		self.log.info('set signal handler')
 		
 		# without signal wait for processes
 		wait_processes()
-		#logging.info('waited for all child processes to die')
+		self.log.info('waited for all child processes to die')
 
 		self.errorcode = max(process.returncode for process in processes)
-		#logging.info('local return code: ' + str(self.errorcode))
+		self.log.info('local return code: ' + str(self.errorcode))
 
 	def launch_slurm(self, arguments):
 		command = ['srun']
@@ -160,15 +167,20 @@ class RuntimeHandler:
 		# declare EXAMPI_ENV
 		env = dict(copy.deepcopy(os.environ))
 		env['EXAMPI_ENV'] = 'slurm'
+		
+		if arguments.logfault:
+			env['EXAMPI_LOG_FAULT_DAEMON'] = 'TRUE'
+		if arguments.loghead:
+			env['EXAMPI_LOG_HEAD_DAEMON'] = 'TRUE'
 
-		#logging.info('srun command:' + str(command))
+		self.log.info('srun command:' + str(command))
 			
 		# launch srun process
 		process = subprocess.Popen(command, env=env)
 		process.wait()
 
 		self.errorcode = process.returncode
-		#logging.info('srun return code: ' + str(self.errorcode))
+		self.log.info('srun return code: ' + str(self.errorcode))
 
 def parse_arguments():
 	# command line argument parsing
@@ -202,7 +214,7 @@ if __name__ == '__main__':
 	# parse command line arguments
 	arguments = parse_arguments()
 
-	handler = RuntimeHandler()
+	handler = RuntimeHandler(log = arguments.logexec)
 	handler.launch(arguments)
 	
 	sys.exit(handler.errorcode)

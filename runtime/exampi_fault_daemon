@@ -86,12 +86,23 @@ class FaultDaemon:
 		self.udp_transport_base = udp_transport_base
 		self.epoch = 0
 		self.head_daemon = None
-
+		
 		self.setup_environment()
 
-		logname = 'mpi_fault_daemon_' + str(self.sub_env['EXAMPI_RANK']) + '.log'
-		#logging.basicConfig(filename = logname, level=logging.DEBUG)
-		#logging.info('fault daemon initialing')
+		# setup logging
+		if os.environ['EXAMPI_LOG_FAULT_DAEMON'] == 'TRUE':
+			self.log = logging.getLogger(__name__)
+			self.log.setLevel(logging.INFO)
+
+			logname = 'fault_daemon_' + str(self.rank) + '.log'
+
+			handler = logging.FileHandler(logname)
+			handler.setLevel(logging.INFO)
+
+			self.log.addHandler(handler)
+		
+		else:
+			self.log = logging.getLogger(__name__).addHandler(logging.NullHandler())
 
 		self.setup_file_handles()
 		self.write_configuration()
@@ -100,27 +111,26 @@ class FaultDaemon:
 		# TODO setup signal handler
 
 	def __del__(self):
-		#logging.info('fault daemon shutting down')
+		self.log.info('fault daemon shutting down')
 
 		# finalize sub process
 		self.process.wait()
 
-		# close sub process file handles
-		#self.output_file.close()
-		#self.error_file.close()
-
 		self.config_file.close()
 		self.epoch_file.close()
 
-		# TODO delete config and epoch files
+		# delete config and epoch files
+		os.remove(self.config_file.name)
+		os.remove(self.epoch_file.name)
 
 		# terminate head daemon
-		if self.head_daemon is not None:
-			#logging.info('shutting down head daemon')
+		if self.head_daemon != None:
+			self.log.info('shutting down head daemon')
+
 			self.head_daemon.terminate()
 			self.head_daemon.wait()
 
-		#logging.info('shut down complete')
+		self.log.info('shut down complete')
 
 	def setup_file_handles(self):
 		rank = self.sub_env['EXAMPI_RANK']
@@ -135,16 +145,6 @@ class FaultDaemon:
 		self.sub_env['EXAMPI_CONFIG_FILE'] = self.config_file.name
 		self.sub_env['EXAMPI_EPOCH_FILE'] = self.epoch_file.name
 
-		# create full output file
-		#output_name = 'mpi.' + rank + '.o' + job_id
-		#self.output_file = open(output_name, 'a') 
-
-		# create full error file
-		#error_name = 'mpi.' + rank + '.e' + job_id
-		#self.error_file = open(error_name, 'a') 
-
-		# TODO do we need to close these so that the process can write to them?
-	
 	def setup_environment(self):
 		# copy general environment
 		self.sub_env = dict(copy.deepcopy(os.environ))
@@ -174,7 +174,7 @@ class FaultDaemon:
 		self.sub_env['EXAMPI_MPI_BASE_PORT'] = str(self.mpi_base_port)
 		self.sub_env['EXAMPI_MPI_PORT'] = str(self.mpi_base_port + self.rank) 
 		self.sub_env['EXAMPI_UDP_TRANSPORT_BASE'] = str(self.udp_transport_base)
-		# TODO remove pid, should not be needed
+		# TODO remove pid
 		self.sub_env['EXAMPI_DAEMON_PID'] = str(os.getpid())
 		self.sub_env['EXAMPI_EPOCH'] = str(self.epoch)
 
@@ -184,6 +184,7 @@ class FaultDaemon:
 		#for key in self.sub_env.keys():
 		#	if 'SLURM' in key:
 		#		del self.sub_env[key]
+		# TODO SLURM_GTIDS needs to be passed along, or some EXAMPI form of it
 
 	def write_epoch(self):
 		# TODO could this be handled with a socket?
@@ -205,32 +206,46 @@ class FaultDaemon:
 		self.config_file.close()
 
 	def inform_head_daemon(self):
+		# establish connection to head daemon
 		sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-		self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 0)
-		self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 0)
-		self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+		sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 0)
+		sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 0)
+		sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+		# bind for return message
+		# TODO use tcp port, port management automatic
+		sock.bind((socket.gethostname(), self.daemon_port - 1 - self.rank))
 
 		hostname = socket.gethostname()
 		host = socket.gethostbyname(hostname)
 
-		# todo need to bind to port
+		#msg = 'termination ' + str(env['EXAMPI_RANK']) + ' ' + str(self.process.returncode)
+		# todo add epoch
+		#msg = msg.ljust(64)
+		#msg = msg.encode('utf-8')
 
-		msg = 'termination ' + str(env['EXAMPI_RANK']) + ' ' + str(code)
-		msg = msg.ljust(64)
-		msg = msg.encode('utf-8')
+		#sock.sendto(msg, (host, daemon_port))
+		# error check
 
-		sock.sendto(msg, (host, daemon_port))
-		
-		# potentially relaunch application
-		# TODO MPI STAGES
-		
+		# todo wait for response
+		#data = sock.recv(64)
 		sock.close()
-		return code
+
+		# process head daemon msg
+		#if msg == restart:
+		#	self.launch()
+
+		#else:
+		#	# no restart
+		#	pass
+		
+		return self.process.returncode
 
 	def launch_head_daemon(self):
-		if int(self.sub_env['EXAMPI_LOCALID']) == 0:
-			#logging.info('fault daemon ' + self.sub_env['EXAMPI_RANK'] + ' launching head daemon')
+		# launch head daemon if capable and not already launched
+		if (int(self.sub_env['EXAMPI_LOCALID']) == 0) and (self.head_daemon == None):
+			self.log.info('fault daemon ' + self.sub_env['EXAMPI_RANK'] + ' launching head daemon')
 
 			command = ['exampi_head_daemon']
 			self.head_daemon = subprocess.Popen(command, env=self.sub_env)
@@ -241,35 +256,36 @@ class FaultDaemon:
 
 		# launch command
 		command = sys.argv[1:]
-		#self.process = subprocess.Popen(command, env=self.sub_env, stdout=self.output_file, stderr=self.error_file)
-		# print everything out to single file
+
 		self.process = subprocess.Popen(command, env=self.sub_env)
 		self.process.wait()
 
-		# TODO inform head daemon
+		return self.inform_head_daemon()
 
 	def setup_signal_handler(self):
 		raise NotImplementedError
 
 	def signal_handler(self, signal, frame):
-		raise NotImplementedError
-		#	process.send_signal(signal)
+		self.process.send_signal(signal)
 
-		#	if head_daemon is not None:
-		#		head_daemon.send_signal(signal)
-
+		if self.head_daemon != None:
+			self.head_daemon.send_signal(signal)
 
 if __name__ == '__main__':
 	lookup_setup()
 
 	# TODO read from system config
 	daemon_port = 11111
+		
+	# TODO with tcp this will disappear, no explicit port managemented required if these were used
 	mpi_base_port = 22222
+	
+	# todo remove udp transport port from here, should be in system config
 	udp_transport_base = 33333
 
 	# fault daemon
 	daemon = FaultDaemon(daemon_port, mpi_base_port, udp_transport_base)
-	daemon.launch()	
+	errorcode = daemon.launch()	
 
 	# return error code
-	sys.exit(daemon.process.returncode)
+	sys.exit(errorcode)
