@@ -64,6 +64,50 @@ errorcodes = {
 
 class HeadDaemon:
 	def __init__(self, daemon_port, mpi_base_port):
+		self.setup_logger()
+		
+		self.daemon_port = daemon_port
+		self.shutdown = False
+
+		self.setup_socket()
+		
+		# create signal handler
+		signal.signal(signal.SIGINT, self.signal_handler)
+		self.log.info('set up signal handler')
+			
+		# local data
+		self.mpi_base_port = mpi_base_port
+		self.rank_waiting_set = set()
+		self.ranks_completed = set()
+		self.local_rank_count = None
+		self.local_ranks = []
+		self.fault_daemons = []
+		self.rank_pids = {}
+		self.barrier_unannounced = True
+
+		self.hostname = socket.gethostname()
+		self.localhost = socket.gethostbyname(self.hostname)
+
+		# global daemon
+		self.root_node = None
+		self.root_host = None
+		self.node_waiting_set = set()
+		self.global_node_count = None
+		self.global_nodes = []
+
+		self.world_size = int(os.environ['EXAMPI_WORLD_SIZE'])
+
+		self.prepare_lookup()
+	
+		# generate message-function lookup
+		self.generate_message_lookup()
+
+	def __del__(self):
+		self.log.info('shutting down socket')
+		self.sock.close()
+		self.log.info('shutting down')
+
+	def setup_logger(self):
 		if os.environ.get('EXAMPI_LOG_HEAD_DAEMON', None) == 'TRUE':
 			self.log = logging.getLogger(__name__+'-'+str(os.environ['EXAMPI_RANK']))
 			self.log.setLevel(logging.INFO)
@@ -79,9 +123,7 @@ class HeadDaemon:
 			self.log = logging.getLogger(__name__)
 			self.log.addHandler(logging.NullHandler())
 
-		self.daemon_port = daemon_port
-		self.shutdown = False
-
+	def setup_socket(self):
 		# create socket
 		self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		
@@ -92,40 +134,26 @@ class HeadDaemon:
 		self.sock.bind((socket.gethostname(), daemon_port))
 		self.log.info('socket bound on ' + str(socket.gethostname()) + ' ' + str(socket.gethostbyname(socket.gethostname())) + ' ' + str(self.daemon_port))
 
-		# create signal handler
-		signal.signal(signal.SIGINT, self.signal_handler)
-		self.log.info('set up signal handler')
-			
-		# local data
-		self.mpi_base_port = mpi_base_port
-		self.rank_waiting_set = set()
-		self.ranks_completed = set()
-		self.local_rank_count = None
-		self.local_ranks = []
-		self.rank_pids = {}
-		self.barrier_unannounced = True
+	def generate_message_lookup(self):
+		self.message_lookup = {}
 
-		# global daemon
-		self.root_node = None
-		self.root_host = None
-		self.node_waiting_set = set()
-		self.global_node_count = None
-		self.global_nodes = []
+		# fault daemons/application -> head daemon(1)
+		self.message_lookup['barrier'] = self.process_barrier
+		self.message_lookup['termination'] = self.process_termination
+		#self.message_lookup['lookup'] = None # TODO dynamic connection building
 
-		self.prepare_lookup()
-
-	def __del__(self):
-		self.log.info('shutting down socket')
-		if self.sock is not None:
-			self.sock.close()
-		self.log.info('shutting down')
+		# head daemon(+) -> controller(1)
+		self.message_lookup['global_barrier'] = self.process_global_barrier
+		self.message_lookup['global_termination'] = self.process_global_termination
+		
+		# controller -> head daemons -> fault daemons(+)
+		self.message_lookup['release'] = self.process_release
+		#self.message_lookup['error'] = self.process_error
+		self.message_lookup['shutdown'] = self.process_shutdown
 
 	def signal_handler(self, signal, frame):
 		self.log.warning("HEAD DAEMON signal received " + str(signal))
 		self.shutdown = True
-
-		self.sock.close()
-		self.sock = None
 
 	def prepare_lookup(self):
 		if os.environ['EXAMPI_ENV'] == 'local':
@@ -146,6 +174,7 @@ class HeadDaemon:
 			self.local_rank_count = len(self.local_ranks)
 			
 			command = ['scontrol']
+	
 			command.append('show')
 			command.append('hostnames')
 			command.append(os.environ['SLURM_JOB_NODELIST'])
@@ -171,125 +200,176 @@ class HeadDaemon:
 			# receive 64B message
 			data, addr = self.sock.recvfrom(64)	
 			data = data.decode('utf-8').replace('\0','')
-			msg = data.split()[0]
-
-			self.log.info('received ' + str(msg) + ' from ' + str(addr))
-
-			# process message
-			if   msg == 'barrier':
-				# local process is at barrier
-				self.process_barrier(data)
-
-			elif msg == 'termination':
-				# local process died
-				self.process_termination(data, addr)
-
-			elif msg == 'global_barrier':
-				# node wide barrier request
-				self.process_global_barrier(data)
-
-			elif msg == 'global_release':
-				# root head node received all global barriers
-				self.process_global_release()
+			self.log.info('raw data ' + str(type(data)) + ' ' + data)
 			
-			elif msg == 'global_error':
-				# a process somewhere else died
-				self.process_global_error(data)
+			# process 
+			self.log.info('processing: ' + str(data))
+			# TODO don't redo split in each processing
+			msg = data.split()[0]
+			self.message_lookup[msg](data, addr)
 
-			else:
-				self.log.error('head daemon: unrecognized protocol message ' + str(data))
-				raise ValueError
+	def send_to_controller(self, data):
+		self.log.info('sending to controller: ' + str(data))
 
-	def process_barrier(self, data):
+		self.sock.sendto(data, (self.root_node, self.daemon_port)) 
+
+		self.log.info('finished sending to controller')
+
+	def send_to_head_daemon(self, data, hostname):
+		self.log.info('sending to head daemon on ' + hostname + ': ' + str(data))
+
+		host = socket.gethostbyname(hostname)
+		self.sock.sendto(data, (host, self.daemon_port))
+
+		self.log.info('finished sending to head daemon')
+
+	def send_to_head_daemons(self, data):
+		self.log.info('sending ' + str(data) + ' to all head daemons')
+
+		# send node release messages
+		for hostname in self.node_waiting_set:
+			self.send_to_head_daemon(data, hostname)
+
+		self.log.info('finished sending to all head daemons')
+
+	def send_to_rank(self, data, rank):
+		self.log.info('sending to rank ' + str(rank) + ': ' + str(data))
+
+		self.sock.sendto(data, (self.localhost, self.mpi_base_port + int(rank)))
+		
+		self.log.info('finished sending to ' + str(rank))
+	
+	def send_to_ranks(self, data):
+		self.log.info('sending ' + str(data) + ' to all ranks')
+
+		for rank in self.rank_waiting_set:
+			self.send_to_rank(data, rank)
+
+		self.log.info('finished sending to all ranks')
+
+	def send_to_fault_daemon(self, data, rank):
+		self.log.info('sending to fault daemon ' + str(rank) + ': ' + str(data))
+
+		self.sock.sendto(data, (self.localhost, self.daemon_port-1-int(rank)))
+		
+		self.log.info('finished sending to fault daemon')
+	
+	def send_to_fault_daemons(self, data):
+		self.log.info('sending ' + str(data) + ' to all fault daemons')
+
+		for daemon in self.fault_daemons:
+			self.send_to_fault_daemon(data, daemon)
+
+		self.log.info('finished sending to all fault daemons')
+
+	def process_barrier(self, data, addr):
 		msg, rank, pid = data.split()
-		self.log.info('head daemon: barrier ' + str(msg)+ ' ' + str(rank) + ' ' + str(pid))
+
 		rank = int(rank)
 		pid = int(pid)
 
 		# register rank for barrier 
 		self.rank_waiting_set.add(rank)
 		self.rank_pids[rank] = pid
+		self.log.info('registered rank ' + str(rank) + ':' + str(pid) + ':waiting')
 		
 		# check if all local ranks are waiting
 		if self.barrier_unannounced and len(self.rank_waiting_set) == self.local_rank_count:
-			self.log.info('head daemon sending global barrier to root')
+			self.log.info('registered all local ranks, sending global barrier to controller')
 
+			# flag to confirm we already sent message
+			# TODO can this be done nicer?
+			# TODO do we need this, we should never reach here again after all are waiting?
 			self.barrier_unannounced = False
 
-			msg = ('global_barrier '+socket.gethostname()+'\0').ljust(64).encode('utf-8')
+			msg = ('global_barrier ' + socket.gethostname() + '\0').ljust(64).encode('utf-8')
 
-			self.sock.sendto(msg, (self.root_node, self.daemon_port)) 
+			self.send_to_controller(msg)
+
+	def process_global_barrier(self, data, addr):
+		msg, hostname = data.split()
+
+		# register, if all, then send release messages
+		self.node_waiting_set.add(hostname)
+		self.log.info('registered node ' + hostname + ':waiting')
+
+		self.log.info('check ' + str(len(self.node_waiting_set)) + ' == ' + str(self.global_node_count)) 
+		if len(self.node_waiting_set) == self.global_node_count:
+			self.log.info('complete global barrier, sending global release')
+
+			# send node release messages
+			data = 'release\0'.ljust(64).encode('utf-8')
+			self.send_to_head_daemons(data)
+
+	def process_release(self, data, addr):
+		# forward release to all ranks
+		self.log.info('present ranks ' + str(self.rank_waiting_set))
+
+		msg = 'release\0'.ljust(64).encode('utf-8')
+		self.send_to_ranks(msg)
 
 	def process_termination(self, data, addr):
 		msg, rank, errorcode, epoch = data.split()
-		self.log.info('head daemon: ' + msg + ' ' + str(rank) + ' ' + str(errorcode))
+		# this is from the fault daemon, representing the rank
+
+		# register fault daemon
+		self.fault_daemons.append(rank)
+
+		msg = 'global_termination ' + self.hostname + ' ' + rank + ' ' + errorcode + ' ' + epoch + '\0'
+		msg = msg.ljust(64)
+
+		self.log.info('forwarding termination to controller: ' + msg)
+
+		self.send_to_controller(msg.encode('utf-8'))
+
+	def process_global_termination(self, data, addr):
+		# head daemon to controller
+		msg, hostname, rank, errorcode, epoch = data.split()
 
 		rank = int(rank)
 		errorcode = int(errorcode)
 		epoch = int(epoch)
 
-		# check error code
 		if errorcode == errorcodes['MPI_SUCCESS']:
-			# MPI_SUCCESS
+			self.log.info('rank ' + str(rank) + ' on ' + hostname + ' completed with MPI_SUCCESS')
 			self.ranks_completed.add(rank)
-			print('head_daemon:', rank, errorcodes[errorcode], 'in epoch', epoch) 
+
+			# exit once all local have completed
+			self.log.info('check all ranks complete ' + str(len(self.ranks_completed)) + ' == ' + str(self.world_size))
+			if len(self.ranks_completed) == self.world_size:
+				self.log.info('all local ranks completed, sending shutdown')
+				
+				data = 'shutdown\0'.ljust(64).encode('utf-8')
+				self.send_to_head_daemons(data)
 
 		elif errorcode == errorcodes['MPI_ABORT']:
 			# MPI_ABORT
-			print('head_daemon:', rank, errorcodes[errorcode], 'in epoch', epoch) 
+			self.log.error('not implemented error MPI_ABORT')
+			raise NotImplementedError
 
-		#else if errorcode == fault:
-		#	restart
+		else:
+			self.log.error('not implemented error code: ' + str(data))
+			raise NotImplementedError
 
-		# exit once all local have completed
-		if len(self.ranks_completed) == self.local_rank_count:
-			# todo send global shutdown request
-			self.log.info('head daemon: completed all local ranks ' + socket.gethostname())
-			self.shutdown = True
+	def process_shutdown(self, data, addr):
+		self.log.info('received global shutdown from controller, shutting down...')
+		self.shutdown = True
+
+		self.log.info('sending shutdown to all fault daemons')
+		data = 'shutdown\0'.ljust(64).encode('utf-8')
+		self.send_to_fault_daemons(data)
 		
-	def process_rank_lookup(self):
+	def process_rank_lookup(self, data, addr):
 		# todo local rank is asking for remote address
 		if os.environ['EXAMPI_ENV'] == 'local':
 			return socket.gethostname()
 
 		else:
 			raise NotImplementedError
-
-	def process_global_barrier(self, data):
-		msg, nodename = data.split()
-		self.log.info('head daemon: ' + str(msg) + ' ' + str(nodename))
-
-		# register, if all, then send release messages
-		self.node_waiting_set.add(nodename.replace('\0',''))
-		self.log.info('present nodes ' + str(self.node_waiting_set))
-
-		self.log.info('checking ' + str(len(self.node_waiting_set)) + ' == ' + str(self.global_node_count))
-		if len(self.node_waiting_set) == self.global_node_count:
-			self.log.info('sending global release')
-			# send node release messages
-			for node in self.node_waiting_set:
-				msg = 'global_release\0'.ljust(64).encode('utf-8')
-				
-				host = socket.gethostbyname(node)
-				self.log.info('send global release to ' + host + ' ' + node)
-				self.sock.sendto(msg, (host, self.daemon_port))
 	
-	def process_global_release(self):
-		self.log.info('head daemon: global release')
-
-		# forward release to all ranks
-		self.log.info('present ranks ' + str(self.rank_waiting_set))
-		for rank in self.rank_waiting_set:
-			msg = 'release\0'.ljust(64).encode('utf-8')
-
-			# todo local port should use local id instead of global id
-			host = socket.gethostbyname(socket.gethostname())
-			self.sock.sendto(msg, (host, self.mpi_base_port + int(rank)))
-			self.log.info('sent release to ' + str(rank))
-
-	def process_global_error(self, data):
-		# TODO inform all ranks of error
-		raise NotImplementedError 
+	def process_error(self, data, addr):
+		# TODO inform all ranks of error for this head daemon
+		raise NotImplementedError
 
 if __name__ == '__main__':
 	# todo read from environment

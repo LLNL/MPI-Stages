@@ -128,7 +128,6 @@ class FaultDaemon:
 		if self.head_daemon != None:
 			self.log.info('shutting down head daemon')
 
-			self.head_daemon.terminate()
 			self.head_daemon.wait()
 
 		self.log.info('shut down complete')
@@ -138,10 +137,14 @@ class FaultDaemon:
 		job_id = self.sub_env['EXAMPI_JOB_ID']
 	
 		# create temporary files
+		prefix = 'exampi_'
 		suffix = '.' + str(self.job_id) + '.' + str(self.rank)
 
-		self.config_file = tempfile.NamedTemporaryFile(mode='w', delete=False, suffix=suffix) 
-		self.epoch_file = tempfile.NamedTemporaryFile(mode='w', delete=False, suffix=suffix)
+		self.config_file = tempfile.NamedTemporaryFile(mode='w', delete=False, prefix=prefix, suffix=suffix) 
+		self.epoch_file = tempfile.NamedTemporaryFile(mode='w', delete=False, prefix=prefix, suffix=suffix)
+
+		self.config_name = self.config_file.name
+		self.epoch_name = self.epoch_file.name
 
 		self.sub_env['EXAMPI_CONFIG_FILE'] = self.config_file.name
 		self.sub_env['EXAMPI_EPOCH_FILE'] = self.epoch_file.name
@@ -207,30 +210,50 @@ class FaultDaemon:
 		self.config_file.close()
 
 	def inform_head_daemon(self):
+		self.log.info('informing head daemon about application termination')
+
 		# establish connection to head daemon
 		sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 		sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 0)
 		sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 0)
 		sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+		self.log.info('created socket to communicate with head daemon')
 
 		# bind for return message
 		# TODO use tcp port, port management automatic
 		sock.bind((socket.gethostname(), self.daemon_port - 1 - self.rank))
+		self.log.info('bound socket')
+
+		# read in last epoch from epoch file
+		self.epoch_file = open(self.epoch_name, 'r')
+		epoch = self.epoch_file.readline()
+		self.log.info('read epoch file: ' + str(epoch))
+	
+		msg = 'termination ' + str(os.environ['EXAMPI_RANK']) + ' ' + str(self.process.returncode) + ' ' + str(epoch)
+		self.log.info('msg: ' + msg)
+		msg = msg.ljust(64)
+		msg = msg.encode('utf-8')
 
 		hostname = socket.gethostname()
 		host = socket.gethostbyname(hostname)
 
-		#msg = 'termination ' + str(env['EXAMPI_RANK']) + ' ' + str(self.process.returncode)
-		# todo add epoch
-		#msg = msg.ljust(64)
-		#msg = msg.encode('utf-8')
-
-		#sock.sendto(msg, (host, daemon_port))
+		self.log.info('sending msg')
+		sock.sendto(msg, (host, daemon_port))
+		self.log.info('informed head daemon')
 		# error check
 
 		# todo wait for response
-		#data = sock.recv(64)
+		data = sock.recv(64)
+		
+		msg = data.decode('utf-8').replace('\0', '').strip()
+
+		if msg == 'shutdown':
+			self.log.info('shutting down fault daemon')
+		else:
+			self.log.error('received ' + str(data))
+			raise NotImplementedError
+		
 		sock.close()
 
 		# process head daemon msg
@@ -260,6 +283,8 @@ class FaultDaemon:
 
 		self.process = subprocess.Popen(command, env=self.sub_env)
 		self.process.wait()
+		
+		self.log.info("application process completed")
 
 		return self.inform_head_daemon()
 
@@ -281,12 +306,12 @@ if __name__ == '__main__':
 	# TODO with tcp this will disappear, no explicit port managemented required if these were used
 	mpi_base_port = 22222
 	
-	# todo remove udp transport port from here, should be in system config
+	# TODO remove udp transport port from here, should be in system config
 	udp_transport_base = 33333
 
 	# fault daemon
 	daemon = FaultDaemon(daemon_port, mpi_base_port, udp_transport_base)
-	errorcode = daemon.launch()	
+	errorcode = daemon.launch()
 
 	# return error code
 	sys.exit(errorcode)
