@@ -16,7 +16,8 @@ import logging
 errorcodes = {
 	'MPI_SUCCESS': 0,
 	'MPI_ABORT': 255,
-	'MPI_FAULT': 124
+	'MPI_FAULT': 124,
+	'MPIX_TRY_RELOAD': 101
 	}
 
 #def prefix_sum(array):
@@ -345,6 +346,10 @@ class HeadDaemon:
 		elif errorcode == errorcodes['MPI_ABORT']:
 			# MPI_ABORT
 			self.log.error('not implemented error MPI_ABORT')
+			raise NotImplementedError
+		
+		elif errorcode == errorcodes['MPIX_TRY_RELOAD']:
+			self.log.error('received MPIX_TRY_RELOAD errorcode')
 			raise NotImplementedError
 
 		else:

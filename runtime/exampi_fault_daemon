@@ -256,14 +256,6 @@ class FaultDaemon:
 		
 		sock.close()
 
-		# process head daemon msg
-		#if msg == restart:
-		#	self.launch()
-
-		#else:
-		#	# no restart
-		#	pass
-		
 		return self.process.returncode
 
 	def launch_head_daemon(self):
