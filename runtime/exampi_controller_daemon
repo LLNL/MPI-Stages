@@ -1,0 +1,106 @@
+#!/usr/bin/env python2
+
+import os
+import sys
+import logging
+import signal
+import socket
+import select
+
+# spawned by single head daemon (rank=0)
+
+# maintain TCP connections to all head daemons 
+
+class ControllerDaemon:
+	def __init__(self):
+		self.shutdown = False
+		self.head_daemons = {}
+
+		self.packet_switch = {}
+		self.setup_packet_switch()
+
+		self.sockets = []
+		self.setup_server_socket()
+
+	def __del__(self):
+		raise NotImplementedError
+
+	def setup_logger(self):
+		if os.environ.get('EXAMPI_LOG_CONTROLLER_DAEMON', None) == 'TRUE':
+			self.log = logging.getLogger(__name__)
+			self.log.setLevel(logging.INFO)
+			
+			logname = 'controller_daemon.log'
+			
+			handler = logging.FileHandler(logname)
+			handler.setLevel(logging.INFO)
+
+			self.log.addHandler(handler)
+
+		else:
+			self.log = logging.getLogger(__name__)
+			self.log.addHandler(logging.NullHandler())
+
+	def setup_server_socket(self):
+		self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		self.server_socket.setblocking(0)
+
+		self.hostname = socket.gethostname()
+		self.localhost = socket.gethostbyname(self.hostname)
+
+		self.server_socket.bind((self.localhost, int(os.environ['EXAMPI_CONTROLLER_PORT'])))
+		self.server_socket.listen(5)
+
+		self.sockets.append(self.server_socket)
+
+	def setup_packet_switch(self):
+		self.packet_switch['node_barrier'] = self.node_barrier
+		self.packet_switch['process_exit'] = self.process_exit
+
+	def launch(self):
+		self.log.info('launching ControllerDaemon')
+
+		while not self.shutdown:
+			# wait for sockets
+			readables, writables, exceptionals = select.select(self.sockets, [], [])
+
+			self.log.info('iterating readables')
+			for readable in readables:
+				if readable is self.server_socket:
+					# handle connection request
+					connection, client = readable.accept()
+					connection.setblocking(0)
+
+					self.log.info('connection accepted from ' + str(client))
+
+					# add connection socket to tracked sockets
+					self.sockets.append(connection)
+
+				else:
+					# recv on client socket
+					packet = readable.recv(64).decode('utf-8').replace('\0','')
+					self.log.info('packet received from ' + str(readable.getpeername()))
+					self.log.info('packet: "' + str(packet) + '"')
+					data = packet.split(' ')
+					
+					# look up and execute
+					packet_handler = self.packet_switch.get(data[0], None) 
+					if packet_handler:
+						packet_handler(readable, data[1:])
+
+			self.log.info('iterating writables')
+			for writable in writables:
+				pass
+
+			self.log.info('iterating exceptionals')
+			for exceptional in exceptionals:
+				pass
+		
+		self.log.info('shutting down ControllerDaemon')
+
+	def node_barrier(self, socket, data):
+		raise NotImplementedError
+
+if __name__ == '__main__':
+	daemon = ControllerDaemon()
+	daemon.launch()
