@@ -82,6 +82,8 @@ class RuntimeHandler:
 				env['EXAMPI_LOG_FAULT_DAEMON'] = 'TRUE'
 			if arguments.loghead:
 				env['EXAMPI_LOG_HEAD_DAEMON'] = 'TRUE'
+			if arguments.loghead:
+				env['EXAMPI_LOG_CONTROLLER_DAEMON'] = 'TRUE'
 
 			env['EXAMPI_LOCALID'] = str(rank)
 			env['EXAMPI_RANK'] = str(rank)
@@ -173,6 +175,8 @@ class RuntimeHandler:
 			env['EXAMPI_LOG_FAULT_DAEMON'] = 'TRUE'
 		if arguments.loghead:
 			env['EXAMPI_LOG_HEAD_DAEMON'] = 'TRUE'
+		if arguments.loghead:
+			env['EXAMPI_LOG_CONTROLLER_DAEMON'] = 'TRUE'
 
 		self.log.info('srun command:' + str(command))
 			
@@ -208,6 +212,9 @@ def parse_arguments():
 	
 	# create head daemon logs	
 	parser.add_argument('--loghead', action='store_true')
+
+	# create head daemon logs	
+	parser.add_argument('--logcontrol', action='store_true')
 
 	return parser.parse_args()
 
