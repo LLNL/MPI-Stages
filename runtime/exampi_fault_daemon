@@ -80,14 +80,18 @@ def lookup_rank(rank):
 					return nodelist[idx]
 
 class FaultDaemon:
-	def __init__(self, daemon_port, mpi_base_port, udp_transport_base):
+	def __init__(self, daemon_port, mpi_base_port, udp_transport_base, controller_port):
 		self.daemon_port = daemon_port
+		self.controller_port = controller_port
 		self.mpi_base_port = mpi_base_port
 		self.udp_transport_base = udp_transport_base
 		self.epoch = 0
 		self.head_daemon = None
 		
 		self.setup_environment()
+
+		self.hostname = socket.gethostname()
+		self.localhost = socket.gethostbyname(self.hostname)
 
 		# setup logging
 		if os.environ.get('EXAMPI_LOG_FAULT_DAEMON', None) == 'TRUE':
@@ -109,7 +113,7 @@ class FaultDaemon:
 		self.write_configuration()
 		self.write_epoch()
 
-		# TODO setup signal handler
+		self.setup_signal_handler()
 
 	def __del__(self):
 		self.log.info('fault daemon shutting down')
@@ -131,6 +135,7 @@ class FaultDaemon:
 			self.head_daemon.wait()
 
 		self.log.info('shut down complete')
+		del self.log
 
 	def setup_file_handles(self):
 		rank = self.sub_env['EXAMPI_RANK']
@@ -175,6 +180,7 @@ class FaultDaemon:
 
 		# announce daemon socket port
 		self.sub_env['EXAMPI_DAEMON_PORT'] = str(self.daemon_port)
+		self.sub_env['EXAMPI_CONTROLLER_PORT'] = str(self.controller_port)
 		self.sub_env['EXAMPI_MPI_BASE_PORT'] = str(self.mpi_base_port)
 		self.sub_env['EXAMPI_MPI_PORT'] = str(self.mpi_base_port + self.rank) 
 		self.sub_env['EXAMPI_UDP_TRANSPORT_BASE'] = str(self.udp_transport_base)
@@ -213,48 +219,38 @@ class FaultDaemon:
 		self.log.info('informing head daemon about application termination')
 
 		# establish connection to head daemon
-		sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+		head_daemon = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-		sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 0)
-		sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 0)
-		sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-		self.log.info('created socket to communicate with head daemon')
+		# TODO potential for server not being up, retry
+		head_daemon.connect((self.localhost, self.daemon_port))
 
-		# bind for return message
-		# TODO use tcp port, port management automatic
-		sock.bind((socket.gethostname(), self.daemon_port - 1 - self.rank))
-		self.log.info('bound socket')
+		#sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 0)
+		#sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 0)
+		#sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+		#self.log.info('created socket to communicate with head daemon')
 
 		# read in last epoch from epoch file
 		self.epoch_file = open(self.epoch_name, 'r')
 		epoch = self.epoch_file.readline()
 		self.log.info('read epoch file: ' + str(epoch))
 	
+		#
 		msg = 'termination ' + str(os.environ['EXAMPI_RANK']) + ' ' + str(self.process.returncode) + ' ' + str(epoch)
 		self.log.info('msg: ' + msg)
-		msg = msg.ljust(64)
-		msg = msg.encode('utf-8')
+		data = msg.ljust(64).encode('utf-8')
 
-		hostname = socket.gethostname()
-		host = socket.gethostbyname(hostname)
+		head_daemon.send(data)
 
-		self.log.info('sending msg')
-		sock.sendto(msg, (host, daemon_port))
-		self.log.info('informed head daemon')
-		# error check
-
-		# todo wait for response
-		data = sock.recv(64)
-		
+		data = head_daemon.recv(64)
 		msg = data.decode('utf-8').replace('\0', '').strip()
+
+		head_daemon.close()
 
 		if msg == 'shutdown':
 			self.log.info('shutting down fault daemon')
 		else:
 			self.log.error('received ' + str(data))
 			raise NotImplementedError
-		
-		sock.close()
 
 		return self.process.returncode
 
@@ -281,13 +277,23 @@ class FaultDaemon:
 		return self.inform_head_daemon()
 
 	def setup_signal_handler(self):
-		raise NotImplementedError
+		signal.signal(signal.SIGINT, self.signal_handler)
+		self.log.info('set up signal handler')
 
 	def signal_handler(self, signal, frame):
+		self.log.info('FaultDaemon received signal ' + str(signal))
 		self.process.send_signal(signal)
 
 		if self.head_daemon != None:
+			self.log.info('sending signal to head daemon')
 			self.head_daemon.send_signal(signal)
+			self.head_daemon.wait()
+
+		self.process.wait()
+
+		self.__del__()
+		
+		sys.exit(12)
 
 if __name__ == '__main__':
 	lookup_setup()
@@ -301,8 +307,10 @@ if __name__ == '__main__':
 	# TODO remove udp transport port from here, should be in system config
 	udp_transport_base = 33333
 
+	controller_port = 53434
+
 	# fault daemon
-	daemon = FaultDaemon(daemon_port, mpi_base_port, udp_transport_base)
+	daemon = FaultDaemon(daemon_port, mpi_base_port, udp_transport_base, controller_port)
 	errorcode = daemon.launch()
 
 	# return error code

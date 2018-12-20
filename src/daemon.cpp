@@ -29,19 +29,18 @@ Daemon& Daemon::get_instance()
 Daemon::Daemon()
 {
 	// initiate socket
-	this->sock = socket(AF_INET, SOCK_DGRAM, 0);
+	this->sock = socket(AF_INET, SOCK_STREAM, 0);
 	if(this->sock < 0)
 	{
 		debugpp("rank " << exampi::rank << " daemon socket failed.");
 		return;
 	}
 
-	int reuse = 1;
-	setsockopt(this->sock, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(int));
-	int buf_size = 0;
-	setsockopt(this->sock, SOL_SOCKET, SO_SNDBUF, &buf_size, sizeof(int));
-	setsockopt(this->sock, SOL_SOCKET, SO_RCVBUF, &buf_size, sizeof(int));
-	
+	//int reuse = 1;
+	//setsockopt(this->sock, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(int));
+	//int buf_size = 0;
+	//setsockopt(this->sock, SOL_SOCKET, SO_SNDBUF, &buf_size, sizeof(int));
+	//setsockopt(this->sock, SOL_SOCKET, SO_RCVBUF, &buf_size, sizeof(int));
 
 	// find hostname
 	char hostname[1024];
@@ -50,29 +49,23 @@ Daemon::Daemon()
 
 	struct in_addr* host = (struct in_addr*)gethostbyname(hostname)->h_addr_list[0];
 	debugpp("getting local ip as " << inet_ntoa(*host));
+
 	
 	// bind to local
-	debugpp("recv mpi port " << std::string(std::getenv("EXAMPI_MPI_PORT")));
-	int mpi_port = std::stoi(std::string(std::getenv("EXAMPI_MPI_PORT")));
-	this->local.sin_family = AF_INET;
-	this->local.sin_port = htons(mpi_port);
-	//this->local.sin_addr.s_addr = inet_addr(h_addr_list[0]);
-	this->local.sin_addr = *host;
-	// TODO check error code
+	//debugpp("recv mpi port " << std::string(std::getenv("EXAMPI_MPI_PORT")));
+	//int mpi_port = std::stoi(std::string(std::getenv("EXAMPI_MPI_PORT")));
+	//this->local.sin_family = AF_INET;
+	//this->local.sin_port = htons(mpi_port);
+	////this->local.sin_addr.s_addr = inet_addr(h_addr_list[0]);
+	//this->local.sin_addr = *host;
+	//// TODO check error code
+	////int err = bind(this->sock, (sockaddr *)&this->local, sizeof(this->local));
 	//int err = bind(this->sock, (sockaddr *)&this->local, sizeof(this->local));
-	int err = bind(this->sock, (sockaddr *)&this->local, sizeof(this->local));
-	if(err != 0)
-	{
-		debugpp("failed to bind port");
-		exit(124);
-	}
-
-	// set recv timeout
-	struct timeval tv;
-	tv.tv_sec = 0;
-	tv.tv_usec = 500 * 1000;
-	setsockopt(this->sock, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
-	debugpp("set socket recv time to " << tv.tv_usec/1000 << " ms");
+	//if(err != 0)
+	//{
+	//	debugpp("failed to bind port");
+	//	exit(124);
+	//}
 
 	// set daemon sock addr
 	debugpp("daemon port " << std::string(std::getenv("EXAMPI_DAEMON_PORT")));
@@ -82,6 +75,27 @@ Daemon::Daemon()
 	this->daemon.sin_port = htons(daemon_port);
 	//this->daemon.sin_addr.s_addr = inet_addr(ip->h_addr_list[0]);
 	this->daemon.sin_addr = *host;
+	debugpp("generated daemon sockaddr_in");
+
+	bool unconnected = true;
+	do
+	{
+		debugpp("attempting connection to daemon");
+		if(connect(this->sock, (const sockaddr*)&this->daemon, sizeof(this->daemon)) == -1)
+		{
+			// failed to connect to head daemon
+			debugpp("failed to establish tcp connection, waiting 250ms");
+			
+			// sleep for 250 ms
+			usleep(250 * 1000);
+		}
+		else
+		{
+			unconnected = false;
+		}
+	}
+	while(unconnected);
+	debugpp("tcp connection to daemon established");
 }
 
 Daemon::~Daemon()
@@ -97,11 +111,7 @@ int Daemon::barrier()
 	// send barrier
 	err = send_barrier_ready();
 
-	while(recv_barrier_release())
-	{
-		// resend barrier
-		err = send_barrier_ready();
-	}
+	err = recv_barrier_release();
 
 	debugpp("daemon: barrier complete");
 	return err;	

@@ -12,13 +12,14 @@ import signal
 import socket
 import re
 import logging
+import select
 
 errorcodes = {
 	'MPI_SUCCESS': 0,
 	'MPI_ABORT': 255,
 	'MPI_FAULT': 124,
 	'MPIX_TRY_RELOAD': 101
-	}
+}
 
 #def prefix_sum(array):
 #	out = []
@@ -64,19 +65,29 @@ errorcodes = {
 #				return nodelist[idx]
 
 class HeadDaemon:
-	def __init__(self, daemon_port, mpi_base_port):
+	def __init__(self, daemon_port, mpi_base_port, controller_port):
 		self.setup_logger()
+
+		self.sockets = []
+
+		self.controller = None
 		
 		self.daemon_port = daemon_port
+		self.controller_socket = None
+		self.controller_port = controller_port
 		self.shutdown = False
 
-		self.setup_socket()
+		self.setup_server_socket()
 		
 		# create signal handler
 		signal.signal(signal.SIGINT, self.signal_handler)
 		self.log.info('set up signal handler')
 			
 		# local data
+		self.ranks = {}
+		# TODO self.fault_daemons = {}
+
+		# global data
 		self.mpi_base_port = mpi_base_port
 		self.rank_waiting_set = set()
 		self.ranks_completed = set()
@@ -105,8 +116,25 @@ class HeadDaemon:
 
 	def __del__(self):
 		self.log.info('shutting down socket')
-		self.sock.close()
+	
+		for socket in self.sockets:
+			socket.close()
+
+		if self.controller != None:
+			self.controller.wait()
 		self.log.info('shutting down')
+
+	def signal_handler(self, signal, frame):
+		self.log.warning("HEAD DAEMON signal received " + str(signal))
+
+		if self.controller != None:
+			self.controller.send_signal(signal)
+			self.controller.wait()
+		
+		self.__del__()
+		del self.log
+
+		sys.exit(11)
 
 	def setup_logger(self):
 		if os.environ.get('EXAMPI_LOG_HEAD_DAEMON', None) == 'TRUE':
@@ -124,37 +152,44 @@ class HeadDaemon:
 			self.log = logging.getLogger(__name__)
 			self.log.addHandler(logging.NullHandler())
 
-	def setup_socket(self):
+	def setup_server_socket(self):
 		# create socket
-		self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+		self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		self.server_socket.setblocking(0)
 		
-		self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 0)
-		self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 0)
-		self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+		self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 0)
+		self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 0)
+		self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-		self.sock.bind((socket.gethostname(), daemon_port))
-		self.log.info('socket bound on ' + str(socket.gethostname()) + ' ' + str(socket.gethostbyname(socket.gethostname())) + ' ' + str(self.daemon_port))
+		self.hostname = socket.gethostname()
+		self.localhost = socket.gethostbyname(self.hostname)
+
+		self.server_socket.bind((self.localhost, self.daemon_port))
+		self.server_socket.listen(5)
+	
+		self.sockets.append(self.server_socket)
 
 	def generate_message_lookup(self):
 		self.message_lookup = {}
 
-		# fault daemons/application -> head daemon(1)
+		# process -> head daemon(1)
 		self.message_lookup['barrier'] = self.process_barrier
-		self.message_lookup['termination'] = self.process_termination
 		#self.message_lookup['lookup'] = None # TODO dynamic connection building
+		self.message_lookup['clean_up'] = self.process_clean_up
+
+		# fault daemon -> head daemon
+		self.message_lookup['termination'] = self.process_termination
 
 		# head daemon(+) -> controller(1)
-		self.message_lookup['global_barrier'] = self.process_global_barrier
-		self.message_lookup['global_termination'] = self.process_global_termination
+		#self.message_lookup['global_barrier'] = self.process_global_barrier
+		#self.message_lookup['global_termination'] = self.process_global_termination
 		
 		# controller -> head daemons -> fault daemons(+)
 		self.message_lookup['release'] = self.process_release
-		#self.message_lookup['error'] = self.process_error
+		self.message_lookup['error'] = self.process_error
 		self.message_lookup['shutdown'] = self.process_shutdown
+		self.message_lookup['commit'] = self.process_commit
 
-	def signal_handler(self, signal, frame):
-		self.log.warning("HEAD DAEMON signal received " + str(signal))
-		self.shutdown = True
 
 	def prepare_lookup(self):
 		if os.environ['EXAMPI_ENV'] == 'local':
@@ -196,23 +231,97 @@ class HeadDaemon:
 		else:
 			raise NotImplementedError
 
+	def launch_controller_daemon(self):
+		self.log.info('checking responsibility for controller')
+		if int(os.environ['EXAMPI_RANK']) == 0 and self.controller == None:
+			self.log.info('launching')
+
+			env = dict(copy.deepcopy(os.environ))
+			env['EXAMPI_NODE_COUNT'] = str(self.global_node_count)
+
+			command = ['exampi_controller_daemon']
+			self.controller = subprocess.Popen(command, env=env)
+
+			self.log.info('launched controller daemon')
+
 	def launch(self):
+		self.log.info('launching HeadDaemon')
+
+		# TODO launch ControllerDaemon		
+		self.launch_controller_daemon()
+
+		# TODO use select.select to read many sockets for read ability
 		while not self.shutdown:
-			# receive 64B message
-			data, addr = self.sock.recvfrom(64)	
-			data = data.decode('utf-8').replace('\0','')
-			self.log.info('raw data ' + str(type(data)) + ' ' + data)
+			self.log.info('waiting for incoming')
+			readables, writables, exceptionals = select.select(self.sockets, [], [])
 			
-			# process 
-			self.log.info('processing: ' + str(data))
-			# TODO don't redo split in each processing
-			msg = data.split()[0]
-			self.message_lookup[msg](data, addr)
+			self.log.info('iterating readables')
+			for readable in readables:
+				if readable is self.server_socket:
+					# handle connection request
+					connection, client = readable.accept()
+					connection.setblocking(0)
+
+					self.log.info('connection accepted from ' + str(client))
+
+					# add connection socket to tracked sockets
+					self.sockets.append(connection)
+
+				else:
+					# recv on client socket
+					packet = readable.recv(64).decode('utf-8').replace('\0','')
+					self.log.info('packet received from ' + str(readable.getpeername()))
+					self.log.info('packet: "' + str(packet) + '"')
+					data = packet.split(' ')
+
+					# look up and execute
+					packet_handler = self.packet_switch.get(data[0], None)
+					if packet_handler:
+						self.log.info('found packet handler')
+						packet_handler(readable, data[1:])
+
+					else:
+						self.log.error('failed to handle: ' + str(packet))
+						raise ValueError
+
+			self.log.info('iterating writables')
+			for writable in writables:
+				pass
+
+			self.log.info('iterating exceptionals')
+			for exceptional in exceptionals:
+				pass
+			
+			# TODO convert to select with tcp connections
+			# receive 64B message
+
+			# TODO XXX XXX XXX THIS IS BLOCKING EVERTHING needs  to listen on controller_socket as well
+			#data, addr = self.sock.recvfrom(64)	
+			#data = data.decode('utf-8').replace('\0','')
+			#self.log.info('raw data ' + str(type(data)) + ' ' + data)
+			#
+			## process 
+			#self.log.info('processing: ' + str(data))
+			## TODO don't redo split in each processing
+			#msg = data.split()[0]
+			#self.message_lookup[msg](data, addr)
+		
+		self.log.info('shutting down HeadDaemon')
 
 	def send_to_controller(self, data):
 		self.log.info('sending to controller: ' + str(data))
 
-		self.sock.sendto(data, (self.root_node, self.daemon_port)) 
+		#self.sock.sendto(data, (self.root_node, self.daemon_port)) 
+
+		# set up connection to controller tcp
+		if self.controller_socket == None:
+			self.controller_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+			self.controller_socket.connect((self.root_node, int(os.environ['EXAMPI_CONTROLLER_PORT'])))
+			self.log.info('connected to controller socket')
+
+			self.sockets.append(self.controller_socket)
+
+		self.controller_socket.send(data)
 
 		self.log.info('finished sending to controller')
 
@@ -272,10 +381,14 @@ class HeadDaemon:
 		# register rank for barrier 
 		self.rank_waiting_set.add(rank)
 		self.rank_pids[rank] = pid
+
+		self.ranks[rank] = {'pid':pid}
+		# TODO later add tcp socket connection
 		self.log.info('registered rank ' + str(rank) + ':' + str(pid) + ':waiting')
 		
 		# check if all local ranks are waiting
 		if self.barrier_unannounced and len(self.rank_waiting_set) == self.local_rank_count:
+		#if self.barrier_unannounced and len(self.ranks) == self.local_rank_count:
 			self.log.info('registered all local ranks, sending global barrier to controller')
 
 			# flag to confirm we already sent message
@@ -283,24 +396,24 @@ class HeadDaemon:
 			# TODO do we need this, we should never reach here again after all are waiting?
 			self.barrier_unannounced = False
 
-			msg = ('global_barrier ' + socket.gethostname() + '\0').ljust(64).encode('utf-8')
+			msg = ('node_barrier ' + socket.gethostname() + '\0').ljust(64).encode('utf-8')
 
 			self.send_to_controller(msg)
 
-	def process_global_barrier(self, data, addr):
-		msg, hostname = data.split()
-
-		# register, if all, then send release messages
-		self.node_waiting_set.add(hostname)
-		self.log.info('registered node ' + hostname + ':waiting')
-
-		self.log.info('check ' + str(len(self.node_waiting_set)) + ' == ' + str(self.global_node_count)) 
-		if len(self.node_waiting_set) == self.global_node_count:
-			self.log.info('complete global barrier, sending global release')
-
-			# send node release messages
-			data = 'release\0'.ljust(64).encode('utf-8')
-			self.send_to_head_daemons(data)
+#	def process_global_barrier(self, data, addr):
+#		msg, hostname = data.split()
+#
+#		# register, if all, then send release messages
+#		self.node_waiting_set.add(hostname)
+#		self.log.info('registered node ' + hostname + ':waiting')
+#
+#		self.log.info('check ' + str(len(self.node_waiting_set)) + ' == ' + str(self.global_node_count)) 
+#		if len(self.node_waiting_set) == self.global_node_count:
+#			self.log.info('complete global barrier, sending global release')
+#
+#			# send node release messages
+#			data = 'release\0'.ljust(64).encode('utf-8')
+#			self.send_to_head_daemons(data)
 
 	def process_release(self, data, addr):
 		# forward release to all ranks
@@ -314,7 +427,9 @@ class HeadDaemon:
 		# this is from the fault daemon, representing the rank
 
 		# register fault daemon
-		self.fault_daemons.append(rank)
+		self.fault_daemons.append(int(rank))
+		# TODO remove rank from self.ranks
+		# TODO self.fault_daemons[rank] = {errorcode, epoch, socket}
 
 		msg = 'global_termination ' + self.hostname + ' ' + rank + ' ' + errorcode + ' ' + epoch + '\0'
 		msg = msg.ljust(64)
@@ -323,38 +438,39 @@ class HeadDaemon:
 
 		self.send_to_controller(msg.encode('utf-8'))
 
-	def process_global_termination(self, data, addr):
-		# head daemon to controller
-		msg, hostname, rank, errorcode, epoch = data.split()
-
-		rank = int(rank)
-		errorcode = int(errorcode)
-		epoch = int(epoch)
-
-		if errorcode == errorcodes['MPI_SUCCESS']:
-			self.log.info('rank ' + str(rank) + ' on ' + hostname + ' completed with MPI_SUCCESS')
-			self.ranks_completed.add(rank)
-
-			# exit once all local have completed
-			self.log.info('check all ranks complete ' + str(len(self.ranks_completed)) + ' == ' + str(self.world_size))
-			if len(self.ranks_completed) == self.world_size:
-				self.log.info('all local ranks completed, sending shutdown')
-				
-				data = 'shutdown\0'.ljust(64).encode('utf-8')
-				self.send_to_head_daemons(data)
-
-		elif errorcode == errorcodes['MPI_ABORT']:
-			# MPI_ABORT
-			self.log.error('not implemented error MPI_ABORT')
-			raise NotImplementedError
-		
-		elif errorcode == errorcodes['MPIX_TRY_RELOAD']:
-			self.log.error('received MPIX_TRY_RELOAD errorcode')
-			raise NotImplementedError
-
-		else:
-			self.log.error('not implemented error code: ' + str(data))
-			raise NotImplementedError
+#	def process_global_termination(self, data, addr):
+#		# head daemon to controller
+#		msg, hostname, rank, errorcode, epoch = data.split()
+#
+#		rank = int(rank)
+#		errorcode = int(errorcode)
+#		epoch = int(epoch)
+#
+#		if errorcode == errorcodes['MPI_SUCCESS']:
+#			self.log.info('rank ' + str(rank) + ' on ' + hostname + ' completed with MPI_SUCCESS')
+#			self.ranks_completed.add(rank)
+#
+#			# exit once all local have completed
+#			self.log.info('check all ranks complete ' + str(len(self.ranks_completed)) + ' == ' + str(self.world_size))
+#			if len(self.ranks_completed) == self.world_size:
+#				self.log.info('all local ranks completed, sending shutdown')
+#				
+#				data = 'shutdown\0'.ljust(64).encode('utf-8')
+#				self.send_to_head_daemons(data)
+#
+#		elif errorcode == errorcodes['MPI_ABORT']:
+#			# MPI_ABORT
+#			self.log.error('not implemented error MPI_ABORT')
+#			raise NotImplementedError
+#		
+#		elif errorcode == errorcodes['MPIX_TRY_RELOAD']:
+#			self.log.error('received MPIX_TRY_RELOAD errorcode')
+#			# TODO emit error to all head daemons
+#			raise NotImplementedError
+#
+#		else:
+#			self.log.error('not implemented error code: ' + str(data))
+#			raise NotImplementedError
 
 	def process_shutdown(self, data, addr):
 		self.log.info('received global shutdown from controller, shutting down...')
@@ -371,16 +487,41 @@ class HeadDaemon:
 
 		else:
 			raise NotImplementedError
-	
+
 	def process_error(self, data, addr):
-		# TODO inform all ranks of error for this head daemon
+		self.log.info('starting to signal all on-node processes')
+
+		# TODO extract epoch number
+
+		for rank in self.ranks.keys():
+			pid = self.ranks['pid']
+
+			# signal mpi process for error state
+			self.log.info('signalling rank ' + str(rank) + ' with pid ' + str(pid))
+			os.kill(pid, signal.SIGUSR2)
+
+		self.log.info('finished singalling ' + len(self.ranks) + ' ranks')
+
+	def process_clean_up(self, data, addr):
 		raise NotImplementedError
+
+		# clean_up rank pid epoch
+
+		# TODO test error epoch with application epoch
+
+		# TODO respond to process_error from controller with epoch agreement or non argreement
+
+	def process_commit(self, data, addr):
+		raise NotImplementedError
+		
+		# controller has decided on epoch
 
 if __name__ == '__main__':
 	# todo read from environment
 	daemon_port = int(os.environ["EXAMPI_DAEMON_PORT"])
 	mpi_base_port = int(os.environ["EXAMPI_MPI_BASE_PORT"])
+	controller_port = int(os.environ['EXAMPI_CONTROLLER_PORT'])
 
 	#
-	daemon = HeadDaemon(daemon_port, mpi_base_port)
+	daemon = HeadDaemon(daemon_port, mpi_base_port, controller_port)
 	daemon.launch()
