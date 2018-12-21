@@ -220,14 +220,11 @@ class FaultDaemon:
 
 		# establish connection to head daemon
 		head_daemon = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		self.log.info('created socket')
 
 		# TODO potential for server not being up, retry
 		head_daemon.connect((self.localhost, self.daemon_port))
-
-		#sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 0)
-		#sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 0)
-		#sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-		#self.log.info('created socket to communicate with head daemon')
+		self.log.info('connected to head daemon')
 
 		# read in last epoch from epoch file
 		self.epoch_file = open(self.epoch_name, 'r')
@@ -244,13 +241,20 @@ class FaultDaemon:
 		data = head_daemon.recv(64)
 		msg = data.decode('utf-8').replace('\0', '').strip()
 
-		head_daemon.close()
 
 		if msg == 'shutdown':
-			self.log.info('shutting down fault daemon')
+			self.log.info('shutting down fault daemon, sending ack')
+			
+			rank = os.environ['EXAMPI_RANK']
+			head_daemon.send(('shutdown_ack ' + str(rank)).ljust(64).encode('utf-8'))
+
+			self.log.info('shut down done')
+			
 		else:
 			self.log.error('received ' + str(data))
 			raise NotImplementedError
+
+		head_daemon.close()
 
 		return self.process.returncode
 
@@ -269,6 +273,7 @@ class FaultDaemon:
 		# launch command
 		command = sys.argv[1:]
 
+		self.log.info('lauching ' + str(command))
 		self.process = subprocess.Popen(command, env=self.sub_env)
 		self.process.wait()
 		
@@ -297,17 +302,17 @@ class FaultDaemon:
 
 if __name__ == '__main__':
 	lookup_setup()
-
+	
 	# TODO read from system config
-	daemon_port = 11111
+	daemon_port = 14117
 		
 	# TODO with tcp this will disappear, no explicit port managemented required if these were used
-	mpi_base_port = 22222
+	mpi_base_port = 31127
 	
 	# TODO remove udp transport port from here, should be in system config
-	udp_transport_base = 33333
+	udp_transport_base = 31111
 
-	controller_port = 53434
+	controller_port = 11120
 
 	# fault daemon
 	daemon = FaultDaemon(daemon_port, mpi_base_port, udp_transport_base, controller_port)

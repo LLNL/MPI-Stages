@@ -19,6 +19,9 @@ class ControllerDaemon:
 
 		self.shutdown = False
 		self.head_daemons = {}
+		self.disconnected = 0
+	
+		self.node_successes = 0
 
 		self.packet_switch = {}
 		self.setup_packet_switch()
@@ -47,7 +50,6 @@ class ControllerDaemon:
 		sys.exit(10)
 
 	def setup_logger(self):
-		print(os.environ)
 		# do logging
 		if os.environ.get('EXAMPI_LOG_CONTROLLER_DAEMON', None) == 'TRUE':
 			self.log = logging.getLogger('controller')
@@ -84,9 +86,11 @@ class ControllerDaemon:
 
 		self.packet_switch['node_barrier'] = self.node_barrier
 		self.packet_switch['node_success'] = self.node_success
+		self.packet_switch['node_shutdown'] = self.node_shutdown
 		
 		self.packet_switch['process_exit'] = self.process_exit
 		self.packet_switch['process_epoch'] = self.process_epoch
+	
 
 	def launch(self):
 		self.log.info('launching ControllerDaemon')
@@ -95,6 +99,8 @@ class ControllerDaemon:
 			# wait for sockets
 			self.log.info('waiting for incoming')
 			readables, writables, exceptionals = select.select(self.sockets, [], [])
+
+			self.log.info(str(readables))
 
 			self.log.info('iterating readables')
 			for readable in readables:
@@ -109,21 +115,27 @@ class ControllerDaemon:
 					self.sockets.append(connection)
 
 				else:
-					# recv on client socket
-					packet = readable.recv(64).decode('utf-8').replace('\0','')
-					self.log.info('packet received from ' + str(readable.getpeername()))
-					self.log.info('packet: "' + str(packet) + '"')
-					data = packet.split(' ')
+					packet = readable.recv(64)
 					
-					# look up and execute
-					packet_handler = self.packet_switch.get(data[0], None) 
-					if packet_handler:
-						self.log.info('found packet handler')
-						packet_handler(readable, data[1:])
+					self.log.info('received packet: ' + str(packet))
+					self.log.info('from host ' + str(readable.getpeername()))
+					
+					if packet:
+						# recv on client socket
+						packet = packet.decode('utf-8').replace('\0','')
+						self.log.info('packet received from ' + str(readable.getpeername()))
+						self.log.info('packet: "' + str(packet) + '"')
+						data = packet.split(' ')
+						
+						# look up and execute
+						packet_handler = self.packet_switch.get(data[0], None) 
+						if packet_handler:
+							self.log.info('found packet handler')
+							packet_handler(readable, data[1:])
 
-					else:
-						self.log.error('failed to handle: ' + str(packet))
-						raise ValueError
+						else:
+							self.log.error('failed to handle: ' + str(packet))
+							raise ValueError
 
 			self.log.info('iterating writables')
 			for writable in writables:
@@ -138,35 +150,52 @@ class ControllerDaemon:
 	def send_to_head_daemons(self, data):
 		self.log.info('sending ' + str(data) + ' to all head daemons')
 
-		for host, socket in self.head_daemons.iteritems():
-			socket.send(data)
+		for host, attr in self.head_daemons.iteritems():
+			attr['socket'].send(data)
 		
 		self.log.info('sent to all head daemons')
 
-	def node_barrier(self, socket, data):
+	def node_barrier(self, sokt, data):
 		# register node barrier
-		host = socket.getpeername()[0]
-		self.head_daemons[host] = socket
+		host = sokt.getpeername()[0]
+
+		self.head_daemons[host] = {}
+		self.head_daemons[host]['socket'] = sokt
 
 		self.log.info('received barrier from ' + host)
-		self.log.info('received ' + len(self.head_daemons) + ' node barriers')
+		self.log.info('received ' + str(len(self.head_daemons)) + ' node barriers')
 		
 		# if all nodes are present then release
 		if len(self.head_daemons) == int(os.environ['EXAMPI_NODE_COUNT']):
 			self.log.info('sending release')
+
 			data = 'release\0'.ljust(64).encode('utf-8')
 			
 			self.send_to_head_daemons(data)
 			self.log.info('sent release to all head daemons')
 			
-	def node_success(self, socket, data):
-		raise NotImplementedError
-		
-		# entire node has exited with MPI_SUCCESS
+	def node_success(self, sokt, contents):
+		self.node_successes += 1
 
-		# collect all nodes
+		host = sokt.getpeername()[0]
+		self.head_daemons[host]['state'] = 'complete'
 
-		# finally shutdown all nodes
+		if self.node_successes == int(os.environ['EXAMPI_NODE_COUNT']):
+			self.log.info('sending shutdown to all head daemons')
+
+			data = 'shutdown\0'.ljust(64).encode('utf-8')
+			
+			self.send_to_head_daemons(data)
+			self.log.info('sent shutdown to all head daemons')
+
+	def node_shutdown(self, sokt, contents):
+		self.log.info('disconnect head node ' + contents[0])
+		self.disconnected += 1
+
+		if len(self.head_daemons) == self.disconnected:
+			self.server_socket.close()
+			self.shutdown = True
+			self.log.info('proper shutdown started')
 
 	def process_exit(self, socket, data):
 		raise NotImplementedError

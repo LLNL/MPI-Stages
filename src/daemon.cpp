@@ -101,7 +101,7 @@ Daemon::Daemon()
 Daemon::~Daemon()
 {
 	// destroy socket
-	close(this->sock);
+	::close(this->sock);
 }
 
 int Daemon::barrier() 
@@ -196,8 +196,7 @@ int Daemon::send(std::string packet)
 
 	// send packet to daemon
 	debugpp("send packet to daemon: " << packet.c_str());
-	return sendto(this->sock, packet.c_str(), packet.length(), 0,
-	              (sockaddr *)&this->daemon, sizeof(this->daemon));
+	return ::send(this->sock, packet.c_str(), packet.length(), 0);
 }
 
 std::string Daemon::recv()
