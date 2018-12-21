@@ -66,7 +66,7 @@ errorcodes = {
 #				return nodelist[idx]
 
 class HeadDaemon:
-	def __init__(self, daemon_port, mpi_base_port, controller_port):
+	def __init__(self):
 		self.setup_logger()
 
 		self.sockets = []
@@ -74,11 +74,9 @@ class HeadDaemon:
 
 		self.controller = None
 		
-		self.daemon_port = daemon_port
-		self.controller_socket = None
-		self.controller_port = controller_port
 		self.shutdown = False
 
+		self.controller_socket = None
 		self.setup_server_socket()
 		
 		# create signal handler
@@ -92,7 +90,6 @@ class HeadDaemon:
 		self.disconnected = 0
 
 		# global data
-		self.mpi_base_port = mpi_base_port
 		#self.rank_waiting_set = set()
 		self.ranks_completed = set()
 		self.local_rank_count = None
@@ -158,13 +155,10 @@ class HeadDaemon:
 		self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		self.server_socket.setblocking(0)
 		
-		#self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 0)
-		#self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 0)
-
 		self.hostname = socket.gethostname()
 		self.localhost = socket.gethostbyname(self.hostname)
 
-		self.server_socket.bind((self.localhost, self.daemon_port))
+		self.server_socket.bind((self.localhost, int(os.environ['EXAMPI_HEAD_DAEMON_PORT'])))
 		self.server_socket.listen(5)
 	
 		self.sockets.append(self.server_socket)
@@ -311,7 +305,7 @@ class HeadDaemon:
 
 			while True:
 				try:
-					self.controller_socket.connect((self.root_node, int(os.environ['EXAMPI_CONTROLLER_PORT'])))
+					self.controller_socket.connect((self.root_node, int(os.environ['EXAMPI_CONTROLLER_DAEMON_PORT'])))
 					self.controller_socket.setblocking(0)
 					self.log.info('connected to controller socket')
 				except:
@@ -328,8 +322,9 @@ class HeadDaemon:
 	def send_to_head_daemon(self, data, hostname):
 		self.log.info('sending to head daemon on ' + hostname + ': ' + str(data))
 
-		host = socket.gethostbyname(hostname)
-		self.sock.sendto(data, (host, self.daemon_port))
+		raise NotImplementedError
+		#host = socket.gethostbyname(hostname)
+		#self.sock.sendto(data, (host, self.head_daemon_port))
 
 		self.log.info('finished sending to head daemon')
 
@@ -345,7 +340,6 @@ class HeadDaemon:
 	def send_to_rank(self, data, rank):
 		self.log.info('sending to rank ' + str(rank) + ': ' + str(data))
 
-		#self.sock.sendto(data, (self.localhost, self.mpi_base_port + int(rank)))
 		self.ranks[rank]['socket'].send(data)
 		
 		self.log.info('finished sending to ' + str(rank))
@@ -361,7 +355,6 @@ class HeadDaemon:
 	def send_to_fault_daemon(self, data, rank):
 		self.log.info('sending to fault daemon ' + str(rank) + ': ' + str(data))
 
-		#self.sock.sendto(data, (self.localhost, self.daemon_port-1-int(rank)))
 		self.fault_daemons[rank]['socket'].send(data)
 		
 		self.log.info('finished sending to fault daemon')
@@ -547,11 +540,6 @@ class HeadDaemon:
 		# controller has decided on epoch
 
 if __name__ == '__main__':
-	# todo read from environment
-	daemon_port = int(os.environ["EXAMPI_DAEMON_PORT"])
-	mpi_base_port = int(os.environ["EXAMPI_MPI_BASE_PORT"])
-	controller_port = int(os.environ['EXAMPI_CONTROLLER_PORT'])
-
 	#
-	daemon = HeadDaemon(daemon_port, mpi_base_port, controller_port)
+	daemon = HeadDaemon()
 	daemon.launch()

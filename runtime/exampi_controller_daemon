@@ -76,7 +76,7 @@ class ControllerDaemon:
 		self.hostname = socket.gethostname()
 		self.localhost = socket.gethostbyname(self.hostname)
 
-		self.server_socket.bind((self.localhost, int(os.environ['EXAMPI_CONTROLLER_PORT'])))
+		self.server_socket.bind((self.localhost, int(os.environ['EXAMPI_CONTROLLER_DAEMON_PORT'])))
 		self.server_socket.listen(5)
 
 		self.sockets.append(self.server_socket)

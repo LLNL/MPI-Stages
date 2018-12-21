@@ -68,8 +68,8 @@ Daemon::Daemon()
 	//}
 
 	// set daemon sock addr
-	debugpp("daemon port " << std::string(std::getenv("EXAMPI_DAEMON_PORT")));
-	int daemon_port = std::stoi(std::string(std::getenv("EXAMPI_DAEMON_PORT")));
+	debugpp("daemon port " << std::string(std::getenv("EXAMPI_HEAD_DAEMON_PORT")));
+	int daemon_port = std::stoi(std::string(std::getenv("EXAMPI_HEAD_DAEMON_PORT")));
 
 	this->daemon.sin_family = AF_INET;
 	this->daemon.sin_port = htons(daemon_port);

@@ -80,10 +80,7 @@ def lookup_rank(rank):
 					return nodelist[idx]
 
 class FaultDaemon:
-	def __init__(self, daemon_port, mpi_base_port, udp_transport_base, controller_port):
-		self.daemon_port = daemon_port
-		self.controller_port = controller_port
-		self.mpi_base_port = mpi_base_port
+	def __init__(self, udp_transport_base):
 		self.udp_transport_base = udp_transport_base
 		self.epoch = 0
 		self.head_daemon = None
@@ -179,10 +176,10 @@ class FaultDaemon:
 			self.world_size = int(self.sub_env['EXAMPI_WORLD_SIZE'])
 
 		# announce daemon socket port
-		self.sub_env['EXAMPI_DAEMON_PORT'] = str(self.daemon_port)
-		self.sub_env['EXAMPI_CONTROLLER_PORT'] = str(self.controller_port)
-		self.sub_env['EXAMPI_MPI_BASE_PORT'] = str(self.mpi_base_port)
-		self.sub_env['EXAMPI_MPI_PORT'] = str(self.mpi_base_port + self.rank) 
+		#self.sub_env['EXAMPI_DAEMON_PORT'] = str(self.daemon_port)
+		#self.sub_env['EXAMPI_CONTROLLER_PORT'] = str(self.controller_port)
+		#self.sub_env['EXAMPI_MPI_BASE_PORT'] = str(self.mpi_base_port)
+		#self.sub_env['EXAMPI_MPI_PORT'] = str(self.mpi_base_port + self.rank) 
 		self.sub_env['EXAMPI_UDP_TRANSPORT_BASE'] = str(self.udp_transport_base)
 		# TODO remove pid
 		self.sub_env['EXAMPI_DAEMON_PID'] = str(os.getpid())
@@ -210,7 +207,7 @@ class FaultDaemon:
 		for irank in xrange(self.world_size):
 			hostname = lookup_rank(irank) 
 			ip = socket.gethostbyname(hostname)
-			config += str(irank) + ':' + ip + ':' + str(self.daemon_port) + ':' + str(self.udp_transport_base + irank) + '\n'
+			config += str(irank) + ':' + ip + ':' + os.environ['EXAMPI_HEAD_DAEMON_PORT']+ ':' + str(self.udp_transport_base + irank) + '\n'
 
 		self.config_file.write(config)
 		self.config_file.close()
@@ -223,7 +220,7 @@ class FaultDaemon:
 		self.log.info('created socket')
 
 		# TODO potential for server not being up, retry
-		head_daemon.connect((self.localhost, self.daemon_port))
+		head_daemon.connect((self.localhost, int(os.environ['EXAMPI_HEAD_DAEMON_PORT'])))
 		self.log.info('connected to head daemon')
 
 		# read in last epoch from epoch file
@@ -303,19 +300,11 @@ class FaultDaemon:
 if __name__ == '__main__':
 	lookup_setup()
 	
-	# TODO read from system config
-	daemon_port = 14117
-		
-	# TODO with tcp this will disappear, no explicit port managemented required if these were used
-	mpi_base_port = 31127
-	
 	# TODO remove udp transport port from here, should be in system config
 	udp_transport_base = 31111
 
-	controller_port = 11120
-
 	# fault daemon
-	daemon = FaultDaemon(daemon_port, mpi_base_port, udp_transport_base, controller_port)
+	daemon = FaultDaemon(udp_transport_base)
 	errorcode = daemon.launch()
 
 	# return error code

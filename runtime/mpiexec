@@ -7,10 +7,22 @@ import subprocess
 import signal
 import copy
 import logging
+import random
+import socket
 
 class RuntimeHandler:
-	def __init__(self, log=False):
-		if log:
+	def __init__(self, arguments):
+		self.arguments = arguments
+
+		self.setup_logger()
+
+		self.detect_environment()
+
+		self.set_head_port()
+		self.set_control_port()
+	
+	def setup_logger(self):
+		if self.arguments.logexec:
 			self.log = logging.getLogger(__name__)
 			self.log.setLevel(logging.INFO)
 			
@@ -25,7 +37,68 @@ class RuntimeHandler:
 			self.log = logging.getLogger(__name__)
 			self.log.addHandler(logging.NullHandler())
 
-		self.detect_environment()
+	def test_bind(self, port):
+		# XXX this only tests on the root node of the allocation
+		# CAN still FAIL on other nodes, the assumption is that the other nodes will
+		# have identical ports used!
+
+		sokt = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		
+		try:
+			sokt.bind((socket.gethostname(), port))
+		
+		except:
+			self.log.warning('failed to bind socket port ' + str(port))
+			return False
+		
+		else:
+			self.log.info('successful binding on port ' + str(port))
+			return True
+		
+		finally:
+			sokt.close()
+
+	def set_head_port(self):
+		self.log.info('setting head daemon port')
+
+		# argument provided port
+		if self.arguments.headport != None:
+			self.head_daemon_port = self.arguments.headport
+
+			if not self.test_bind(self.head_daemon_port):
+				self.log.error('prescribed head port is not able to be bound!')
+				raise OSError
+
+		# random port needed
+		else:
+			while True:
+				self.head_daemon_port = random.randint(20001, 30000)
+
+				if self.test_bind(self.head_daemon_port):
+					break
+		
+		self.log.info('head daemon port set to: ' + str(self.head_daemon_port))
+
+	def set_control_port(self):
+		self.log.info('setting controller daemon port')
+
+		# argument provided port
+		if self.arguments.controlport != None:
+			self.controller_daemon_port = self.arguments.controlport
+
+			if not self.test_bind(self.controller_daemon_port):
+				self.log.error('prescribed control port is not able to be bound!')
+				raise OSError
+
+		# random port needed
+		else:
+			while True:
+				self.controller_daemon_port = random.randint(30001, 40000)
+
+				if self.test_bind(self.controller_daemon_port):
+					break
+		
+		self.log.info('control daemon port set to: ' + str(self.controller_daemon_port))
 
 	def detect_environment(self):
 		if os.environ.get('SLURM_JOB_ID'):
@@ -39,7 +112,7 @@ class RuntimeHandler:
 
 		self.log.info('detected runtime: ' + self.runtime + ' job_id ' + str(self.job_id))
 
-	def launch(self, arguments):
+	def launch(self):
 		# TODO check if executable is valid, if not try local directory appending
 
 		# NOTE could replace with dictionary
@@ -54,6 +127,8 @@ class RuntimeHandler:
 		
 		else:
 			raise ValueError
+
+		self.log.info('finished successfully\n')
 
 	def launch_local(self, arguments):
 		# act as srun
@@ -89,6 +164,8 @@ class RuntimeHandler:
 			env['EXAMPI_RANK'] = str(rank)
 			env['EXAMPI_JOB_ID'] = str(os.getpid())
 			env['EXAMPI_WORLD_SIZE'] = str(arguments.processes)
+			env['EXAMPI_HEAD_DAEMON_PORT'] = str(self.head_daemon_port)
+			env['EXAMPI_CONTROLLER_DAEMON_PORT'] = str(self.controller_daemon_port)
 
 			self.log.info('created process environment')
 
@@ -105,6 +182,7 @@ class RuntimeHandler:
 				else:
 					error_file = output_file
 				
+
 
 			# construct command
 			command = ['exampi_fault_daemon']
@@ -170,6 +248,8 @@ class RuntimeHandler:
 		# declare EXAMPI_ENV
 		env = dict(copy.deepcopy(os.environ))
 		env['EXAMPI_ENV'] = 'slurm'
+		env['EXAMPI_HEAD_DAEMON_PORT'] = str(self.head_daemon_port)
+		env['EXAMPI_CONTROLLER_DAEMON_PORT'] = str(self.controller_daemon_port)
 		
 		if arguments.logfault:
 			env['EXAMPI_LOG_FAULT_DAEMON'] = 'TRUE'
@@ -216,13 +296,19 @@ def parse_arguments():
 	# create head daemon logs	
 	parser.add_argument('--logcontrol', action='store_true')
 
+	# allow explicit head daemon port setting
+	parser.add_argument('--headport', type=int, default=None)
+
+	# allow explicit controller daemon port setting
+	parser.add_argument('--controlport', type=int, default=None)
+
 	return parser.parse_args()
 
 if __name__ == '__main__':
 	# parse command line arguments
 	arguments = parse_arguments()
 
-	handler = RuntimeHandler(log = arguments.logexec)
-	handler.launch(arguments)
+	handler = RuntimeHandler(arguments)
+	handler.launch()
 	
 	sys.exit(handler.errorcode)
