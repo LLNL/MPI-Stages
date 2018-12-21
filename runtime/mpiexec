@@ -128,8 +128,6 @@ class RuntimeHandler:
 		else:
 			raise ValueError
 
-		self.log.info('finished successfully\n')
-
 	def launch_local(self, arguments):
 		# act as srun
 		processes = []
@@ -182,8 +180,6 @@ class RuntimeHandler:
 				else:
 					error_file = output_file
 				
-
-
 			# construct command
 			command = ['exampi_fault_daemon']
 			command.extend(arguments.program)

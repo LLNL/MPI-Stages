@@ -229,7 +229,7 @@ class FaultDaemon:
 		self.log.info('read epoch file: ' + str(epoch))
 	
 		#
-		msg = 'termination ' + str(os.environ['EXAMPI_RANK']) + ' ' + str(self.process.returncode) + ' ' + str(epoch)
+		msg = 'termination ' + str(self.rank) + ' ' + str(self.process.returncode) + ' ' + str(epoch)
 		self.log.info('msg: ' + msg)
 		data = msg.ljust(64).encode('utf-8')
 
@@ -242,8 +242,7 @@ class FaultDaemon:
 		if msg == 'shutdown':
 			self.log.info('shutting down fault daemon, sending ack')
 			
-			rank = os.environ['EXAMPI_RANK']
-			head_daemon.send(('shutdown_ack ' + str(rank)).ljust(64).encode('utf-8'))
+			head_daemon.send(('shutdown_ack ' + str(self.rank)).ljust(64).encode('utf-8'))
 
 			self.log.info('shut down done')
 			
