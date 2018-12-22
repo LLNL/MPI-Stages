@@ -7,6 +7,8 @@ import signal
 import socket
 import select
 
+import daemon
+
 # spawned by single head daemon (rank=0)
 
 # maintain TCP connections to all head daemons 
@@ -17,12 +19,8 @@ class ControllerDaemon:
 
 		self.log.info('starting up ControllerDaemon')
 
-		self.shutdown = False
 		self.head_daemons = {}
-		self.disconnected = 0
 	
-		self.node_successes = 0
-
 		self.packet_switch = {}
 		self.setup_packet_switch()
 
@@ -90,19 +88,15 @@ class ControllerDaemon:
 		
 		self.packet_switch['process_exit'] = self.process_exit
 		self.packet_switch['process_epoch'] = self.process_epoch
-	
 
 	def launch(self):
 		self.log.info('launching ControllerDaemon')
 
+		self.shutdown = False
 		while not self.shutdown:
 			# wait for sockets
-			self.log.info('waiting for incoming')
 			readables, writables, exceptionals = select.select(self.sockets, [], [])
 
-			self.log.info(str(readables))
-
-			self.log.info('iterating readables')
 			for readable in readables:
 				if readable is self.server_socket:
 					# handle connection request
@@ -116,9 +110,6 @@ class ControllerDaemon:
 
 				else:
 					packet = readable.recv(64)
-					
-					self.log.info('received packet: ' + str(packet))
-					self.log.info('from host ' + str(readable.getpeername()))
 					
 					if packet:
 						# recv on client socket
@@ -137,11 +128,9 @@ class ControllerDaemon:
 							self.log.error('failed to handle: ' + str(packet))
 							raise ValueError
 
-			self.log.info('iterating writables')
 			for writable in writables:
 				pass
 
-			self.log.info('iterating exceptionals')
 			for exceptional in exceptionals:
 				pass
 		
@@ -169,18 +158,25 @@ class ControllerDaemon:
 		if len(self.head_daemons) == int(os.environ['EXAMPI_NODE_COUNT']):
 			self.log.info('sending release')
 
+			# TODO update for error state
 			data = 'release\0'.ljust(64).encode('utf-8')
 			
 			self.send_to_head_daemons(data)
 			self.log.info('sent release to all head daemons')
 			
 	def node_success(self, sokt, contents):
-		self.node_successes += 1
+
+		try:
+			self.node_successes += 1
+		except:
+			self.node_successes = 1
 
 		host = sokt.getpeername()[0]
 		self.head_daemons[host]['state'] = 'complete'
 
 		if self.node_successes == int(os.environ['EXAMPI_NODE_COUNT']):
+			del self.node_successes
+
 			self.log.info('sending shutdown to all head daemons')
 
 			data = 'shutdown\0'.ljust(64).encode('utf-8')
@@ -190,23 +186,49 @@ class ControllerDaemon:
 
 	def node_shutdown(self, sokt, contents):
 		self.log.info('disconnect head node ' + contents[0])
-		self.disconnected += 1
+
+		try:
+			self.disconnected += 1
+		except:
+			self.disconnected = 1
 
 		if len(self.head_daemons) == self.disconnected:
+			del self.disconnected
+
 			self.server_socket.close()
 			self.shutdown = True
 			self.log.info('proper shutdown started')
 
-	def process_exit(self, socket, data):
-		raise NotImplementedError
-		
-		# decide depending on errorcode what needs to be done
-		# MPI_SUCCESS nothing, doesn't need to be sent here
-		# MPIX_TRY_RELOAD
-		# MPI_ABORT
+	def process_exit(self, sokt, contents):
+		# process_exit hostname rank errorcode epoch
+		hostname = contents[0]
+		rank = int(contents[1])
+		errorcode = int(contents[2])
+		epoch = int(contents[3])
 
-	def process_epoch(self, socket, data):
+		self.log.info('process exit with erroneous state ' + str
+
+		if errorcode == daemon.errorcodes['MPIX_TRY_RELOAD']:
+			# send error to all head daemons
+			data = 'error ' + str(epoch) + '\0'.jlust(64).encode('utf-8')
+			self.send_to_head_daemons(data)
+			
+		elif errorcode == daemon.errorcodes['MPI_ABORT']:
+			# 255
+			# TODO send kill command to all head daemons
+			# shut down everything, MPI PROCESS CALLED ABORT
+			# HALT AND CATCH FIRE
+			raise NotImplementedError
+
+		else:
+			raise NotImplementedError
+		
+	def node_epoch(self, sokt, contents):
 		raise NotImplementedError
+		# find minimum all nodes have
+
+		# commit or release from barrier
+		
 
 if __name__ == '__main__':
 	daemon = ControllerDaemon()

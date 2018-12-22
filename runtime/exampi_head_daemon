@@ -15,12 +15,7 @@ import logging
 import select
 import time
 
-errorcodes = {
-	'MPI_SUCCESS': 0,
-	'MPI_ABORT': 255,
-	'MPI_FAULT': 124,
-	'MPIX_TRY_RELOAD': 101
-}
+import daemon
 
 #def prefix_sum(array):
 #	out = []
@@ -86,15 +81,11 @@ class HeadDaemon:
 		# local data
 		self.ranks = {}
 		self.fault_daemons = {}
-		self.success_counter = 0
-		self.disconnected = 0
 
 		# global data
-		#self.rank_waiting_set = set()
 		self.ranks_completed = set()
 		self.local_rank_count = None
 		self.local_ranks = []
-		#self.rank_pids = {}
 
 		self.hostname = socket.gethostname()
 		self.localhost = socket.gethostbyname(self.hostname)
@@ -104,7 +95,7 @@ class HeadDaemon:
 		self.root_host = None
 		self.node_waiting_set = set()
 		self.global_node_count = None
-		self.global_nodes = []
+		self.global_nodes = [ = epoch]
 
 		self.world_size = int(os.environ['EXAMPI_WORLD_SIZE'])
 
@@ -167,7 +158,7 @@ class HeadDaemon:
 		# process -> head daemon(1)
 		self.packet_switch['barrier'] = self.process_barrier
 		#self.packet_switch['lookup'] = None # TODO dynamic connection building
-		self.packet_switch['clean_up'] = self.process_clean_up
+		self.packet_switch['cleanup'] = self.process_cleanup
 		self.packet_switch['shutdown_ack'] = self.process_shutdown_ack
 
 		# fault daemon -> head daemon
@@ -182,7 +173,6 @@ class HeadDaemon:
 		self.packet_switch['error'] = self.process_error
 		self.packet_switch['shutdown'] = self.process_shutdown
 		self.packet_switch['commit'] = self.process_commit
-
 
 	def prepare_lookup(self):
 		if os.environ['EXAMPI_ENV'] == 'local':
@@ -244,14 +234,10 @@ class HeadDaemon:
 		self.launch_controller_daemon()
 
 		# TODO use select.select to read many sockets for read ability
+		self.shutdown = False
 		while not self.shutdown:
-			self.log.info('waiting for incoming')
 			readables, writables, exceptionals = select.select(self.sockets, [], [])
 			
-			self.log.info(str(readables))
-			self.log.info('time ' + '%.20f' % time.time())
-			
-			self.log.info('iterating readables')
 			for readable in readables:
 				if readable is self.server_socket:
 					# handle connection request
@@ -265,9 +251,6 @@ class HeadDaemon:
 
 				else:
 					packet = readable.recv(64)
-
-					self.log.info('received packet: ' + str(packet))
-					self.log.info('from host: ' + str(readable.getpeername()))
 
 					if packet:
 						# recv on client socket
@@ -286,11 +269,9 @@ class HeadDaemon:
 							self.log.error('failed to handle: ' + str(packet))
 							raise ValueError
 
-			self.log.info('iterating writables')
 			for writable in writables:
 				pass
 
-			self.log.info('iterating exceptionals')
 			for exceptional in exceptionals:
 				pass
 			
@@ -323,13 +304,13 @@ class HeadDaemon:
 		self.log.info('sending to head daemon on ' + hostname + ': ' + str(data))
 
 		raise NotImplementedError
-		#host = socket.gethostbyname(hostname)
-		#self.sock.sendto(data, (host, self.head_daemon_port))
 
 		self.log.info('finished sending to head daemon')
 
 	def send_to_head_daemons(self, data):
 		self.log.info('sending ' + str(data) + ' to all head daemons')
+		
+		raise NotImplementedError
 
 		# send node release messages
 		for hostname in self.node_waiting_set:
@@ -421,21 +402,31 @@ class HeadDaemon:
 		self.fault_daemons[rank] = {'rank':rank, 'errorcode':errorcode, 'epoch':epoch, 'socket':sokt}
 
 		# process errorcode
-		if errorcode == errorcodes['MPIX_TRY_RELOAD']:
-			msg = 'global_termination ' + self.hostname + ' ' + rank + ' ' + errorcode + ' ' + epoch + '\0'
-			self.log.info('forwarding termination to controller: ' + msg)
+		if errorcode == daemon.errorcodes['MPIX_TRY_RELOAD']:
+			msg = 'process_exit ' + self.hostname + ' ' + str(rank) + ' ' + str(errorcode) + ' ' + str(epoch) + '\0'
+			self.log.info('forwarding exit to controller: ' + msg)
 
 			data = msg.ljust(64).encode('utf-8')
 			self.send_to_controller(data)
 	
-		elif errorcode == errorcodes['MPI_SUCCESS']:
+		elif errorcode == daemon.errorcodes['MPI_SUCCESS']:
 			# if MPI_SUCCESS don't forward until later
 			# register successful exit
 			# if all exited successfully sent node_success
 			
-			self.success_counter += 1
 
+			# increment success counter
+			try:
+				self.success_counter += 1
+			except:
+				self.success_counter = 1
+
+			self.log.info('register process exit MPI_SUCCESS')
+
+			# once all have succeeded
 			if self.success_counter == self.local_rank_count:
+				del self.success_counter
+
 				msg = 'node_success ' + self.hostname + '\0'
 				
 				self.log.info('forwarding termination to controller: ' + msg)
@@ -447,7 +438,6 @@ class HeadDaemon:
 			self.log.error('unknown errorcode received')
 			self.log.error(str(contents))
 			raise ValueError
-
 		
 #	def process_global_termination(self, data, addr):
 #		# head daemon to controller
@@ -494,16 +484,22 @@ class HeadDaemon:
 		# client is closing connection
 		self.log.info('client is closing connection' + contents[0])
 
-		self.disconnected += 1
+		# increment disconnected counter
+		try:
+			self.disconnected += 1
+		except:
+			self.disconnected = 1
 
+		# when all disconnected
 		if self.disconnected == self.local_rank_count:
-			# TODO should send up
+			del self.disconnected
+
 			self.controller_socket.send(('node_shutdown ' + str(self.hostname)).ljust(64).encode('utf-8'))
 			self.controller_socket.close()
 			
 			self.shutdown = True
 		
-	def process_rank_lookup(self, sokt, data):
+	def process_rank_lookup(self, sokt, contents):
 		# todo local rank is asking for remote address
 		if os.environ['EXAMPI_ENV'] == 'local':
 			return socket.gethostname()
@@ -511,30 +507,48 @@ class HeadDaemon:
 		else:
 			raise NotImplementedError
 
-	def process_error(self, sokt, data):
+	def process_error(self, sokt, contents):
 		self.log.info('starting to signal all on-node processes')
 
-		# TODO extract epoch number
+		self.controller_epoch = int(contents[0])
 
 		for rank in self.ranks.keys():
-			pid = self.ranks['pid']
+			pid = self.ranks[rank]['pid']
 
 			# signal mpi process for error state
 			self.log.info('signalling rank ' + str(rank) + ' with pid ' + str(pid))
 			os.kill(pid, signal.SIGUSR2)
+			# could replace with quick check at head of functions in MPI library?
+			# progress engine style
+			# processes will send clean_up
 
 		self.log.info('finished singalling ' + len(self.ranks) + ' ranks')
 
-	def process_clean_up(self, sokt, data):
-		raise NotImplementedError
+	def process_cleanup(self, sokt, contents):
+		rank = int(contents[0])
+		pid = int(contents[1])
+		epoch = int(contents[2])
 
-		# clean_up rank pid epoch
+		self.ranks[rank]['epoch'] = epoch
+		self.node_minimum_epoch = min(self.node_minimum_epoch, epoch)
 
-		# TODO test error epoch with application epoch
+		# increment cleanups
+		try:
+			self.cleanups += 1
+		except:
+			self.cleanups = 1
 
-		# TODO respond to process_error from controller with epoch agreement or non argreement
+		# check if all cleanups complete
+		if self.cleanups == len(self.ranks):
+			del self.cleanups
+			
+			# always send minimum epoch number
+			msg = 'node_epoch ' + str(self.nodeminimum_epoch) + '\0'
+			data = msg.jlust(64).encode('utf-8')
+			self.send_to_controller(data)
 
 	def process_commit(self, sokt, data):
+		# TODO signal usr1 on processes
 		raise NotImplementedError
 		
 		# controller has decided on epoch

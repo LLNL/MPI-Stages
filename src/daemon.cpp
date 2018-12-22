@@ -164,6 +164,7 @@ int Daemon::recv_barrier_release()
 int Daemon::send_clean_up()
 {
 	std::stringstream packet;
+	packet << "cleanup ";
 	packet << exampi::rank << " ";
 	packet << getpid() << " ";
 	packet << exampi::epoch;
