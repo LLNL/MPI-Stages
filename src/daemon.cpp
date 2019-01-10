@@ -180,6 +180,29 @@ int Daemon::send_clean_up()
 	return send(packet.str());
 }
 
+int Daemon::wait_commit()
+{
+	debugpp("in wait_commit " << exampi::rank);
+
+	char msg[64];
+	int err = ::recv(this->sock, msg, 64, NULL);
+	debugpp("rank recv commit " << err << " msg " << msg);
+	if(err != 64)
+	{
+		debugpp("rank " << exampi::rank << " msg failed");
+		return 1;
+	}
+
+	debugpp("rank " << exampi::rank << " recv commit " << std::string(msg));
+
+	// TODO assign epoch number
+	//exampi::epoch = ;
+
+	// TODO might need to load mpi checkpoint data
+	
+	return 0;
+}
+
 int Daemon::send(std::string packet)
 {
 	if(this->sock < 0)

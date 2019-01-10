@@ -18,6 +18,7 @@ public:
 	
 	int barrier();
 	int send_clean_up();
+	int wait_commit();
 
 private:
 	int send_barrier_ready();

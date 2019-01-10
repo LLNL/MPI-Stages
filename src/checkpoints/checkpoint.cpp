@@ -72,7 +72,9 @@ int BasicCheckpoint::load()
 		}
 		exampi::progress->load(target);
 		exampi::transport->load(target);
+
 		exampi::progress->barrier();
+
 		//exampi::interface->save(target);
 		target.close();
 		std::ifstream ef(exampi::epochConfig);

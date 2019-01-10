@@ -509,6 +509,7 @@ int BasicInterface::MPIX_Checkpoint_write()
 	{
 		return MPIX_TRY_RELOAD;
 	}
+
 	exampi::checkpoint->save();
 	return MPI_SUCCESS;
 }
@@ -519,16 +520,24 @@ int BasicInterface::MPIX_Checkpoint_read()
 	{
 		exampi::handler->setErrToZero();
 	}
-	sigHandler signal;
+	
+	//sigHandler signal;
 
-	while(signal.isSignalSet() != 1)
-	{
-		sleep(1);
-	}
+	//while(signal.isSignalSet() != 1)
+	//{
+	//	sleep(1);
+	//}
 
-	std::ifstream ef(exampi::epochConfig);
-	ef >> exampi::epoch;
-	ef.close();
+	// read epoch from file/socket
+	//std::ifstream ef(exampi::epochConfig);
+	//ef >> exampi::epoch;
+	//ef.close();
+
+	Daemon& daemon = Daemon::get_instance();
+	daemon.wait_commit();
+
+	// wait for restarted process
+	exampi::progress->barrier();
 
 	return MPI_SUCCESS;
 }
