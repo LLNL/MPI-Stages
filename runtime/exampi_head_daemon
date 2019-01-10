@@ -498,15 +498,25 @@ class HeadDaemon:
 	def process_error(self, sokt, contents):
 		self.log.info('starting to signal all on-node processes')
 
-		self.controller_epoch = int(contents[0])
+		controller_epoch = int(contents[0])
 
-		for rank in self.ranks.keys():
-			pid = self.ranks[rank]['pid']
-			
-			# signal mpi process for error state
-			self.log.info('signalling rank ' + str(rank) + ' with pid ' + str(pid))
-			os.kill(pid, signal.SIGUSR2)
-			# processes will send cleanup
+		# check if node only has dead processes
+		if len(self.ranks) == 0:
+			self.log.info('all processes resident on node are dead')
+
+			# send node_epoch automatically
+			msg = 'node_epoch ' + str(controller_epoch) + '\0'
+			data = msg.ljust(64).encode('utf-8')
+			self.send_to_controller(data)
+		
+		else:
+			for rank in self.ranks.keys():
+				pid = self.ranks[rank]['pid']
+				
+				# signal mpi process for error state
+				self.log.info('signalling rank ' + str(rank) + ' with pid ' + str(pid))
+				os.kill(pid, signal.SIGUSR2)
+				# processes will send cleanup
 
 		self.log.info('finished signalling ' + str(len(self.ranks)) + ' ranks')
 

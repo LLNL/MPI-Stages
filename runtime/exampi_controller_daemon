@@ -139,6 +139,8 @@ class ControllerDaemon:
 	def send_to_head_daemons(self, data):
 		self.log.info('sending ' + str(data) + ' to all head daemons')
 
+		self.log.info('present head daemons ' + str(self.head_daemons))
+
 		for host, attr in self.head_daemons.iteritems():
 			attr['socket'].send(data)
 		
@@ -153,12 +155,18 @@ class ControllerDaemon:
 
 		self.log.info('received barrier from ' + host)
 		self.log.info('received ' + str(len(self.head_daemons)) + ' node barriers')
+
+		try:
+			self.head_daemon_count += 1
+		except:
+			self.head_daemon_count = 1
 		
 		# if all nodes are present then release
-		if len(self.head_daemons) == int(os.environ['EXAMPI_NODE_COUNT']):
+		if self.head_daemon_count == int(os.environ['EXAMPI_NODE_COUNT']):
+			del self.head_daemon_count
+
 			self.log.info('sending release')
 
-			# TODO update for error state
 			data = 'release\0'.ljust(64).encode('utf-8')
 			
 			self.send_to_head_daemons(data)
