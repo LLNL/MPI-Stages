@@ -95,7 +95,7 @@ class HeadDaemon:
 		self.root_host = None
 		self.node_waiting_set = set()
 		self.global_node_count = None
-		self.global_nodes = [ = epoch]
+		self.global_nodes = []
 
 		self.world_size = int(os.environ['EXAMPI_WORLD_SIZE'])
 
@@ -230,10 +230,9 @@ class HeadDaemon:
 	def launch(self):
 		self.log.info('launching HeadDaemon')
 
-		# TODO launch ControllerDaemon		
+		# launch ControllerDaemon if required	
 		self.launch_controller_daemon()
 
-		# TODO use select.select to read many sockets for read ability
 		self.shutdown = False
 		while not self.shutdown:
 			readables, writables, exceptionals = select.select(self.sockets, [], [])
@@ -300,24 +299,6 @@ class HeadDaemon:
 
 		self.log.info('finished sending to controller')
 
-	def send_to_head_daemon(self, data, hostname):
-		self.log.info('sending to head daemon on ' + hostname + ': ' + str(data))
-
-		raise NotImplementedError
-
-		self.log.info('finished sending to head daemon')
-
-	def send_to_head_daemons(self, data):
-		self.log.info('sending ' + str(data) + ' to all head daemons')
-		
-		raise NotImplementedError
-
-		# send node release messages
-		for hostname in self.node_waiting_set:
-			self.send_to_head_daemon(data, hostname)
-
-		self.log.info('finished sending to all head daemons')
-
 	def send_to_rank(self, data, rank):
 		self.log.info('sending to rank ' + str(rank) + ': ' + str(data))
 
@@ -354,9 +335,10 @@ class HeadDaemon:
 		pid = int(contents[1])
 
 		# register rank for barrier 
-		self.ranks[rank] = {'pid':pid, 'socket':sokt}
-		self.log.info('registered rank ' + str(rank) + ':' + str(pid) + ':waiting')
-		
+		if rank not in self.ranks:
+			self.ranks[rank] = {'pid':pid, 'socket':sokt}
+			self.log.info('registered rank ' + str(rank) + ':' + str(pid) + ':waiting')
+
 		# check if all local ranks are waiting
 		if len(self.ranks) == self.local_rank_count:
 			self.log.info('registered all local ranks, sending global barrier to controller')
@@ -414,7 +396,6 @@ class HeadDaemon:
 			# register successful exit
 			# if all exited successfully sent node_success
 			
-
 			# increment success counter
 			try:
 				self.success_counter += 1
@@ -514,15 +495,13 @@ class HeadDaemon:
 
 		for rank in self.ranks.keys():
 			pid = self.ranks[rank]['pid']
-
+			
 			# signal mpi process for error state
 			self.log.info('signalling rank ' + str(rank) + ' with pid ' + str(pid))
 			os.kill(pid, signal.SIGUSR2)
-			# could replace with quick check at head of functions in MPI library?
-			# progress engine style
-			# processes will send clean_up
+			# processes will send cleanup
 
-		self.log.info('finished singalling ' + len(self.ranks) + ' ranks')
+		self.log.info('finished signalling ' + str(len(self.ranks)) + ' ranks')
 
 	def process_cleanup(self, sokt, contents):
 		rank = int(contents[0])
@@ -530,7 +509,10 @@ class HeadDaemon:
 		epoch = int(contents[2])
 
 		self.ranks[rank]['epoch'] = epoch
-		self.node_minimum_epoch = min(self.node_minimum_epoch, epoch)
+		try:
+			self.node_minimum_epoch = min(self.node_minimum_epoch, epoch)
+		except:
+			self.node_minimum_epoch = epoch
 
 		# increment cleanups
 		try:
@@ -543,17 +525,27 @@ class HeadDaemon:
 			del self.cleanups
 			
 			# always send minimum epoch number
-			msg = 'node_epoch ' + str(self.nodeminimum_epoch) + '\0'
-			data = msg.jlust(64).encode('utf-8')
+			msg = 'node_epoch ' + str(self.node_minimum_epoch) + '\0'
+			data = msg.ljust(64).encode('utf-8')
 			self.send_to_controller(data)
 
-	def process_commit(self, sokt, data):
-		# TODO signal usr1 on processes
-		raise NotImplementedError
-		
+	def process_commit(self, sokt, contents):
 		# controller has decided on epoch
+		epoch = int(contents[0])
+		
+		# send commit to alive ranks
+		msg = 'commit ' + str(epoch) + '\0'
+		data = msg.ljust(64).encode('utf-8')
+		self.send_to_ranks(data)
+			
+		# send restart to active fault daemons
+		msg = 'restart ' + str(epoch) + '\0'
+		data = msg.ljust(64).encode('utf-8')
+		self.send_to_fault_daemons(data)
+		
+		# TODO remove active fault daemons
 
 if __name__ == '__main__':
 	#
-	daemon = HeadDaemon()
-	daemon.launch()
+	instance = HeadDaemon()
+	instance.launch()

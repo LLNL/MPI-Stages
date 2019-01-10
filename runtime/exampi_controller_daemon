@@ -87,7 +87,7 @@ class ControllerDaemon:
 		self.packet_switch['node_shutdown'] = self.node_shutdown
 		
 		self.packet_switch['process_exit'] = self.process_exit
-		self.packet_switch['process_epoch'] = self.process_epoch
+		self.packet_switch['node_epoch'] = self.node_epoch
 
 	def launch(self):
 		self.log.info('launching ControllerDaemon')
@@ -206,11 +206,11 @@ class ControllerDaemon:
 		errorcode = int(contents[2])
 		epoch = int(contents[3])
 
-		self.log.info('process exit with erroneous state ' + str
+		self.log.info('process exit with erroneous state ' + str(errorcode))
 
 		if errorcode == daemon.errorcodes['MPIX_TRY_RELOAD']:
 			# send error to all head daemons
-			data = 'error ' + str(epoch) + '\0'.jlust(64).encode('utf-8')
+			data = ('error ' + str(epoch) + '\0').ljust(64).encode('utf-8')
 			self.send_to_head_daemons(data)
 			
 		elif errorcode == daemon.errorcodes['MPI_ABORT']:
@@ -224,12 +224,32 @@ class ControllerDaemon:
 			raise NotImplementedError
 		
 	def node_epoch(self, sokt, contents):
-		raise NotImplementedError
+		epoch = int(contents[0])
 		# find minimum all nodes have
 
+		try:
+			self.global_minimum_epoch = min(self.global_minimum_epoch, epoch)
+		except:
+			self.global_minimum_epoch = epoch
+
+		try:
+			self.node_epochs += 1
+		except:
+			self.node_epochs = 1
+
 		# commit or release from barrier
-		
+		if self.node_epochs == int(os.environ['EXAMPI_NODE_COUNT']):
+			self.log.info('minimum global epoch ' + str(self.global_minimum_epoch))
+
+			# send minimum epoch to all
+			msg = 'commit ' + str(self.global_minimum_epoch) + '\0'
+			data = msg.ljust(64).encode('utf-8')
+			self.send_to_head_daemons(data)
+
+			del self.node_epochs
+			del self.global_minimum_epoch
+
 
 if __name__ == '__main__':
-	daemon = ControllerDaemon()
-	daemon.launch()
+	instance = ControllerDaemon()
+	instance.launch()
