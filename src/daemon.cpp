@@ -195,8 +195,9 @@ int Daemon::wait_commit()
 
 	debugpp("rank " << exampi::rank << " recv commit " << std::string(msg));
 
-	// TODO assign epoch number
-	//exampi::epoch = ;
+	// assign epoch number
+	std::string msgstr(msg);
+	exampi::epoch = std::stoi(msgstr.substr(7));
 
 	// TODO might need to load mpi checkpoint data
 	

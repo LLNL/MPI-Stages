@@ -109,7 +109,6 @@ class FaultDaemon:
 			self.head_daemon.wait()
 
 		self.log.info('shut down complete')
-		del self.log
 
 	def delete_files(self):
 		self.config_file.close()

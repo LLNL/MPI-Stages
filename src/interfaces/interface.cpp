@@ -131,19 +131,17 @@ int BasicInterface::MPI_Recv(void *buf, int count, MPI_Datatype datatype,
 
 	debugpp("Finished MPI_Recv: " << mpiStatusString(st));
 
-	// 
-	// TODO test if STATUS = MPI_IGNORE STATUS
-
 	if (st.MPI_ERROR == MPIX_TRY_RELOAD)
 	{
 		debugpp("MPIX_TRY_RELOAD FOUND");
-		memmove(status, &st, sizeof(MPI_Status));
+
+		if(status != MPI_STATUS_IGNORE)
+			memmove(status, &st, sizeof(MPI_Status));
+
 		return MPIX_TRY_RELOAD;
 	}
 	else
 	{
-		// XXX thread gets stuck here!
-		// TRIED TO COPY TO NULL
 		if(status != MPI_STATUS_IGNORE)
 			memmove(status, &st, sizeof(MPI_Status));
 		
@@ -521,6 +519,8 @@ int BasicInterface::MPIX_Checkpoint_read()
 		exampi::handler->setErrToZero();
 	}
 	
+	debugpp("in MPIX_Checkpoint_read");
+
 	//sigHandler signal;
 
 	//while(signal.isSignalSet() != 1)
@@ -535,6 +535,8 @@ int BasicInterface::MPIX_Checkpoint_read()
 
 	Daemon& daemon = Daemon::get_instance();
 	daemon.wait_commit();
+
+	debugpp("commit epoch received" << exampi::epoch);
 
 	// wait for restarted process
 	exampi::progress->barrier();

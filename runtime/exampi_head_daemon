@@ -339,8 +339,15 @@ class HeadDaemon:
 			self.ranks[rank] = {'pid':pid, 'socket':sokt}
 			self.log.info('registered rank ' + str(rank) + ':' + str(pid) + ':waiting')
 
+		try:
+			self.barrier_count += 1
+		except:
+			self.barrier_count = 1
+
 		# check if all local ranks are waiting
-		if len(self.ranks) == self.local_rank_count:
+		if self.barrier_count == self.local_rank_count:
+			del self.barrier_count
+		
 			self.log.info('registered all local ranks, sending global barrier to controller')
 
 			data = ('node_barrier ' + socket.gethostname() + '\0').ljust(64).encode('utf-8')
