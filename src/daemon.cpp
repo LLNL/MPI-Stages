@@ -18,7 +18,7 @@ namespace exampi
 //int DAEMON_UDP_PORT = 50000;
 //int PROC_BASE_UDP_PORT = 40000;
 
-Daemon& Daemon::get_instance()
+Daemon &Daemon::get_instance()
 {
 	// Create singleton object if first time
 	static Daemon instance;
@@ -47,10 +47,11 @@ Daemon::Daemon()
 	gethostname(hostname, 1024);
 	debugpp("getting hostname as " << hostname);
 
-	struct in_addr* host = (struct in_addr*)gethostbyname(hostname)->h_addr_list[0];
+	struct in_addr *host = (struct in_addr *)gethostbyname(
+	                           hostname)->h_addr_list[0];
 	debugpp("getting local ip as " << inet_ntoa(*host));
 
-	
+
 	// bind to local
 	//debugpp("recv mpi port " << std::string(std::getenv("EXAMPI_MPI_PORT")));
 	//int mpi_port = std::stoi(std::string(std::getenv("EXAMPI_MPI_PORT")));
@@ -69,7 +70,8 @@ Daemon::Daemon()
 
 	// set daemon sock addr
 	debugpp("daemon port " << std::string(std::getenv("EXAMPI_HEAD_DAEMON_PORT")));
-	int daemon_port = std::stoi(std::string(std::getenv("EXAMPI_HEAD_DAEMON_PORT")));
+	int daemon_port = std::stoi(std::string(
+	                                std::getenv("EXAMPI_HEAD_DAEMON_PORT")));
 
 	this->daemon.sin_family = AF_INET;
 	this->daemon.sin_port = htons(daemon_port);
@@ -81,11 +83,12 @@ Daemon::Daemon()
 	do
 	{
 		debugpp("attempting connection to daemon");
-		if(connect(this->sock, (const sockaddr*)&this->daemon, sizeof(this->daemon)) == -1)
+		if(connect(this->sock, (const sockaddr *)&this->daemon,
+		           sizeof(this->daemon)) == -1)
 		{
 			// failed to connect to head daemon
 			debugpp("failed to establish tcp connection, waiting 250ms");
-			
+
 			// sleep for 250 ms
 			usleep(250 * 1000);
 		}
@@ -104,7 +107,7 @@ Daemon::~Daemon()
 	::close(this->sock);
 }
 
-int Daemon::barrier() 
+int Daemon::barrier()
 {
 	int err;
 
@@ -114,7 +117,7 @@ int Daemon::barrier()
 	err = recv_barrier_release();
 
 	debugpp("daemon: barrier complete");
-	return err;	
+	return err;
 }
 
 int Daemon::send_barrier_ready()
@@ -131,7 +134,7 @@ int Daemon::send_barrier_ready()
 	}
 
 	debugpp("send_barrier_ready:" << packet.str() << " " << packet.str().length());
-	
+
 	return send(packet.str());
 }
 
@@ -200,7 +203,7 @@ int Daemon::wait_commit()
 	exampi::epoch = std::stoi(msgstr.substr(7));
 
 	// TODO might need to load mpi checkpoint data
-	
+
 	return 0;
 }
 
@@ -214,7 +217,7 @@ int Daemon::send(std::string packet)
 
 	// check if socket is open
 	else if(packet.length() > 64)
-	{ 
+	{
 		debugpp("ERROR packet.legnth > 64");
 		return -54563;
 	}

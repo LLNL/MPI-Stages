@@ -10,12 +10,12 @@ namespace exampi
 class Daemon
 {
 public:
-	static Daemon& get_instance();
+	static Daemon &get_instance();
 
-	Daemon(Daemon&)					= delete;
-	void operator=(Daemon const&)	= delete;
+	Daemon(Daemon &)					= delete;
+	void operator=(Daemon const &)	= delete;
 
-	
+
 	int barrier();
 	int send_clean_up();
 	int wait_commit();
@@ -29,7 +29,7 @@ private:
 	sockaddr_in local;
 
 	Daemon();
-	
+
 	~Daemon();
 
 	int send(std::string);

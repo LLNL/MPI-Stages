@@ -9,7 +9,8 @@ extern "C"
 
 	int PMPIX_Deserialize_handler_register(const MPIX_Deserialize_handler handler)
 	{
-		int rc = exampi::BasicInterface::get_instance()->MPIX_Deserialize_handler_register(handler);
+		int rc = exampi::BasicInterface::get_instance()->MPIX_Deserialize_handler_register(
+		             handler);
 		return rc;
 	}
 

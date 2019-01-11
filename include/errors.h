@@ -4,7 +4,7 @@
 namespace exampi
 {
 
-enum mpi_error 
+enum mpi_error
 {
 	MPI_SUCCESS = 0,
 	MPI_ERR_COMM,

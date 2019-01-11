@@ -11,8 +11,9 @@ extern "C"
 	int PMPI_Allreduce(const void *s_buf, void *r_buf, int count, MPI_Datatype type,
 	                   MPI_Op op, MPI_Comm comm)
 	{
-		int rc = exampi::BasicInterface::get_instance()->MPI_Allreduce(s_buf, r_buf, count, type, op,
-			         comm);
+		int rc = exampi::BasicInterface::get_instance()->MPI_Allreduce(s_buf, r_buf,
+		         count, type, op,
+		         comm);
 		return rc;
 	}
 

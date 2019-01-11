@@ -27,7 +27,7 @@ namespace exampi
 class Config
 {
 public:
-	static Config& get_instance();
+	static Config &get_instance();
 
 	Config(const Config &c) 			= delete;
 	Config &operator=(const Config &c)	= delete;

@@ -11,7 +11,8 @@ extern "C"
 
 	int PMPI_Get_count(MPI_Status *status, MPI_Datatype datatype, int *count)
 	{
-		int rc =  exampi::BasicInterface::get_instance()->MPI_Get_count(status, datatype, count);
+		int rc =  exampi::BasicInterface::get_instance()->MPI_Get_count(status,
+		          datatype, count);
 		return rc;
 	}
 

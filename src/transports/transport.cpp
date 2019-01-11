@@ -4,7 +4,7 @@
 namespace exampi
 {
 
-BasicTransport::BasicTransport() 
+BasicTransport::BasicTransport()
 {
 	debugpp("library begins here");
 
@@ -15,11 +15,13 @@ BasicTransport::BasicTransport()
 		exampi::rank = std::stoi(std::string(std::getenv("EXAMPI_RANK")));
 	}
 
-	debugpp("transport base_port: " << std::string(std::getenv("EXAMPI_UDP_TRANSPORT_BASE")));
+	debugpp("transport base_port: " << std::string(
+	            std::getenv("EXAMPI_UDP_TRANSPORT_BASE")));
 	base_port = std::stoi(std::string(std::getenv("EXAMPI_UDP_TRANSPORT_BASE")));
 	port = base_port + exampi::rank;
 
-	debugpp("transport ports: " << base_port << " " << port << " for rank " << exampi::rank);
+	debugpp("transport ports: " << base_port << " " << port << " for rank " <<
+	        exampi::rank);
 }
 
 void BasicTransport::init()
@@ -44,10 +46,11 @@ size_t BasicTransport::addEndpoint(const int rank,
 	debugpp("adding endpoint " << opts[0] << " " << opts[1]);
 	uint16_t rport = std::stoi(opts[1]);
 	// TODO:  see basic/udp.h; need move constructor to avoid copy here
-	
+
 	Address addr(opts[0], rport);
 
-	debugpp("Transport add endpoint rank " << exampi::rank << " assigning " << rank << " to " << opts[0] << ":" << rport);
+	debugpp("Transport add endpoint rank " << exampi::rank << " assigning " << rank
+	        << " to " << opts[0] << ":" << rport);
 
 	endpoints[rank] = addr;
 	return endpoints.size();

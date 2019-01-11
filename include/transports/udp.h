@@ -74,7 +74,8 @@ public:
 	}
 	void updateHeader()
 	{
-		debugpp("updateHeader length of message" << iov[1].iov_len << " header "<< iov[0].iov_len );
+		debugpp("updateHeader length of message" << iov[1].iov_len << " header "<<
+		        iov[0].iov_len );
 		hdr.msg_iov = iov.data();
 		hdr.msg_iovlen = iov.size();
 	}
@@ -93,7 +94,8 @@ public:
 		// debug output
 		char str[INET_ADDRSTRLEN];
 		inet_ntop(AF_INET, &(addr.get()->sin_addr), str, INET_ADDRSTRLEN);
-		debugpp("basic::Transport::udp::send\t" << hdr.msg_iovlen << " iovecs\t" << str);
+		debugpp("basic::Transport::udp::send\t" << hdr.msg_iovlen << " iovecs\t" <<
+		        str);
 
 		// TODO make use of length to check
 		//ssize_t length = sendmsg(sock.getFd(), &hdr, 0);

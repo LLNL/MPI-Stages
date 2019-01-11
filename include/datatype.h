@@ -28,7 +28,7 @@ public:
 
 	virtual ~Datatype() {;}
 
-	const MPI_Datatype& getMpiDatatype() const
+	const MPI_Datatype &getMpiDatatype() const
 	{
 		return mpiDatatype;
 	}

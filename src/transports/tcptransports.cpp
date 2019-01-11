@@ -2,7 +2,7 @@
 
 namespace exampi
 {
-	
+
 void TCPTransport::init()
 {
 	tcpListenSocket.bindPort(8080);
@@ -27,7 +27,8 @@ void TCPTransport::init(std::istream &t)
 	init();
 }
 
-size_t TCPTransport::addEndpoint(const int rank, const std::vector<std::string> &opts)
+size_t TCPTransport::addEndpoint(const int rank,
+                                 const std::vector<std::string> &opts)
 {
 	uint16_t port = std::stoi(opts[1]);
 	// TODO:  see basic/udp.h; need move constructor to avoid copy here
@@ -39,7 +40,7 @@ size_t TCPTransport::addEndpoint(const int rank, const std::vector<std::string> 
 }
 
 std::future<int> TCPTransport::send(std::vector<struct iovec> iov, int dest,
-	                          MPI_Comm comm)
+                                    MPI_Comm comm)
 {
 	//std::cout << "\tbasic::Transport::send(..., " << dest <<", " << comm << ")\n";
 	int sd;
@@ -67,8 +68,9 @@ std::future<int> TCPTransport::send(std::vector<struct iovec> iov, int dest,
 	return std::promise<int>().get_future();
 }
 
-std::future<int> TCPTransport::receive(std::vector<struct iovec> iov, MPI_Comm comm,
-	                             ssize_t *count)
+std::future<int> TCPTransport::receive(std::vector<struct iovec> iov,
+                                       MPI_Comm comm,
+                                       ssize_t *count)
 {
 	//std::cout << debug() << "basic::Transport::receive(...)" << std::endl;
 	//std::cout << debug() << "\tiov says size is " << iov.size() << std::endl;
@@ -77,7 +79,7 @@ std::future<int> TCPTransport::receive(std::vector<struct iovec> iov, MPI_Comm c
 
 	//std::cout << debug() <<
 //	"basic::Transport::receive, constructed msg, calling msg.receive"
-		    //<< std::endl;
+	//<< std::endl;
 	for (auto c : clientSocket)
 	{
 		int sd = c.second;
@@ -160,7 +162,7 @@ int TCPTransport::peek(std::vector<struct iovec> iov, MPI_Comm comm)
 		socklen_t clientlen;
 		clientlen = sizeof(client);
 		newClient = accept(tcpListenSocket.getFd(), (struct sockaddr *) &client,
-			               &clientlen);
+		                   &clientlen);
 		if (newClient < 0)
 		{
 			//std::cout << "ERROR: In accept new connection\n";

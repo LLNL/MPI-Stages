@@ -5,9 +5,10 @@
 namespace exampi
 {
 
-Config& Config::get_instance() {
+Config &Config::get_instance()
+{
 	static Config instance;
-	
+
 	return instance;
 }
 
@@ -16,7 +17,7 @@ Config::Config()
 	// load configuration file from environment variable
 	std::string filename = std::string(std::getenv("EXAMPI_CONFIG_FILE"));
 	debugpp("config loading " << filename);
-	load(filename);	
+	load(filename);
 }
 
 void Config::load(std::string filename)
@@ -46,7 +47,7 @@ std::map<std::string, std::string> Config::asMap()
 	return dict;
 }
 
-const std::string& Config::operator[](const std::string &i)
+const std::string &Config::operator[](const std::string &i)
 {
 	return dict[i];
 }

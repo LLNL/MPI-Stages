@@ -173,7 +173,6 @@ class ControllerDaemon:
 			self.log.info('sent release to all head daemons')
 			
 	def node_success(self, sokt, contents):
-
 		try:
 			self.node_successes += 1
 		except:

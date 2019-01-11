@@ -6,18 +6,19 @@
 #include <iostream>
 #include <sstream>
 
-namespace exampi {
+namespace exampi
+{
 
 #ifdef DEBUG
 extern std::mutex debug_mutex;
 
 // indent/thread/location info function for debug utility
-std::string debug_init(const char* file, int line, const char*);
+std::string debug_init(const char *file, int line, const char *);
 
 void debug_add_thread(std::string);
 
 // are these useful?
-// use automatic indentation somehow? 
+// use automatic indentation somehow?
 // these would restrict code structure
 // exit specifically
 void debug_function_entry(std::string);

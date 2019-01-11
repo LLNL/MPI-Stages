@@ -212,13 +212,15 @@ public:
 	virtual int init();
 	virtual int init(std::istream &t);
 	virtual void finalize();
-	
+
 	virtual int stop();
 	virtual void cleanUp();
 	virtual void barrier();
 
-	virtual std::future<MPI_Status> postSend(UserArray array, Endpoint dest, int tag);
-	virtual std::future<MPI_Status> postRecv(UserArray array, Endpoint source, int tag);
+	virtual std::future<MPI_Status> postSend(UserArray array, Endpoint dest,
+	        int tag);
+	virtual std::future<MPI_Status> postRecv(UserArray array, Endpoint source,
+	        int tag);
 
 	virtual int save(std::ostream &t);
 	virtual int load(std::istream &t);

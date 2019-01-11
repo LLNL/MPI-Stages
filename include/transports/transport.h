@@ -14,7 +14,7 @@ private:
 	std::string address;
 	std::unordered_map<int, Address> endpoints;
 	//uint16_t port;
-	
+
 	Socket recvSocket;
 
 	//int tcpSock;
@@ -22,10 +22,10 @@ private:
 	// TODO this is being used from an environment variable
 	int base_port;
 	int port;
-	
+
 public:
 	BasicTransport();
-	
+
 	void init();
 
 	void init(std::istream &t);
@@ -36,7 +36,8 @@ public:
 
 	std::future<int> send(std::vector<struct iovec> iov, int dest, MPI_Comm comm);
 
-	std::future<int> receive(std::vector<struct iovec> iov, MPI_Comm comm, ssize_t *count);
+	std::future<int> receive(std::vector<struct iovec> iov, MPI_Comm comm,
+	                         ssize_t *count);
 
 	int cleanUp(MPI_Comm comm);
 

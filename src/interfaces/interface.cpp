@@ -28,16 +28,17 @@ void BasicInterface::destroy_instance()
 int BasicInterface::MPI_Init(int *argc, char ***argv)
 {
 	debugpp("MPI_Init entered. argc=" << *argc);
-	
+
 	// check that exampi-mpiexec was used to launch the application
-	if(std::getenv("EXAMPI_MONITORED") == NULL) {
+	if(std::getenv("EXAMPI_MONITORED") == NULL)
+	{
 		debugpp("Application was not launched with mpiexec.");
 		// TODO add proper error code
 		// TODO ideally similar utility as libfabrics -> fi_strerror
 		// TODO error code 0-255! not bigger nor smaller?
 		return 244;
 	}
-	
+
 	debugpp("MPI_Init passed EXAMPI_LAUNCHED check.");
 
 	debugpp("Taking rank to be arg " << std::string(std::getenv("EXAMPI_RANK")));
@@ -50,7 +51,7 @@ int BasicInterface::MPI_Init(int *argc, char ***argv)
 	exampi::epoch = std::stoi(std::string(std::getenv("EXAMPI_EPOCH")));
 
 	exampi::rank = rank;
-	
+
 	// TODO this initializes progress and transport
 	recovery_code = exampi::checkpoint->load();
 
@@ -115,7 +116,7 @@ int BasicInterface::MPI_Recv(void *buf, int count, MPI_Datatype datatype,
 	{
 		return MPIX_TRY_RELOAD;
 	}
-	
+
 	//
 	Comm *c = exampi::communicators.at(comm);
 	int context = c->get_context_id_pt2pt();
@@ -144,7 +145,7 @@ int BasicInterface::MPI_Recv(void *buf, int count, MPI_Datatype datatype,
 	{
 		if(status != MPI_STATUS_IGNORE)
 			memmove(status, &st, sizeof(MPI_Status));
-		
+
 		return 0;
 	}
 }
@@ -220,7 +221,8 @@ int BasicInterface::MPI_Wait(MPI_Request *request, MPI_Status *status)
 		return MPIX_TRY_RELOAD;
 	}
 
-	if(status != MPI_STATUS_IGNORE) {
+	if(status != MPI_STATUS_IGNORE)
+	{
 		std::future<MPI_Status> *f =
 		    reinterpret_cast<std::future<MPI_Status> *>(*request);
 		(*status) = f->get();
@@ -518,7 +520,7 @@ int BasicInterface::MPIX_Checkpoint_read()
 	{
 		exampi::handler->setErrToZero();
 	}
-	
+
 	debugpp("in MPIX_Checkpoint_read");
 
 	//sigHandler signal;
@@ -533,7 +535,7 @@ int BasicInterface::MPIX_Checkpoint_read()
 	//ef >> exampi::epoch;
 	//ef.close();
 
-	Daemon& daemon = Daemon::get_instance();
+	Daemon &daemon = Daemon::get_instance();
 	daemon.wait_commit();
 
 	debugpp("commit epoch received" << exampi::epoch);

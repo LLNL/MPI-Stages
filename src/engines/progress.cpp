@@ -6,7 +6,7 @@ namespace exampi
 void BasicProgress::addEndpoints()
 {
 	// read in size
-	Config& config = Config::get_instance();
+	Config &config = Config::get_instance();
 
 	debugpp("BasicProgress addEngpoints " << config["size"]);
 	//int size = std::stoi(config["size"]);
@@ -27,14 +27,14 @@ void BasicProgress::addEndpoints()
 
 		size_t beg = remote.find_first_of(":");
 		std::string ipblock = remote.substr(beg+1);
-		std::string ip = remote.substr(0, beg); 
+		std::string ip = remote.substr(0, beg);
 		debugpp("ip " << ip);
 
 		size_t ports = ipblock.find_first_of(":");
 
 		std::string port_daemon = ipblock.substr(0, ports);
 		std::string port_transport = ipblock.substr(ports+1);
-		
+
 		debugpp("ports " << port_daemon << " " << port_transport);
 
 		elem.push_back(ip);
@@ -61,16 +61,16 @@ void BasicProgress::sendThreadProc(bool *alive, AsyncQueue<Request> *outbox)
 		debugpp("sendThread: sent message");
 		// TODO:  check that sending actually completed
 		r->completionPromise.set_value( { .count = 0, .cancelled = 0,
-			                              .MPI_SOURCE = r->source, .MPI_TAG = r->tag, .MPI_ERROR = MPI_SUCCESS });
+		                                  .MPI_SOURCE = r->source, .MPI_TAG = r->tag, .MPI_ERROR = MPI_SUCCESS });
 		// let r drop scope and die (unique_ptr)
 		debugpp("sendThread: completed message");
 	}
 }
 
 void BasicProgress::matchThreadProc(bool *alive,
-	                        std::list<std::unique_ptr<Request>> *matchList,
-	                        std::list<std::unique_ptr<Request>> *unexpectedList,
-	                        std::mutex *matchLock, std::mutex *unexpectedLock)
+                                    std::list<std::unique_ptr<Request>> *matchList,
+                                    std::list<std::unique_ptr<Request>> *unexpectedList,
+                                    std::mutex *matchLock, std::mutex *unexpectedLock)
 {
 	debug_add_thread("match");
 	debugpp("Launching matchThreadProc(...)");
@@ -100,8 +100,8 @@ void BasicProgress::matchThreadProc(bool *alive,
 
 		// search for match
 		auto result =
-			std::find_if(matchList->begin(), matchList->end(),
-			             [t, s, c, e](const std::unique_ptr<Request> &i) -> bool {return (i->tag == t && i->source == s && i->stage == e && i->comm == c);});
+		    std::find_if(matchList->begin(), matchList->end(),
+		                 [t, s, c, e](const std::unique_ptr<Request> &i) -> bool {return (i->tag == t && i->source == s && i->stage == e && i->comm == c);});
 
 		// failed to find match
 		if (result == matchList->end())
@@ -149,8 +149,8 @@ void BasicProgress::matchThreadProc(bool *alive,
 
 			// set MPI_Status for calling thread
 			(*result)->completionPromise.set_value( { .count = length - 32,
-				                                    .cancelled = 0, .MPI_SOURCE = (*result)->source,
-				                                    .MPI_TAG = (*result)->tag, .MPI_ERROR = MPI_SUCCESS });
+			                                        .cancelled = 0, .MPI_SOURCE = (*result)->source,
+			                                        .MPI_TAG = (*result)->tag, .MPI_ERROR = MPI_SUCCESS });
 			matchList->erase(result);
 			matchLock->unlock();
 			debugpp(" matching done, matchthread done");
@@ -170,7 +170,7 @@ int BasicProgress::init()
 	//recvThread = std::thread{recvThreadProc, &alive, &inbox};
 
 	matchThread = std::thread { matchThreadProc, &alive, &matchList, &unexpectedList,
-		                        &matchLock, &unexpectedLock };
+	                            &matchLock, &unexpectedLock };
 
 	exampi::groups.push_back(group);
 	communicator = new Comm(true, group, group);
@@ -227,8 +227,8 @@ int BasicProgress::stop()
 	{
 		(r)->unpack();
 		(r)->completionPromise.set_value( { .count = 0, .cancelled = 0,
-			                                .MPI_SOURCE = (r)->source, .MPI_TAG = (r)->tag, .MPI_ERROR =
-			                                    MPIX_TRY_RELOAD });
+		                                    .MPI_SOURCE = (r)->source, .MPI_TAG = (r)->tag, .MPI_ERROR =
+		                                        MPIX_TRY_RELOAD });
 	}
 	matchList.clear();
 	unexpectedList.clear();
@@ -257,7 +257,7 @@ void BasicProgress::cleanUp()
 
 	// send SIGUSR1 signal to daemon
 	// TODO convert to socket comms
-	Daemon& daemon = Daemon::get_instance();
+	Daemon &daemon = Daemon::get_instance();
 	daemon.send_clean_up();
 
 	//kill(parent_pid, SIGUSR1);
@@ -270,7 +270,7 @@ void BasicProgress::cleanUp()
 	{
 		exampi::handler->setErrToZero();
 		exampi::BasicInterface::get_instance()->MPI_Send((void *) 0, 0, MPI_INT,
-				                        exampi::rank, MPIX_CLEANUP_TAG, MPI_COMM_WORLD);
+		        exampi::rank, MPIX_CLEANUP_TAG, MPI_COMM_WORLD);
 		exampi::handler->setErrToOne();
 	}
 
@@ -282,7 +282,7 @@ void BasicProgress::cleanUp()
 
 void BasicProgress::barrier()
 {
-	Daemon& daemon = Daemon::get_instance();
+	Daemon &daemon = Daemon::get_instance();
 
 	daemon.barrier();
 
@@ -313,7 +313,8 @@ void BasicProgress::barrier()
 	//signal.setSignalToZero();
 }
 
-std::future<MPI_Status> BasicProgress::postSend(UserArray array, Endpoint dest, int tag)
+std::future<MPI_Status> BasicProgress::postSend(UserArray array, Endpoint dest,
+        int tag)
 {
 	debugpp("basic::Interface::postSend(...)");
 
@@ -336,7 +337,8 @@ std::future<MPI_Status> BasicProgress::postSend(UserArray array, Endpoint dest, 
 	return result;
 }
 
-std::future<MPI_Status> BasicProgress::postRecv(UserArray array, Endpoint source, int tag)
+std::future<MPI_Status> BasicProgress::postRecv(UserArray array,
+        Endpoint source, int tag)
 {
 	debugpp("basic::Interface::postRecv(...)");
 
@@ -359,9 +361,9 @@ std::future<MPI_Status> BasicProgress::postRecv(UserArray array, Endpoint source
 	unexpectedLock.lock();
 	matchLock.lock();
 	auto res = std::find_if(unexpectedList.begin(), unexpectedList.end(),
-		                    [tag,s, c, e](const std::unique_ptr<Request> &i) -> bool {i->unpack(); return i->tag == tag && i->source == s && i->stage == e && i->comm == c;});
+	                        [tag,s, c, e](const std::unique_ptr<Request> &i) -> bool {i->unpack(); return i->tag == tag && i->source == s && i->stage == e && i->comm == c;});
 
-	// 
+	//
 	if (res == unexpectedList.end())
 	{
 		debugpp("NO match in unexpectedList, push");
@@ -381,9 +383,9 @@ std::future<MPI_Status> BasicProgress::postRecv(UserArray array, Endpoint source
 		(*res)->unpack();
 		//memcpy(array.ptr, )
 		memcpy(array.getIovec().iov_base, (*res)->temp.iov_base,
-			   array.getIovec().iov_len);
+		       array.getIovec().iov_len);
 		(r)->completionPromise.set_value( { .count = (*res)->status.count, .cancelled = 0,
-			                                .MPI_SOURCE = (*res)->source, .MPI_TAG = (*res)->tag, .MPI_ERROR = MPI_SUCCESS});
+		                                    .MPI_SOURCE = (*res)->source, .MPI_TAG = (*res)->tag, .MPI_ERROR = MPI_SUCCESS});
 		unexpectedList.erase(res);
 		unexpectedLock.unlock();
 
@@ -436,7 +438,7 @@ int BasicProgress::load(std::istream &t)
 	alive = true;
 	sendThread = std::thread { sendThreadProc, &alive, &outbox };
 	matchThread = std::thread { matchThreadProc, &alive, &matchList, &unexpectedList,
-		                        &matchLock, &unexpectedLock };
+	                            &matchLock, &unexpectedLock };
 
 	int comm_size, group_size;
 	int r, p2p, coll, id;
@@ -480,8 +482,8 @@ int BasicProgress::load(std::istream &t)
 		t.read(reinterpret_cast<char *>(&id), sizeof(int));
 
 		auto it = std::find_if(exampi::groups.begin(),
-			                   exampi::groups.end(),
-			                   [id](const Group *i) -> bool {return i->get_group_id() == id;});
+		                       exampi::groups.end(),
+		                       [id](const Group *i) -> bool {return i->get_group_id() == id;});
 		if (it == exampi::groups.end())
 		{
 			return MPIX_TRY_RELOAD;
@@ -492,7 +494,7 @@ int BasicProgress::load(std::istream &t)
 		}
 		t.read(reinterpret_cast<char *>(&id), sizeof(int));
 		it = std::find_if(exampi::groups.begin(), exampi::groups.end(),
-			              [id](const Group *i) -> bool {return i->get_group_id() == id;});
+		                  [id](const Group *i) -> bool {return i->get_group_id() == id;});
 		if (it == exampi::groups.end())
 		{
 			return MPIX_TRY_RELOAD;

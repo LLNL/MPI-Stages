@@ -5,7 +5,8 @@
 #include <map>
 #include <stack>
 
-namespace exampi {
+namespace exampi
+{
 
 #ifdef DEBUG
 
@@ -30,11 +31,11 @@ void debug_add_thread(std::string name)
 	fullname << std::setw(5);
 	fullname << name;
 	fullname << "] ";
-	
+
 	thread_name = fullname.str();
 }
 
-std::string debug_init(const char* file, int line, const char* func)
+std::string debug_init(const char *file, int line, const char *func)
 {
 	// name main thread
 	if(std::this_thread::get_id() == main_thread)
@@ -59,7 +60,7 @@ std::string debug_init(const char* file, int line, const char* func)
 	if(last_thread != std::this_thread::get_id())
 	{
 		last_thread = std::this_thread::get_id();
-	
+
 		stream << "\n" << thread_name << " [" << file << "]" << std::endl;
 	}
 
@@ -69,12 +70,12 @@ std::string debug_init(const char* file, int line, const char* func)
 	//	stream << std::string("\t");
 	//}
 	// TODO broken at the moment
-	
+
 	if(last_function.empty())
 	{
-		last_function = function;	
+		last_function = function;
 		stream << "\t[" << function << "]" << std::endl;
-	}	
+	}
 	else if(last_function.compare(function) != 0)
 	{
 		// either decrement or increment
@@ -93,12 +94,12 @@ std::string debug_init(const char* file, int line, const char* func)
 			last_function = function;
 			func_depth++;
 		}
-		
+
 		stream << "\t[" << function << "]" << std::endl;
 	}
 
 	stream << "\t\t" << func_depth << " " << std::setw(4) << line << ": ";
-	
+
 	return stream.str();
 }
 
