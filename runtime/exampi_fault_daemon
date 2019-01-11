@@ -1,4 +1,7 @@
 #!/usr/bin/env python2
+"""This script is a daemon that wraps the execution of the MPI application. It
+catches a temrination and informs the node local head daemon. Depending on
+global and local id this daemon also start the head and controller daemon."""
 
 import os
 import sys
@@ -6,111 +9,156 @@ import copy
 import tempfile
 import subprocess
 import socket
-import signal
+#import signal
 import logging
+import time
 
-def prefix_sum(array):
-	out = []
+#def prefix_sum(array):
+#	out = []
+#
+#	for idx, item in enumerate(array):
+#		if idx == 0:
+#			out.append(item)
+#		else:
+#			out.append(item + out[idx-1])
+#
+#	return out
+#
+#def decompress_hostnames():
+#	nodes = os.environ['SLURM_JOB_NODELIST']
+#
+#	command = ['scontrol']
+#	command.append('show')
+#	command.append('hostnames')
+#	command.append(nodes)
+#
+#	process = subprocess.Popen(command, stdout=subprocess.PIPE)
+#	stdout, stderr = process.communicate()
+#
+#	global nodelist
+#	nodelist = stdout.splitlines()
+#
+#def lookup_setup():
+#	if os.environ['EXAMPI_ENV'] == 'local':
+#		return
+#
+#	global local_global_ids
+#	local_global_ids = [int(gid) for gid in os.environ['SLURM_GTIDS'].split(',')]
+#
+#	global local_nodename
+#	local_nodename = os.environ['SLURMD_NODENAME']
+#
+#	# uncompress task list
+#	prefixes = []
+#	for element in os.environ['SLURM_TASKS_PER_NODE'].split(','):
+#		if '(' in element:
+#			#143(x27)
+#			count, mult = element.split('(x')
+#
+#			for idx in xrange(int(mult[:-1])):
+#				prefixes.append(int(count))
+#
+#		else:
+#			prefixes.append(int(element))
+#
+#	# generate prefix sum array
+#	global task_count_offsets
+#	task_count_offsets = prefix_sum(prefixes)
+#
+#	# flatten node list
+#	decompress_hostnames()
+#
+#def lookup_rank(rank):
+#	if os.environ['EXAMPI_ENV'] == 'local':
+#		return socket.gethostname()
+#
+#	else:
+#		# local rank
+#		if rank in local_global_ids:
+#			return socket.gethostname()
+#
+#		# global rank
+#		else:
+#			for idx, bound in enumerate(task_count_offsets):
+#				if rank < bound:
+#					return nodelist[idx]
 
-	for idx, item in enumerate(array):
-		if idx == 0:
-			out.append(item)
-		else:
-			out.append(item + out[idx-1])
+class FaultDaemon(object):
+	"""FaultDaemon is the class representing the FaultDaemon wrapper around an MPI Stages enabled
+	application. FaultDaemon also instantiates HeadDaemon and ControllerDaemon."""
 
-	return out
-
-def decompress_hostnames():
-	nodes = os.environ['SLURM_JOB_NODELIST']
-	
-	command = ['scontrol']
-	command.append('show')
-	command.append('hostnames')
-	command.append(nodes)
-
-	process = subprocess.Popen(command, stdout=subprocess.PIPE)
-	stdout, stderr = process.communicate()
-
-	global nodelist
-	nodelist = stdout.splitlines()
-
-def lookup_setup():
-	if os.environ['EXAMPI_ENV'] == 'local':
-		return
-
-	global local_global_ids
-	local_global_ids = [int(gid) for gid in os.environ['SLURM_GTIDS'].split(',')]
-
-	global local_nodename
-	local_nodename = os.environ['SLURMD_NODENAME']
-
-	# uncompress task list
-	prefixes = []
-	for element in os.environ['SLURM_TASKS_PER_NODE'].split(','):
-		if '(' in element:
-			#143(x27)
-			count, mult = element.split('(x')
-
-			for idx in xrange(int(mult[:-1])):
-				prefixes.append(int(count))
-
-		else:
-			prefixes.append(int(element))
-
-	# generate prefix sum array
-	global task_count_offsets
-	task_count_offsets = prefix_sum(prefixes)
-
-	# flatten node list
-	decompress_hostnames()
-
-def lookup_rank(rank):
-	if os.environ['EXAMPI_ENV'] == 'local':
-		return socket.gethostname()
-
-	else:
-		# local rank
-		if rank in local_global_ids:
-			return socket.gethostname()
-
-		# global rank 
-		else:
-			for idx, bound in enumerate(task_count_offsets):
-				if rank < bound:
-					return nodelist[idx]
-
-class FaultDaemon:
-	def __init__(self, udp_transport_base):
+	def __init__(self, udp_transport_base=31115):
 		self.udp_transport_base = udp_transport_base
 
-		self.head_daemon = None
+		#
+		self.job_id = None
+		self.world_size = None
 
+		#
+		self.epoch = None
+		self.rank = None
+		self.config_name = None
+		self.config_file = None
+		self.epoch_name = None
+		self.epoch_file = None
+
+		#
+		self.sub_env = None
+		self.head_daemon_instance = None
+		self.head_connection = None
+
+		#
 		self.hostname = socket.gethostname()
 		self.localhost = socket.gethostbyname(self.hostname)
 
+		#
 		self.setup_launch(0)
 		self.setup_logger()
-		
-		self.setup_signal_handler()
 
+#		self.setup_signal_handler()
+
+		# launch head daemon if required
+		self.launch_head_daemon()
 
 	def __del__(self):
 		self.log.info('fault daemon shutting down')
 
-		# finalize sub process
-		self.process.wait()
-
 		self.delete_files()
-		
+
 		# terminate head daemon
-		if self.head_daemon != None:
+		if self.head_daemon_instance is not None:
 			self.log.info('shutting down head daemon')
 
-			self.head_daemon.wait()
+			self.head_daemon_instance.wait()
 
 		self.log.info('shut down complete')
 
+#	def setup_signal_handler(self):
+#		"""Setup signal handler for ctrl-c, siginterupt."""
+#
+#		signal.signal(signal.SIGINT, self.signal_handler)
+#		self.log.info('set up signal handler')
+#
+#	def signal_handler(self, signum, frame):
+#		"""Signal handler for sigint. Terminate subprocess and clean up head daemon if required."""
+#
+#		self.log.info('FaultDaemon received signal ' + str(signum) + ' ' + str(frame))
+#		self.process.send_signal(signum)
+#
+#		if self.head_daemon != None:
+#			self.log.info('sending signal to head daemon')
+#			self.head_daemon.send_signal(signum)
+#			self.head_daemon.wait()
+#
+#		self.process.wait()
+#
+#		self.__del__()
+#
+#		sys.exit(12)
+
 	def delete_files(self):
+		"""Delete configuration and epoch files used for ExaMPI Stages."""
+
 		self.config_file.close()
 		self.epoch_file.close()
 
@@ -119,6 +167,8 @@ class FaultDaemon:
 		os.remove(self.epoch_file.name)
 
 	def setup_launch(self, epoch):
+		"""Setup function for relaunch containment."""
+
 		self.epoch = epoch
 
 		self.setup_environment()
@@ -130,32 +180,33 @@ class FaultDaemon:
 		self.write_epoch()
 
 	def setup_logger(self):
+		"""Setup FaultDaemon logger if needed."""
+
 		# setup logging
 		if os.environ.get('EXAMPI_LOG_FAULT_DAEMON', None) == 'TRUE':
 			self.log = logging.getLogger(__name__)
 			self.log.setLevel(logging.INFO)
 
-			logname = 'fault_daemon_' + str(self.rank) + '.log'
+			logname = 'fault_daemon_%i.log' % self.rank
 
 			handler = logging.FileHandler(logname)
 			handler.setLevel(logging.INFO)
 
 			self.log.addHandler(handler)
-		
+
 		else:
 			self.log = logging.getLogger(__name__)
 			self.log.addHandler(logging.NullHandler())
 
 	def setup_file_handles(self):
-		rank = self.sub_env['EXAMPI_RANK']
-		job_id = self.sub_env['EXAMPI_JOB_ID']
-	
+		"""Generate temporary files for configuration and epoch."""
+
 		# create temporary files
 		prefix = 'exampi_'
 		suffix = '.' + str(self.job_id) + '.' + str(self.rank)
 
-		self.config_file = tempfile.NamedTemporaryFile(mode='w', delete=False, prefix=prefix, suffix=suffix) 
-		self.epoch_file = tempfile.NamedTemporaryFile(mode='w', delete=False, prefix=prefix, suffix=suffix)
+		self.config_file = tempfile.NamedTemporaryFile('w', suffix=suffix, prefix=prefix, delete=False)
+		self.epoch_file = tempfile.NamedTemporaryFile('w', suffix=suffix, prefix=prefix, delete=False)
 
 		self.config_name = self.config_file.name
 		self.epoch_name = self.epoch_file.name
@@ -164,10 +215,12 @@ class FaultDaemon:
 		self.sub_env['EXAMPI_EPOCH_FILE'] = self.epoch_file.name
 
 	def setup_environment(self):
+		"""Setup execution environment with all required EXAMPI_* environment variables."""
+
 		# copy general environment
 		self.sub_env = dict(copy.deepcopy(os.environ))
 
-		# announce proper launch	
+		# announce proper launch
 		self.sub_env['EXAMPI_MONITORED'] = 'TRUE'
 
 		# change environment depending on scheduler
@@ -181,174 +234,188 @@ class FaultDaemon:
 			self.sub_env['EXAMPI_WORLD_SIZE'] = self.sub_env['SLURM_NTASKS']
 			self.sub_env['EXAMPI_JOB_ID'] = str(self.sub_env['SLURM_JOB_ID'])
 			self.sub_env['EXAMPI_LOCALID'] = str(self.sub_env['SLURM_LOCALID'])
-			
+			self.sub_env['EXAMPI_GTIDS'] = self.sub_env['SLURM_GTIDS']
+
 		else: # local
 			self.rank = int(self.sub_env['EXAMPI_RANK'])
 			self.job_id = int(self.sub_env['EXAMPI_JOB_ID'])
 			self.world_size = int(self.sub_env['EXAMPI_WORLD_SIZE'])
 
+			self.sub_env['EXAMPI_GTIDS'] = ','.join(str(rank) for rank in xrange(self.world_size))
+
 		# announce daemon socket port
-		#self.sub_env['EXAMPI_DAEMON_PORT'] = str(self.daemon_port)
-		#self.sub_env['EXAMPI_CONTROLLER_PORT'] = str(self.controller_port)
-		#self.sub_env['EXAMPI_MPI_BASE_PORT'] = str(self.mpi_base_port)
-		#self.sub_env['EXAMPI_MPI_PORT'] = str(self.mpi_base_port + self.rank) 
 		self.sub_env['EXAMPI_UDP_TRANSPORT_BASE'] = str(self.udp_transport_base)
-		# TODO remove pid
-		self.sub_env['EXAMPI_DAEMON_PID'] = str(os.getpid())
 		self.sub_env['EXAMPI_EPOCH'] = str(self.epoch)
 
 		# remove any keys with SLURM association
 		# from here on we are in EXAMPI territory
-		# TODO required for slurm head daemon for lookup	
-		#for key in self.sub_env.keys():
-		#	if 'SLURM' in key:
-		#		del self.sub_env[key]
-		# TODO SLURM_GTIDS needs to be passed along, or some EXAMPI form of it
+		for key in self.sub_env.keys():
+			if 'SLURM' in key:
+				del self.sub_env[key]
 
 	def write_epoch(self):
+		"""TODO"""
+
 		# TODO could this be handled with a socket?
 		self.epoch_file.write(str(self.epoch))
 		self.epoch_file.close()
 
 	def write_configuration(self):
-		config = 'ppid:' + str(os.getpid()) + '\n'
-		config += 'size:' + self.sub_env['EXAMPI_WORLD_SIZE'] + '\n'
-		
-		# static connection building
-		# TODO convert to dynamic connection building through socket callback to head daemon
-		for irank in xrange(self.world_size):
-			hostname = lookup_rank(irank) 
-			ip = socket.gethostbyname(hostname)
-			config += str(irank) + ':' + ip + ':' + os.environ['EXAMPI_HEAD_DAEMON_PORT']+ ':' + str(self.udp_transport_base + irank) + '\n'
+		"""Write configuration file for ExaMPI Stages."""
 
+		config = 'ppid:%i\n' % os.getpid()
+		config += 'size:%s\n' % self.sub_env['EXAMPI_WORLD_SIZE']
+
+		# static connection building
+		self.establish_head_connection()
+
+		for irank in xrange(self.world_size):
+			msg = 'lookup %i' % irank
+			self.head_connection.send(msg.ljust(64).encode('utf-8'))
+			data = self.head_connection.recv(64)
+			msg = data.decode('utf-8')
+
+			# rank NUM HOSTNAME ADDRESS
+			contents = msg.split(' ')
+			address = contents[3]
+
+			config += '%i:%s:%s:%i\n' % (irank, address, os.environ['EXAMPI_HEAD_DAEMON_PORT'],
+			                             self.udp_transport_base + irank)
+
+		self.terminate_head_connection()
+
+		#
 		self.config_file.write(config)
 		self.config_file.close()
 
-	def inform_head_daemon(self):
+	def establish_head_connection(self):
+		"""Connect to local HeadDaemon instance."""
+
+		self.head_connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+		# (re)try connecting to head daemon
+		self.log.info('attempting to connect to head daemon')
+		while True:
+			try:
+				self.head_connection.connect((self.localhost, int(os.environ['EXAMPI_HEAD_DAEMON_PORT'])))
+
+			except socket.error:
+				self.log.info('failed to connect to head daemon, retrying...')
+				time.sleep(0.1)
+
+			else:
+				self.log.info('connected to head daemon')
+				break
+
+	def terminate_head_connection(self):
+		"""Close connection to local HeadDaemon instance."""
+
+		self.head_connection.close()
+
+	def inform_head(self, error_code):
+		"""Contact local HeadDaemon and inform it of process termination. Then wait for decision
+		from HeadDaemon."""
+
 		self.log.info('informing head daemon about application termination')
-
-		# establish connection to head daemon
-		head_daemon = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-		self.log.info('created socket')
-
-		# TODO potential for server not being up, retry
-		head_daemon.connect((self.localhost, int(os.environ['EXAMPI_HEAD_DAEMON_PORT'])))
-		self.log.info('connected to head daemon')
 
 		# read in last epoch from epoch file
 		self.epoch_file = open(self.epoch_name, 'r')
 		epoch = self.epoch_file.readline()
-		self.log.info('read epoch file: ' + str(epoch))
-	
-		#
-		msg = 'termination ' + str(self.rank) + ' ' + str(self.process.returncode) + ' ' + str(epoch)
-		self.log.info('sending msg: ' + msg)
+		self.log.info('read epoch file: %s', str(epoch))
+
+		# send termination message
+		msg = 'termination %i %i %i' % (self.rank, error_code, epoch)
+		self.log.info('sending msg: %s', msg)
 		data = msg.ljust(64).encode('utf-8')
 
-		head_daemon.send(data)
+		self.head_connection.send(data)
 		self.log.info('informed head daemon')
 
-		#
-		data = head_daemon.recv(64)
+		# receive response
+		data = self.head_connection.recv(64)
 		msg = data.decode('utf-8').replace('\0', '').strip()
-		self.log.info('received: ' + msg)
+		self.log.info('received: %s', msg)
 
+		# parse packet
 		contents = msg.split(' ')
-
 		if contents[0] == 'shutdown':
 			self.log.info('shutting down fault daemon, sending ack')
-			
-			head_daemon.send(('shutdown_ack ' + str(self.rank)).ljust(64).encode('utf-8'))
 
-			self.log.info('shut down done')
+			data = ('shutdown_ack %i' % self.rank).ljust(64).encode('utf-8')
+			self.head_connection.send(data)
+
+			self.log.info('shut down complete')
+
+			return False
 
 		elif contents[0] == 'restart':
-			epoch = int(contents[1])
+			# agreed epoch to restart from
+			self.epoch = int(contents[1])
 
-			# clean previous run
-			self.delete_files()
-			
-			# relaunch application with epoch
-			self.setup_launch(epoch)
+			return True
 
-			self.log.info('relaunching application')
-			self.launch()
-			
 		else:
-			self.log.error('received ' + str(data))
+			self.log.error('unknown HeadDaemon instruction: %s', data)
 			raise NotImplementedError
 
-		head_daemon.close()
-
-		return self.process.returncode
-
 	def launch_head_daemon(self):
-		# launch head daemon if capable and not already launched
-		if (int(self.sub_env['EXAMPI_LOCALID']) == 0) and (self.head_daemon == None):
-			self.log.info('fault daemon ' + self.sub_env['EXAMPI_RANK'] + ' launching head daemon')
+		"""Check if HeadDaemon is required to be launch from this FaultDaemon and launch it."""
+
+		# launch head daemon if assigned
+		if int(self.sub_env['EXAMPI_LOCALID']) == 0:
+			self.log.info('fault daemon %s launching head daemon', self.sub_env['EXAMPI_RANK'])
 
 			command = ['exampi_head_daemon']
-			self.head_daemon = subprocess.Popen(command, env=self.sub_env)
+			self.head_daemon_instance = subprocess.Popen(command, env=self.sub_env)
 
-	def launch(self):
-		# launch head daemon if required
-		self.launch_head_daemon()
+	def launch(self, command):
+		"""Launch an instance of the MPI application."""
 
-		# launch command
-		command = sys.argv[1:]
+		self.log.info('launching externally %s', command)
+		process = subprocess.Popen(command, env=self.sub_env)
+		process.wait()
 
-		self.log.info('lauching ' + str(command))
-		self.process = subprocess.Popen(command, env=self.sub_env)
-		self.process.wait()
-		
 		self.log.info("application process completed")
 
-		return self.inform_head_daemon()
+		return process.returncode
 
 	def execute(self):
-		raise NotImplementedError
+		"""Start execution of MPI application wrapped by FaultDaemon."""
 
-#		self.launch_head_daemon()
-#
-#		command = sys.argv[1:]
-#
-#		retries = 0
-#
-#		while(errorcode != daemon.errorcodes['MPI_SUCCESS']):
-#			errorcode = launch(command)
-#
-#			retries += 1
-#
-#			# inform head daemon
+		# connect to head daemon
+		self.establish_head_connection()
 
-	def setup_signal_handler(self):
-		signal.signal(signal.SIGINT, self.signal_handler)
-		self.log.info('set up signal handler')
+		# parse command from command line
+		command = sys.argv[1:]
 
-	def signal_handler(self, signal, frame):
-		self.log.info('FaultDaemon received signal ' + str(signal))
-		self.process.send_signal(signal)
+		# (re)start application until complete
+		restart = True
+		while restart:
+			# setup launch
+			self.delete_files()
+			self.setup_launch(self.epoch)
 
-		if self.head_daemon != None:
-			self.log.info('sending signal to head daemon')
-			self.head_daemon.send_signal(signal)
-			self.head_daemon.wait()
+			# launch external MPI application
+			error_code = self.launch(command)
 
-		self.process.wait()
+			# inform head daemon
+			restart = self.inform_head(error_code)
 
-		self.__del__()
-		
-		sys.exit(12)
+		# terminate daemon connection
+		self.terminate_head_connection()
 
-if __name__ == '__main__':
-	lookup_setup()
-	
-	# TODO remove udp transport port from here, should be in system config
-	udp_transport_base = 31111
+def main():
+	"""Launcher for FaultDaemon."""
 
 	# fault daemon
-	daemon = FaultDaemon(udp_transport_base)
-	errorcode = daemon.launch()
+	instance = FaultDaemon()
+
+	#instance.set_epoch(0)
+
+	error_code = instance.execute()
 
 	# return error code
-	sys.exit(errorcode)
+	sys.exit(error_code)
+
+if __name__ == '__main__':
+	main()
