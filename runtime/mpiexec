@@ -1,16 +1,22 @@
 #! /usr/bin/env python2
+"""This script is ExaMPI job launcher. It either acts as a launcher locally or
+offloads onto scheduling systems."""
 
 import sys
 import os
 import argparse
 import subprocess
-import signal
+#import signal
 import copy
 import logging
 import random
 import socket
 
-class RuntimeHandler:
+class RuntimeHandler(object):
+	"""The RunetimeHandler class is the ExaMPI job launcher. It parses the mpiexec command arguments
+	and depending on the environment within which it operates launches the MPI application with
+	the FaultDaemons."""
+
 	def __init__(self, arguments):
 		self.arguments = arguments
 
@@ -20,45 +26,50 @@ class RuntimeHandler:
 
 		self.set_head_port()
 		self.set_control_port()
-	
+
+		self.errorcode = None
+
 	def setup_logger(self):
+		"""Setup a mpiexec log if needed."""
+
 		if self.arguments.logexec:
 			self.log = logging.getLogger(__name__)
 			self.log.setLevel(logging.INFO)
-			
+
 			logname = 'mpiexec.log'
 
 			handler = logging.FileHandler(logname)
 			handler.setLevel(logging.INFO)
 
 			self.log.addHandler(handler)
-		
+
 		else:
 			self.log = logging.getLogger(__name__)
 			self.log.addHandler(logging.NullHandler())
 
 	def test_bind(self, port):
-		# XXX this only tests on the root node of the allocation
-		# CAN still FAIL on other nodes, the assumption is that the other nodes will
-		# have identical ports used!
+		"""Verify that port is bindable on localhost/0th job node. This does not check whether all
+		nodes will be compatible with the port, therefore this test can give a false negative."""
 
 		sokt = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-		
+
 		try:
 			sokt.bind((socket.gethostname(), port))
-		
-		except:
-			self.log.warning('failed to bind socket port ' + str(port))
+
+		except socket.error:
+			self.log.warning('failed to bind socket port %i', port)
 			return False
-		
+
 		else:
-			self.log.info('successful binding on port ' + str(port))
+			self.log.info('successful binding on port %i', port)
 			return True
-		
+
 		finally:
 			sokt.close()
 
 	def set_head_port(self):
+		"""Set HeadDaemon communication port."""
+
 		self.log.info('setting head daemon port')
 
 		# argument provided port
@@ -76,10 +87,12 @@ class RuntimeHandler:
 
 				if self.test_bind(self.head_daemon_port):
 					break
-		
-		self.log.info('head daemon port set to: ' + str(self.head_daemon_port))
+
+		self.log.info('head daemon port set to: %i', self.head_daemon_port)
 
 	def set_control_port(self):
+		"""Set ControllerDaemon communication port."""
+
 		self.log.info('setting controller daemon port')
 
 		# argument provided port
@@ -97,14 +110,16 @@ class RuntimeHandler:
 
 				if self.test_bind(self.controller_daemon_port):
 					break
-		
-		self.log.info('control daemon port set to: ' + str(self.controller_daemon_port))
+
+		self.log.info('control daemon port set to: %i', self.controller_daemon_port)
 
 	def detect_environment(self):
+		"""Detect what environment is present by environment variables."""
+
 		if os.environ.get('SLURM_JOB_ID'):
 			self.runtime = 'slurm'
 			self.job_id = int(os.environ['SLURM_JOB_ID'])
-		
+
 		# fallback onto local
 		else:
 			self.runtime = 'local'
@@ -113,22 +128,43 @@ class RuntimeHandler:
 		self.log.info('detected runtime: ' + self.runtime + ' job_id ' + str(self.job_id))
 
 	def launch(self):
-		# TODO check if executable is valid, if not try local directory appending
+		"""Launch the required environment launcher."""
+
+		# check if executable is valid
+		if self.arguments.checkprogram:
+			executable = self.arguments.program.split(' ')[0]
+
+			if not os.path.isfile(executable):
+				sys.stderr.write('executable passed was not valid.')
+
+				if self.arguments.extendprogram:
+					# file does not exist, try to append cwd
+					executable_path = '%s/%s' % (os.getcwd(), executable)
+
+					if not os.path.isfile(executable_path):
+						raise ValueError
+					else:
+						# assign executable_path to be used
+						sys.stderr.write('prepended cwd: %s' % executable_path)
+
+						self.arguments.program = executable_path
 
 		# NOTE could replace with dictionary
 		# runtimes[self.runtime](arguments)
 		if self.runtime == 'slurm':
 			self.log.info('launching slurm execution')
-			self.launch_slurm(arguments)
+			self.launch_slurm(self.arguments)
 
 		elif self.runtime == 'local':
 			self.log.info('launching local execution')
-			self.launch_local(arguments)
-		
+			self.launch_local(self.arguments)
+
 		else:
 			raise ValueError
 
 	def launch_local(self, arguments):
+		"""Launch mpiexec locally. Acts as its own job scheduling system."""
+
 		# act as srun
 		processes = []
 
@@ -145,7 +181,7 @@ class RuntimeHandler:
 			# combined stdout and stderr
 			else:
 				error_file = output_file
-			
+
 		for rank in xrange(arguments.processes):
 			# set individual process environment
 			env = dict(copy.deepcopy(os.environ))
@@ -176,65 +212,69 @@ class RuntimeHandler:
 				if arguments.separate_error:
 					error_name = 'local-' + str(os.getpid()) + '-' + str(rank) + '.err'
 					error_file = open(error_name, 'a')
-				
+
 				else:
 					error_file = output_file
-				
+
 			# construct command
 			command = ['exampi_fault_daemon']
 			command.extend(arguments.program)
 
-			self.log.info('mpiexec launching ' + str(command))
+			self.log.info('mpiexec launching %s', str(command))
 
 			# launch process
 			process = subprocess.Popen(command, env=env, stdout=output_file, stderr=error_file)
 			processes.append(process)
 
-			self.log.info('started process ' + str(process.pid))
+			self.log.info('started process %i', process.pid)
 
 		def wait_processes():
+			"""Process closure for waiting."""
+
 			for process in processes:
 				process.wait()
 
 			output_file.close()
 
-		# create signal handler
-		def signal_handler(signal, frame):
-			self.log.warning('mpiexec received signal' + str(signal))
+#		# create signal handler
+#		def signal_handler(signal, frame):
+#			self.log.warning('mpiexec received signal' + str(signal))
+#
+#			# forward signal to all processes
+#			for process in processes:
+#				process.send_signal(signal)
+#
+#			self.log.info('sent signal to all child processes.')
+#
+#			# wait for processes to end
+#			wait_processes()
+#
+#			self.log.info('waited for all child processes to die')
+#
+#		signal.signal(signal.SIGINT, signal_handler)
+#		self.log.info('set signal handler')
 
-			# forward signal to all processes
-			for process in processes:
-				process.send_signal(signal)
-
-			self.log.info('sent signal to all child processes.')
-
-			# wait for processes to end
-			wait_processes()
-
-			self.log.info('waited for all child processes to die')
-
-		signal.signal(signal.SIGINT, signal_handler)
-		self.log.info('set signal handler')
-		
 		# without signal wait for processes
 		wait_processes()
 		self.log.info('waited for all child processes to die')
 
 		self.errorcode = max(process.returncode for process in processes)
-		self.log.info('local return code: ' + str(self.errorcode))
+		self.log.info('local return code: %i', self.errorcode)
 
 	def launch_slurm(self, arguments):
+		"""Launch MPI application via Slurm Scheduler."""
+
 		command = ['srun']
 
 		# check for separate error or ranks output
 		if arguments.separate_error and not arguments.separate_rank:
 			command.append('--output=slurm-%J.out')
-			command.append('--error=slurm-%J.err')	
-		
+			command.append('--error=slurm-%J.err')
+
 		elif arguments.separate_error and arguments.separate_rank:
 			command.append('--output=slurm-%J-%t.out')
 			command.append('--error=slurm-%J-%t.err')
-		
+
 		elif arguments.separate_rank and not arguments.separate_error:
 			command.append('--output=slurm-%J-%t.out')
 
@@ -246,7 +286,7 @@ class RuntimeHandler:
 		env['EXAMPI_ENV'] = 'slurm'
 		env['EXAMPI_HEAD_DAEMON_PORT'] = str(self.head_daemon_port)
 		env['EXAMPI_CONTROLLER_DAEMON_PORT'] = str(self.controller_daemon_port)
-		
+
 		if arguments.logfault:
 			env['EXAMPI_LOG_FAULT_DAEMON'] = 'TRUE'
 		if arguments.loghead:
@@ -254,16 +294,18 @@ class RuntimeHandler:
 		if arguments.loghead:
 			env['EXAMPI_LOG_CONTROLLER_DAEMON'] = 'TRUE'
 
-		self.log.info('srun command:' + str(command))
-			
+		self.log.info('srun command: %s', str(command))
+
 		# launch srun process
 		process = subprocess.Popen(command, env=env)
 		process.wait()
 
 		self.errorcode = process.returncode
-		self.log.info('srun return code: ' + str(self.errorcode))
+		self.log.info('srun return code: %i', self.errorcode)
 
 def parse_arguments():
+	"""Construct argument parser and parse arguments for mpiexec."""
+
 	# command line argument parsing
 	parser = argparse.ArgumentParser(description="ExaMPI Process Initiator")
 
@@ -272,10 +314,14 @@ def parse_arguments():
 
 	# application to execute
 	parser.add_argument('program', metavar='<program>', type=str, nargs=argparse.REMAINDER)
-	
+
 	# to leave all epoch and config files
 	#parser.add_argument('-d', '--dirty', default=False, type=str)
-	
+
+	# program check/extend
+	parser.add_argument('--checkprogram', action='store_true')
+	parser.add_argument('--extendprogram', action='store_true')
+
 	# separate stdout and stderr
 	parser.add_argument('--separate_error', action='store_true')
 	parser.add_argument('--separate_rank', action='store_true')
@@ -285,11 +331,11 @@ def parse_arguments():
 
 	# create fault daemon logs
 	parser.add_argument('--logfault', action='store_true')
-	
-	# create head daemon logs	
+
+	# create head daemon logs
 	parser.add_argument('--loghead', action='store_true')
 
-	# create head daemon logs	
+	# create head daemon logs
 	parser.add_argument('--logcontrol', action='store_true')
 
 	# allow explicit head daemon port setting
@@ -300,11 +346,16 @@ def parse_arguments():
 
 	return parser.parse_args()
 
-if __name__ == '__main__':
+def main():
+	"""mpiexec main function"""
+
 	# parse command line arguments
 	arguments = parse_arguments()
 
 	handler = RuntimeHandler(arguments)
 	handler.launch()
-	
+
 	sys.exit(handler.errorcode)
+
+if __name__ == '__main__':
+	main()
