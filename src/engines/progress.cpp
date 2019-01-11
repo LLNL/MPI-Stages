@@ -17,29 +17,14 @@ void BasicProgress::addEndpoints()
 	std::list<int> rankList;
 	for (int i = 0; i < size; i++)
 	{
-		// TODO something breaks!
 		elem.clear();
 		rankList.push_back(i);
 		std::string rank = std::to_string(i);
 
-		std::string remote = config[rank];
-		debugpp(remote);
+		std::string ip_addr = config[rank];
+		debugpp("ip " << ip_addr);
 
-		size_t beg = remote.find_first_of(":");
-		std::string ipblock = remote.substr(beg+1);
-		std::string ip = remote.substr(0, beg);
-		debugpp("ip " << ip);
-
-		size_t ports = ipblock.find_first_of(":");
-
-		std::string port_daemon = ipblock.substr(0, ports);
-		std::string port_transport = ipblock.substr(ports+1);
-
-		debugpp("ports " << port_daemon << " " << port_transport);
-
-		elem.push_back(ip);
-		elem.push_back(port_transport);
-
+		elem.push_back(ip_addr);
 		exampi::transport->addEndpoint(i, elem);
 	}
 	group = new Group(rankList);

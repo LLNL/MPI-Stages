@@ -248,7 +248,7 @@ class FaultDaemon(object):
 		self.sub_env['EXAMPI_EPOCH'] = str(self.epoch)
 
 		# remove any keys with SLURM association
-		# from here on we are in EXAMPI territory
+		# EXAMPI territory from here
 		for key in self.sub_env.keys():
 			if 'SLURM' in key:
 				del self.sub_env[key]
@@ -263,8 +263,9 @@ class FaultDaemon(object):
 	def write_configuration(self):
 		"""Write configuration file for ExaMPI Stages."""
 
-		config = 'ppid:%i\n' % os.getpid()
-		config += 'size:%s\n' % self.sub_env['EXAMPI_WORLD_SIZE']
+		#config = 'ppid:%i\n' % os.getpid()
+		#config = 'size:%s\n' % self.sub_env['EXAMPI_WORLD_SIZE']
+		config = ''
 
 		# static connection building
 		self.establish_head_connection()
@@ -279,8 +280,7 @@ class FaultDaemon(object):
 			contents = msg.split(' ')
 			address = contents[3]
 
-			config += '%i:%s:%s:%i\n' % (irank, address, os.environ['EXAMPI_HEAD_DAEMON_PORT'],
-			                             self.udp_transport_base + irank)
+			config += '%i:%s:%i\n' % (irank, address, self.udp_transport_base + irank)
 
 		self.terminate_head_connection()
 

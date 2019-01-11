@@ -51,23 +51,6 @@ Daemon::Daemon()
 	                           hostname)->h_addr_list[0];
 	debugpp("getting local ip as " << inet_ntoa(*host));
 
-
-	// bind to local
-	//debugpp("recv mpi port " << std::string(std::getenv("EXAMPI_MPI_PORT")));
-	//int mpi_port = std::stoi(std::string(std::getenv("EXAMPI_MPI_PORT")));
-	//this->local.sin_family = AF_INET;
-	//this->local.sin_port = htons(mpi_port);
-	////this->local.sin_addr.s_addr = inet_addr(h_addr_list[0]);
-	//this->local.sin_addr = *host;
-	//// TODO check error code
-	////int err = bind(this->sock, (sockaddr *)&this->local, sizeof(this->local));
-	//int err = bind(this->sock, (sockaddr *)&this->local, sizeof(this->local));
-	//if(err != 0)
-	//{
-	//	debugpp("failed to bind port");
-	//	exit(124);
-	//}
-
 	// set daemon sock addr
 	debugpp("daemon port " << std::string(std::getenv("EXAMPI_HEAD_DAEMON_PORT")));
 	int daemon_port = std::stoi(std::string(
