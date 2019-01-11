@@ -1,60 +1,67 @@
 #!/usr/bin/env python2
+"""The ControllerDaemon is the current implementation of consensus."""
 
 import os
-import sys
 import logging
-import signal
+#import signal
 import socket
 import select
 
 import daemon
 
-# spawned by single head daemon (rank=0)
+class ControllerDaemon(object):
+	"""ControllerDaemon handles communication from all HeadDaemons and handles consensus."""
 
-# maintain TCP connections to all head daemons 
-
-class ControllerDaemon:
 	def __init__(self):
 		self.setup_logger()
+
+		self.shutdown = False
+		self.global_minimum_epoch = None
+		self.node_successes = None
+		self.node_epochs = None
+		self.head_daemon_count = None
+		self.disconnected = None
 
 		self.log.info('starting up ControllerDaemon')
 
 		self.head_daemons = {}
-	
+
 		self.packet_switch = {}
 		self.setup_packet_switch()
 
 		self.sockets = []
 		self.setup_server_socket()
 
-		signal.signal(signal.SIGINT, self.signal_handler)
+#		signal.signal(signal.SIGINT, self.signal_handler)
 
 	def __del__(self):
 		self.log.info('shutting down ControllerDaemon')
-		
+
 		# close all open sockets
-		for socket in self.sockets:
-			socket.close()
+		for sokt in self.sockets:
+			sokt.close()
 
 		self.log.info('shut down complete')
 		del self.log
 
-	def signal_handler(self, signal, frame):
-		self.log.warning('ControllerDaemon received signal ' + str(signal) + ' shutting down')
-		self.shutdown = True
-
-		self.__del__()
-		
-		sys.exit(10)
+#	def signal_handler(self, signal, frame):
+#		self.log.warning('ControllerDaemon received signal ' + str(signal) + ' shutting down')
+#		self.shutdown = True
+#
+#		self.__del__()
+#
+#		sys.exit(10)
 
 	def setup_logger(self):
+		"""Setup logging is needed."""
+
 		# do logging
 		if os.environ.get('EXAMPI_LOG_CONTROLLER_DAEMON', None) == 'TRUE':
 			self.log = logging.getLogger('controller')
 			self.log.setLevel(logging.INFO)
-			
+
 			logname = 'controller_daemon.log'
-			
+
 			handler = logging.FileHandler(logname)
 			handler.setLevel(logging.INFO)
 
@@ -66,6 +73,8 @@ class ControllerDaemon:
 			self.log.addHandler(logging.NullHandler())
 
 	def setup_server_socket(self):
+		"""Bind local socket for HeadDaemon communication."""
+
 		self.log.info('setting up server socket')
 
 		self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -80,16 +89,20 @@ class ControllerDaemon:
 		self.sockets.append(self.server_socket)
 
 	def setup_packet_switch(self):
+		"""Setup packet switching dictionary. Almost FSM like."""
+
 		self.log.info('setting up packet switcher')
 
 		self.packet_switch['node_barrier'] = self.node_barrier
 		self.packet_switch['node_success'] = self.node_success
 		self.packet_switch['node_shutdown'] = self.node_shutdown
-		
+
 		self.packet_switch['process_exit'] = self.process_exit
 		self.packet_switch['node_epoch'] = self.node_epoch
 
 	def launch(self):
+		"""Listen for communications from HeadDaemons."""
+
 		self.log.info('launching ControllerDaemon')
 
 		self.shutdown = False
@@ -100,67 +113,66 @@ class ControllerDaemon:
 			for readable in readables:
 				if readable is self.server_socket:
 					# handle connection request
-					connection, client = readable.accept()
+					connection, address = readable.accept()
 					connection.setblocking(0)
 
-					self.log.info('connection accepted from ' + str(client))
+					self.log.info('connection accepted from %s', address)
 
 					# add connection socket to tracked sockets
 					self.sockets.append(connection)
 
 				else:
 					packet = readable.recv(64)
-					
+
 					if packet:
 						# recv on client socket
-						packet = packet.decode('utf-8').replace('\0','')
-						self.log.info('packet received from ' + str(readable.getpeername()))
-						self.log.info('packet: "' + str(packet) + '"')
+						packet = packet.decode('utf-8').replace('\0', '')
+						self.log.info('packet received from %s', readable.getpeername())
+						self.log.info('packet: "%s"', packet)
 						data = packet.split(' ')
-						
+
 						# look up and execute
-						packet_handler = self.packet_switch.get(data[0], None) 
+						packet_handler = self.packet_switch.get(data[0], None)
 						if packet_handler:
 							self.log.info('found packet handler')
 							packet_handler(readable, data[1:])
 
 						else:
-							self.log.error('failed to handle: ' + str(packet))
+							self.log.error('failed to handle: %s', packet)
 							raise ValueError
 
-			for writable in writables:
-				pass
-
-			for exceptional in exceptionals:
-				pass
-		
 		self.log.info('shutting down ControllerDaemon')
 
 	def send_to_head_daemons(self, data):
-		self.log.info('sending ' + str(data) + ' to all head daemons')
+		"""Send data packet to all HeadDaemons."""
 
-		self.log.info('present head daemons ' + str(self.head_daemons))
+		self.log.info('sending %s to all head daemons', data)
+
+		self.log.info('present head daemons %s', self.head_daemons)
 
 		for host, attr in self.head_daemons.iteritems():
 			attr['socket'].send(data)
-		
+
 		self.log.info('sent to all head daemons')
 
 	def node_barrier(self, sokt, data):
+		"""Process node_barrier packet from HeadDaemon. When all HeadDaemons have entered
+		send release packet to all HeadDaemons."""
+
 		# register node barrier
 		host = sokt.getpeername()[0]
 
 		self.head_daemons[host] = {}
 		self.head_daemons[host]['socket'] = sokt
 
-		self.log.info('received barrier from ' + host)
-		self.log.info('received ' + str(len(self.head_daemons)) + ' node barriers')
+		self.log.info('received barrier from %s', host)
+		self.log.info('received %i node barriers', len(self.head_daemons))
 
-		try:
-			self.head_daemon_count += 1
-		except:
+		if self.head_daemon_count is None:
 			self.head_daemon_count = 1
-		
+		else:
+			self.head_daemon_count += 1
+
 		# if all nodes are present then release
 		if self.head_daemon_count == int(os.environ['EXAMPI_NODE_COUNT']):
 			del self.head_daemon_count
@@ -168,58 +180,64 @@ class ControllerDaemon:
 			self.log.info('sending release')
 
 			data = 'release\0'.ljust(64).encode('utf-8')
-			
+
 			self.send_to_head_daemons(data)
 			self.log.info('sent release to all head daemons')
-			
+
 	def node_success(self, sokt, contents):
-		try:
-			self.node_successes += 1
-		except:
+		"""Process node_success packet. Received when an entire node have completed successfully."""
+
+		if self.node_successes is None:
 			self.node_successes = 1
+		else:
+			self.node_successes += 1
 
 		host = sokt.getpeername()[0]
 		self.head_daemons[host]['state'] = 'complete'
 
 		if self.node_successes == int(os.environ['EXAMPI_NODE_COUNT']):
-			del self.node_successes
+			self.node_successes = None
 
 			self.log.info('sending shutdown to all head daemons')
 
 			data = 'shutdown\0'.ljust(64).encode('utf-8')
-			
+
 			self.send_to_head_daemons(data)
 			self.log.info('sent shutdown to all head daemons')
 
 	def node_shutdown(self, sokt, contents):
-		self.log.info('disconnect head node ' + contents[0])
+		"""Handle node shutdown packet. An entire node has completed and shutdown after
+		shutdown command given."""
 
-		try:
-			self.disconnected += 1
-		except:
+		self.log.info('disconnect head node %s', contents[0])
+
+		if self.disconnected is None:
 			self.disconnected = 1
+		else:
+			self.disconnected += 1
 
 		if len(self.head_daemons) == self.disconnected:
-			del self.disconnected
+			self.disconnected = None
 
 			self.server_socket.close()
 			self.shutdown = True
 			self.log.info('proper shutdown started')
 
 	def process_exit(self, sokt, contents):
+		"""Handle process exit packet. A process on a node has exited, check error code."""
+
 		# process_exit hostname rank errorcode epoch
-		hostname = contents[0]
 		rank = int(contents[1])
 		errorcode = int(contents[2])
 		epoch = int(contents[3])
 
-		self.log.info('process exit with erroneous state ' + str(errorcode))
+		self.log.info('process exit with erroneous state %i', errorcode)
 
 		if errorcode == daemon.errorcodes['MPIX_TRY_RELOAD']:
 			# send error to all head daemons
 			data = ('error ' + str(epoch) + '\0').ljust(64).encode('utf-8')
 			self.send_to_head_daemons(data)
-			
+
 		elif errorcode == daemon.errorcodes['MPI_ABORT']:
 			# 255
 			# TODO send kill command to all head daemons
@@ -228,35 +246,42 @@ class ControllerDaemon:
 			raise NotImplementedError
 
 		else:
+			self.log.info('received errorcode unrecognized %s', str(contents))
 			raise NotImplementedError
-		
+
 	def node_epoch(self, sokt, contents):
+		"""Process node_epoch packet. An entire node has agreed on the epoch."""
+
 		epoch = int(contents[0])
+
 		# find minimum all nodes have
-
-		try:
-			self.global_minimum_epoch = min(self.global_minimum_epoch, epoch)
-		except:
+		if self.global_minimum_epoch is None:
 			self.global_minimum_epoch = epoch
+		else:
+			self.global_minimum_epoch = min(self.global_minimum_epoch, epoch)
 
-		try:
-			self.node_epochs += 1
-		except:
+		if self.node_epochs is None:
 			self.node_epochs = 1
+		else:
+			self.node_epochs += 1
 
 		# commit or release from barrier
 		if self.node_epochs == int(os.environ['EXAMPI_NODE_COUNT']):
-			self.log.info('minimum global epoch ' + str(self.global_minimum_epoch))
+			self.log.info('minimum global epoch %i', self.global_minimum_epoch)
 
 			# send minimum epoch to all
 			msg = 'commit ' + str(self.global_minimum_epoch) + '\0'
 			data = msg.ljust(64).encode('utf-8')
 			self.send_to_head_daemons(data)
 
-			del self.node_epochs
-			del self.global_minimum_epoch
+			self.node_epochs = None
+			self.global_minimum_epoch = None
 
+def main():
+	"""Main function for ControllerDaemon."""
 
-if __name__ == '__main__':
 	instance = ControllerDaemon()
 	instance.launch()
+
+if __name__ == '__main__':
+	main()
