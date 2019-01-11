@@ -131,7 +131,7 @@ class RuntimeHandler(object):
 		"""Launch the required environment launcher."""
 
 		# check if executable is valid
-		if self.arguments.checkprogram:
+		if self.arguments.nocheckprogram:
 			executable = self.arguments.program.split(' ')[0]
 
 			if not os.path.isfile(executable):
@@ -319,8 +319,16 @@ def parse_arguments():
 	#parser.add_argument('-d', '--dirty', default=False, type=str)
 
 	# program check/extend
-	parser.add_argument('--checkprogram', action='store_true')
+	parser.add_argument('--nocheckprogram', action='store_false')
 	parser.add_argument('--extendprogram', action='store_true')
+
+	# fault tolerance enabled
+	#parser.add_argument('--noft', action='store_false')
+	#parser.add_argument('--retries', type=int)
+
+	# connection building
+	# TODO complete dynamic connection building task
+	#parser.add_argument('--static', action='store_true')
 
 	# separate stdout and stderr
 	parser.add_argument('--separate_error', action='store_true')
