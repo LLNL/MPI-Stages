@@ -38,6 +38,9 @@ void BasicCheckpoint::save()
 
 	if (exampi::handler->isErrSet() != 1)
 	{
+		// needed in case process dies
+		// XXX could also send to daemon
+		// write out epoch number
 		exampi::epoch++;
 		std::ofstream ef(exampi::epochConfig);
 		ef << exampi::epoch;
@@ -76,6 +79,8 @@ int BasicCheckpoint::load()
 		exampi::progress->barrier();
 
 		//exampi::interface->save(target);
+
+		// read in epoch number
 		target.close();
 		std::ifstream ef(exampi::epochConfig);
 		ef >> exampi::epoch;
