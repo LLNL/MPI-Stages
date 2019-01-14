@@ -21,6 +21,7 @@ class RuntimeHandler(object):
 		self.arguments = arguments
 
 		self.setup_logger()
+		self.log.info(self.arguments)
 
 		self.detect_environment()
 
@@ -132,7 +133,7 @@ class RuntimeHandler(object):
 
 		# check if executable is valid
 		if self.arguments.nocheckprogram:
-			executable = self.arguments.program.split(' ')[0]
+			executable = self.arguments.program[0]
 
 			if not os.path.isfile(executable):
 				sys.stderr.write('executable passed was not valid.')
