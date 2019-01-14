@@ -13,86 +13,16 @@ import socket
 import logging
 import time
 
-#def prefix_sum(array):
-#	out = []
-#
-#	for idx, item in enumerate(array):
-#		if idx == 0:
-#			out.append(item)
-#		else:
-#			out.append(item + out[idx-1])
-#
-#	return out
-#
-#def decompress_hostnames():
-#	nodes = os.environ['SLURM_JOB_NODELIST']
-#
-#	command = ['scontrol']
-#	command.append('show')
-#	command.append('hostnames')
-#	command.append(nodes)
-#
-#	process = subprocess.Popen(command, stdout=subprocess.PIPE)
-#	stdout, stderr = process.communicate()
-#
-#	global nodelist
-#	nodelist = stdout.splitlines()
-#
-#def lookup_setup():
-#	if os.environ['EXAMPI_ENV'] == 'local':
-#		return
-#
-#	global local_global_ids
-#	local_global_ids = [int(gid) for gid in os.environ['SLURM_GTIDS'].split(',')]
-#
-#	global local_nodename
-#	local_nodename = os.environ['SLURMD_NODENAME']
-#
-#	# uncompress task list
-#	prefixes = []
-#	for element in os.environ['SLURM_TASKS_PER_NODE'].split(','):
-#		if '(' in element:
-#			#143(x27)
-#			count, mult = element.split('(x')
-#
-#			for idx in xrange(int(mult[:-1])):
-#				prefixes.append(int(count))
-#
-#		else:
-#			prefixes.append(int(element))
-#
-#	# generate prefix sum array
-#	global task_count_offsets
-#	task_count_offsets = prefix_sum(prefixes)
-#
-#	# flatten node list
-#	decompress_hostnames()
-#
-#def lookup_rank(rank):
-#	if os.environ['EXAMPI_ENV'] == 'local':
-#		return socket.gethostname()
-#
-#	else:
-#		# local rank
-#		if rank in local_global_ids:
-#			return socket.gethostname()
-#
-#		# global rank
-#		else:
-#			for idx, bound in enumerate(task_count_offsets):
-#				if rank < bound:
-#					return nodelist[idx]
-
 class FaultDaemon(object):
 	"""FaultDaemon is the class representing the FaultDaemon wrapper around an MPI Stages enabled
 	application. FaultDaemon also instantiates HeadDaemon and ControllerDaemon."""
 
-	def __init__(self, udp_transport_base=31115):
+	def __init__(self, udp_transport_base=30021):
 		self.udp_transport_base = udp_transport_base
 		self.rank = None
 		self.job_id = None
 		self.world_size = None
-		self.epoch = 0
+		self.epoch = None
 
 		self.read_environment()
 		self.setup_logger()
@@ -100,6 +30,7 @@ class FaultDaemon(object):
 		# create sub environment
 		self.sub_env = None
 		self.setup_environment()
+		self.set_epoch(0)
 
 		# launch head daemon if required
 		self.head_daemon_instance = None
@@ -119,7 +50,8 @@ class FaultDaemon(object):
 		self.localhost = socket.gethostbyname(self.hostname)
 
 		#
-		self.setup_launch(0)
+		self.setup_file_handles()
+		self.write_configuration()
 
 #		self.setup_signal_handler()
 
@@ -168,17 +100,6 @@ class FaultDaemon(object):
 		# delete config and epoch files
 		os.remove(self.config_file.name)
 		os.remove(self.epoch_file.name)
-
-	def setup_launch(self, epoch):
-		"""Setup function for relaunch containment."""
-
-		self.epoch = epoch
-
-		self.setup_file_handles()
-
-		self.write_configuration()
-
-		self.write_epoch()
 
 	def read_environment(self):
 		"""Read data from environment variables for fault daemon to function."""
@@ -256,27 +177,21 @@ class FaultDaemon(object):
 
 		# announce daemon socket port
 		self.sub_env['EXAMPI_UDP_TRANSPORT_BASE'] = str(self.udp_transport_base)
-		# TODO this needs to be moved 
-		self.sub_env['EXAMPI_EPOCH'] = str(self.epoch)
 
 		# remove any keys with SLURM association
-		# EXAMPI territory from here
 		for key in self.sub_env.keys():
 			if 'SLURM' in key:
 				del self.sub_env[key]
 
-	def write_epoch(self):
-		"""TODO"""
+	def set_epoch(self, epoch):
+		"""Sets the epoch in which we are starting."""
 
-		# TODO could this be handled with a socket?
-		self.epoch_file.write(str(self.epoch))
-		self.epoch_file.close()
+		self.epoch = epoch
+		self.sub_env['EXAMPI_EPOCH'] = str(self.epoch)
 
 	def write_configuration(self):
 		"""Write configuration file for ExaMPI Stages."""
 
-		#config = 'ppid:%i\n' % os.getpid()
-		#config = 'size:%s\n' % self.sub_env['EXAMPI_WORLD_SIZE']
 		config = ''
 
 		# static connection building
@@ -297,6 +212,7 @@ class FaultDaemon(object):
 		self.terminate_head_connection()
 
 		#
+		self.log.info(config)
 		self.config_file.write(config)
 		self.config_file.close()
 
@@ -322,7 +238,9 @@ class FaultDaemon(object):
 	def terminate_head_connection(self):
 		"""Close connection to local HeadDaemon instance."""
 
+		self.log.info('closing connection to head daemon')
 		self.head_connection.close()
+		self.log.info('closed')
 
 	def inform_head(self, error_code):
 		"""Contact local HeadDaemon and inform it of process termination. Then wait for decision
@@ -331,6 +249,7 @@ class FaultDaemon(object):
 		self.log.info('informing head daemon about application termination')
 
 		# read in last epoch from epoch file
+		# TODO remove files, use socket informing from application on checkpoint
 		self.epoch_file = open(self.epoch_name, 'r')
 		epoch = self.epoch_file.readline()
 		self.log.info('read epoch file: %s', str(epoch))
@@ -362,7 +281,7 @@ class FaultDaemon(object):
 
 		elif contents[0] == 'restart':
 			# agreed epoch to restart from
-			self.epoch = int(contents[1])
+			self.set_epoch(int(contents[1]))
 
 			return True
 
@@ -403,10 +322,6 @@ class FaultDaemon(object):
 		# (re)start application until complete
 		restart = True
 		while restart:
-			# setup launch
-			self.delete_files()
-			self.setup_launch(self.epoch)
-
 			# launch external MPI application
 			error_code = self.launch(command)
 
@@ -421,8 +336,6 @@ def main():
 
 	# fault daemon
 	instance = FaultDaemon()
-
-	#instance.set_epoch(0)
 
 	error_code = instance.execute()
 
