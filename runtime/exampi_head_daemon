@@ -1,16 +1,13 @@
 #!/usr/bin/env python2
-
-# this daemon is in charge of communication between it and application instances
-# and other head daemons in the job
+"""The HeadDaemon manages a single node communicating with both the local fault
+daemons and the applications. In addition communicates with the
+ControllerDaemon, which it also maybe launched."""
 
 import os
-import sys
 import copy
-import tempfile
 import subprocess
 import signal
 import socket
-import re
 import logging
 import select
 import time
@@ -35,15 +32,15 @@ import daemon
 #		if '(' in element:
 #			# 143(x27)
 #			count, mult = element.split('(x')
-#			
+#
 #			for idx in xrange(int(mult[:-1])):
 #				prefixes.append(count)
-#			
+#
 #		else:
 #			prefixes.append(int(element))
-#	
+#
 #	# generate prefix sum array
-#	global task_count_offsets 
+#	global task_count_offsets
 #	task_count_offsets = prefix_sum(prefixes)
 
 #def lookup_rank(rank):
@@ -54,30 +51,38 @@ import daemon
 #	if rank in local_global_ids:
 #		return local_nodename
 #
-#	# global rank 
+#	# global rank
 #	else:
 #		for idx, bound in enumerate(task_count_offsets):
 #			if bound <= rank:
 #				return nodelist[idx]
 
-class HeadDaemon:
+class HeadDaemon(object):
+	"""The HeadDaemon class managing a single node."""
+
 	def __init__(self):
 		self.setup_logger()
+
+		self.node_minimum_epoch = None
+		self.barrier_count = None
+		self.success_counter = None
+		self.disconnected = None
+		self.cleanups = None
 
 		self.sockets = []
 		self.packet_switch = {}
 
 		self.controller = None
-		
+
 		self.shutdown = False
 
 		self.controller_socket = None
 		self.setup_server_socket()
-		
-		# create signal handler
-		signal.signal(signal.SIGINT, self.signal_handler)
-		self.log.info('set up signal handler')
-			
+
+#		# create signal handler
+#		signal.signal(signal.SIGINT, self.signal_handler)
+#		self.log.info('set up signal handler')
+
 		# local data
 		self.ranks = {}
 		self.fault_daemons = {}
@@ -100,32 +105,34 @@ class HeadDaemon:
 		self.world_size = int(os.environ['EXAMPI_WORLD_SIZE'])
 
 		self.prepare_lookup()
-	
+
 		# generate message-function lookup
 		self.generate_packet_switch()
 
 	def __del__(self):
 		self.log.info('shutting down socket')
-	
-		for socket in self.sockets:
-			socket.close()
+
+		for sokt in self.sockets:
+			sokt.close()
 
 		if self.controller != None:
 			self.controller.wait()
 		self.log.info('shutting down')
 
-	def signal_handler(self, signal, frame):
-		self.log.warning("HEAD DAEMON signal received " + str(signal))
-
-		if self.controller != None:
-			self.controller.send_signal(signal)
-			self.controller.wait()
-		
-		self.__del__()
-
-		sys.exit(11)
+#	def signal_handler(self, signal, frame):
+#		self.log.warning("HEAD DAEMON signal received " + str(signal))
+#
+#		if self.controller != None:
+#			self.controller.send_signal(signal)
+#			self.controller.wait()
+#
+#		self.__del__()
+#
+#		sys.exit(11)
 
 	def setup_logger(self):
+		"""Setup logger for head daemon is needed."""
+
 		if os.environ.get('EXAMPI_LOG_HEAD_DAEMON', None) == 'TRUE':
 			self.log = logging.getLogger(__name__+'-'+str(os.environ['EXAMPI_RANK']))
 			self.log.setLevel(logging.INFO)
@@ -142,19 +149,23 @@ class HeadDaemon:
 			self.log.addHandler(logging.NullHandler())
 
 	def setup_server_socket(self):
+		"""Setup socket for communication with FaultDaemons and application."""
+
 		# create socket
 		self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		self.server_socket.setblocking(0)
-		
+
 		self.hostname = socket.gethostname()
 		self.localhost = socket.gethostbyname(self.hostname)
 
 		self.server_socket.bind((self.localhost, int(os.environ['EXAMPI_HEAD_DAEMON_PORT'])))
 		self.server_socket.listen(5)
-	
+
 		self.sockets.append(self.server_socket)
 
 	def generate_packet_switch(self):
+		"""Setup packet switch dictionary for packet handling."""
+
 		# process -> head daemon(1)
 		self.packet_switch['barrier'] = self.process_barrier
 		self.packet_switch['lookup'] = self.process_rank_lookup
@@ -164,10 +175,6 @@ class HeadDaemon:
 		# fault daemon -> head daemon
 		self.packet_switch['termination'] = self.process_termination
 
-		# head daemon(+) -> controller(1)
-		#self.packet_switch['global_barrier'] = self.process_global_barrier
-		#self.packet_switch['global_termination'] = self.process_global_termination
-		
 		# controller -> head daemons -> fault daemons(+)
 		self.packet_switch['release'] = self.process_release
 		self.packet_switch['error'] = self.process_error
@@ -175,6 +182,8 @@ class HeadDaemon:
 		self.packet_switch['commit'] = self.process_commit
 
 	def prepare_lookup(self):
+		"""TODO"""
+
 		if os.environ['EXAMPI_ENV'] == 'local':
 			self.local_rank_count = int(os.environ['EXAMPI_WORLD_SIZE'])
 			self.local_ranks = range(int(os.environ['EXAMPI_WORLD_SIZE']))
@@ -186,14 +195,12 @@ class HeadDaemon:
 			self.root_host = socket.gethostbyname(self.root_node)
 
 		else:
-			# TODO can we do this scheduler agnostic?
-			
 			# fill local ranks
-			self.local_ranks = [int(gid) for gid in os.environ['SLURM_GTIDS'].split(',')]
+			self.local_ranks = [int(gid) for gid in os.environ['EXAMPI_GTIDS'].split(',')]
 			self.local_rank_count = len(self.local_ranks)
-			
+
 			command = ['scontrol']
-	
+
 			command.append('show')
 			command.append('hostnames')
 			command.append(os.environ['SLURM_JOB_NODELIST'])
@@ -204,14 +211,16 @@ class HeadDaemon:
 			self.global_nodes = stdout.splitlines()
 			self.global_node_count = len(self.global_nodes)
 
-			self.root_node = self.global_nodes[0] 
+			self.root_node = self.global_nodes[0]
 			self.root_host = socket.gethostbyname(self.root_node)
 
 
 	def launch_controller_daemon(self):
+		"""Launches the controller daemon if global id is 0."""
+
 		self.log.info('checking responsibility for controller')
-		if int(os.environ['EXAMPI_RANK']) == 0 and self.controller == None:
-			self.log.info('launching')
+		if int(os.environ['EXAMPI_RANK']) == 0 and self.controller is None:
+			self.log.info('launching ControllerDaemon')
 
 			env = dict(copy.deepcopy(os.environ))
 			env['EXAMPI_NODE_COUNT'] = str(self.global_node_count)
@@ -219,25 +228,27 @@ class HeadDaemon:
 			command = ['exampi_controller_daemon']
 			self.controller = subprocess.Popen(command, env=env)
 
-			self.log.info('launched controller daemon')
+			self.log.info('launched ControllerDaemon')
 
 	def launch(self):
+		"""Launching HeadDaemon."""
+
 		self.log.info('launching HeadDaemon')
 
-		# launch ControllerDaemon if required	
+		# launch ControllerDaemon if required
 		self.launch_controller_daemon()
 
 		self.shutdown = False
 		while not self.shutdown:
 			readables, writables, exceptionals = select.select(self.sockets, [], [])
-			
+
 			for readable in readables:
 				if readable is self.server_socket:
 					# handle connection request
 					connection, client = readable.accept()
 					connection.setblocking(0)
 
-					self.log.info('connection accepted from ' + str(client))
+					self.log.info('connection accepted from %s', client)
 
 					# add connection socket to tracked sockets
 					self.sockets.append(connection)
@@ -247,9 +258,9 @@ class HeadDaemon:
 
 					if packet:
 						# recv on client socket
-						packet = packet.decode('utf-8').replace('\0','')
-						self.log.info('packet received from ' + str(readable.getpeername()))
-						self.log.info('packet: "' + str(packet) + '"')
+						packet = packet.decode('utf-8').replace('\0', '')
+						self.log.info('packet received from %s', readable.getpeername())
+						self.log.info('packet: "%s"', packet)
 						data = packet.split(' ')
 
 						# look up and execute
@@ -259,7 +270,7 @@ class HeadDaemon:
 							packet_handler(readable, data[1:])
 
 						else:
-							self.log.error('failed to handle: ' + str(packet))
+							self.log.error('failed to handle: %s', packet)
 							raise ValueError
 
 			for writable in writables:
@@ -267,22 +278,25 @@ class HeadDaemon:
 
 			for exceptional in exceptionals:
 				pass
-			
+
 		self.log.info('shutting down HeadDaemon')
 
 	def send_to_controller(self, data):
-		self.log.info('sending to controller: ' + str(data))
+		"""Send data in utf-8 to ControllerDaemon."""
+
+		self.log.info('sending to controller: %s', data)
 
 		# set up connection to controller tcp
-		if self.controller_socket == None:
+		if self.controller_socket is None:
 			self.controller_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 			while True:
 				try:
-					self.controller_socket.connect((self.root_node, int(os.environ['EXAMPI_CONTROLLER_DAEMON_PORT'])))
+					self.controller_socket.connect((self.root_node,
+					                                int(os.environ['EXAMPI_CONTROLLER_DAEMON_PORT'])))
 					self.controller_socket.setblocking(0)
 					self.log.info('connected to controller socket')
-				except:
+				except socket.error:
 					time.sleep(0.1)
 				else:
 					break
@@ -294,54 +308,64 @@ class HeadDaemon:
 		self.log.info('finished sending to controller')
 
 	def send_to_rank(self, data, rank):
-		self.log.info('sending to rank ' + str(rank) + ': ' + str(data))
+		"""Send data in utf-8 to rank."""
+
+		self.log.info('sending to rank %i:%s', rank, data)
 
 		self.ranks[rank]['socket'].send(data)
-		
-		self.log.info('finished sending to ' + str(rank))
-	
-	def send_to_ranks(self, data):
-		self.log.info('sending ' + str(data) + ' to all ranks')
 
-		for rank in self.ranks.keys():
+		self.log.info('finished sending to %i', rank)
+
+	def send_to_ranks(self, data):
+		"""Send data in utf-8 to all known ranks."""
+
+		self.log.info('sending %s to all ranks', data)
+
+		for rank in self.ranks:
 			self.send_to_rank(data, rank)
 
 		self.log.info('finished sending to all ranks')
 
 	def send_to_fault_daemon(self, data, rank):
-		self.log.info('sending to fault daemon ' + str(rank) + ': ' + str(data))
+		"""Send data in utf-8 to fault daemon."""
+
+		self.log.info('sending to fault daemon %i:%s', rank, data)
 
 		self.fault_daemons[rank]['socket'].send(data)
-		
-		self.log.info('finished sending to fault daemon')
-	
-	def send_to_fault_daemons(self, data):
-		self.log.info('sending ' + str(data) + ' to all fault daemons')
 
-		for daemon in self.fault_daemons:
-			self.send_to_fault_daemon(data, daemon)
+		self.log.info('finished sending to fault daemon')
+
+	def send_to_fault_daemons(self, data):
+		"""Send data in utf-8 to all known fault daemons."""
+
+		self.log.info('sending %s to all fault daemons', data)
+
+		for dmn in self.fault_daemons:
+			self.send_to_fault_daemon(data, dmn)
 
 		self.log.info('finished sending to all fault daemons')
-		
+
 	def process_barrier(self, sokt, contents):
+		"""Handle process barrier packet."""
+
 		# barrier RANK PID
 		rank = int(contents[0])
 		pid = int(contents[1])
 
-		# register rank for barrier 
+		# register rank for barrier
 		if rank not in self.ranks:
 			self.ranks[rank] = {'pid':pid, 'socket':sokt}
-			self.log.info('registered rank ' + str(rank) + ':' + str(pid) + ':waiting')
+			self.log.info('registered rank %i pid %i waiting', rank, pid)
 
-		try:
-			self.barrier_count += 1
-		except:
+		if self.barrier_count is None:
 			self.barrier_count = 1
+		else:
+			self.barrier_count += 1
 
 		# check if all local ranks are waiting
 		if self.barrier_count == self.local_rank_count:
-			del self.barrier_count
-		
+			self.barrier_count = None
+
 			self.log.info('registered all local ranks, sending global barrier to controller')
 
 			data = ('node_barrier ' + socket.gethostname() + '\0').ljust(64).encode('utf-8')
@@ -355,7 +379,7 @@ class HeadDaemon:
 #		self.node_waiting_set.add(hostname)
 #		self.log.info('registered node ' + hostname + ':waiting')
 #
-#		self.log.info('check ' + str(len(self.node_waiting_set)) + ' == ' + str(self.global_node_count)) 
+#		self.log.info('check ' + str(len(self.node_waiting_set)) + ' == ' + str(self.global_node_count))
 #		if len(self.node_waiting_set) == self.global_node_count:
 #			self.log.info('complete global barrier, sending global release')
 #
@@ -363,15 +387,17 @@ class HeadDaemon:
 #			data = 'release\0'.ljust(64).encode('utf-8')
 #			self.send_to_head_daemons(data)
 
-	def process_release(self, socket, contents):
+	def process_release(self, sokt, contents):
+		"""Handle release packet from controller daemon."""
+
 		# forward release to all ranks
-		self.log.info('present ranks ' + str(self.ranks.keys()))
+		self.log.info('present ranks %s', self.ranks.keys())
 
 		data = 'release\0'.ljust(64).encode('utf-8')
 		self.send_to_ranks(data)
 
 	def process_termination(self, sokt, contents):
-		# this is from the fault daemon, representing the rank
+		"""Handle termination packet from fault daemon."""
 
 		# termination RANK ERRORCODE EPOCH
 		rank = int(contents[0])
@@ -386,32 +412,32 @@ class HeadDaemon:
 
 		# process errorcode
 		if errorcode == daemon.errorcodes['MPIX_TRY_RELOAD']:
-			msg = 'process_exit ' + self.hostname + ' ' + str(rank) + ' ' + str(errorcode) + ' ' + str(epoch) + '\0'
-			self.log.info('forwarding exit to controller: ' + msg)
+			msg = 'process_exit %s %i %i %i\0' % (self.hostname, rank, errorcode, epoch)
+			self.log.info('forwarding exit to controller: %s', msg)
 
 			data = msg.ljust(64).encode('utf-8')
 			self.send_to_controller(data)
-	
+
 		elif errorcode == daemon.errorcodes['MPI_SUCCESS']:
 			# if MPI_SUCCESS don't forward until later
 			# register successful exit
 			# if all exited successfully sent node_success
-			
+
 			# increment success counter
-			try:
-				self.success_counter += 1
-			except:
+			if self.success_counter is None:
 				self.success_counter = 1
+			else:
+				self.success_counter += 1
 
 			self.log.info('register process exit MPI_SUCCESS')
 
 			# once all have succeeded
 			if self.success_counter == self.local_rank_count:
-				del self.success_counter
+				self.success_counter = None
 
 				msg = 'node_success ' + self.hostname + '\0'
-				
-				self.log.info('forwarding termination to controller: ' + msg)
+
+				self.log.info('forwarding termination to controller: %s', msg)
 
 				data = msg.ljust(64).encode('utf-8')
 				self.send_to_controller(data)
@@ -420,67 +446,37 @@ class HeadDaemon:
 			self.log.error('unknown errorcode received')
 			self.log.error(str(contents))
 			raise ValueError
-		
-#	def process_global_termination(self, data, addr):
-#		# head daemon to controller
-#		msg, hostname, rank, errorcode, epoch = data.split()
-
-#		rank = int(rank)
-#		errorcode = int(errorcode)
-#		epoch = int(epoch)
-#
-#		if errorcode == errorcodes['MPI_SUCCESS']:
-#			self.log.info('rank ' + str(rank) + ' on ' + hostname + ' completed with MPI_SUCCESS')
-#			self.ranks_completed.add(rank)
-#
-#			# exit once all local have completed
-#			self.log.info('check all ranks complete ' + str(len(self.ranks_completed)) + ' == ' + str(self.world_size))
-#			if len(self.ranks_completed) == self.world_size:
-#				self.log.info('all local ranks completed, sending shutdown')
-#				
-#				data = 'shutdown\0'.ljust(64).encode('utf-8')
-#				self.send_to_head_daemons(data)
-#
-#		elif errorcode == errorcodes['MPI_ABORT']:
-#			# MPI_ABORT
-#			self.log.error('not implemented error MPI_ABORT')
-#			raise NotImplementedError
-#		
-#		elif errorcode == errorcodes['MPIX_TRY_RELOAD']:
-#			self.log.error('received MPIX_TRY_RELOAD errorcode')
-#			# TODO emit error to all head daemons
-#			raise NotImplementedError
-#
-#		else:
-#			self.log.error('not implemented error code: ' + str(data))
-#			raise NotImplementedError
 
 	def process_shutdown(self, sokt, contents):
-		self.log.info('received global shutdown from controller, shutting down...')
+		"""Handle shutdown packet from controller daemon."""
 
+		self.log.info('received global shutdown from controller, shutting down...')
 		self.log.info('sending shutdown to all fault daemons')
+
 		data = 'shutdown\0'.ljust(64).encode('utf-8')
 		self.send_to_fault_daemons(data)
 
 	def process_shutdown_ack(self, sokt, contents):
+		"""Handle shutdown acknowledgement from fault daemons."""
+
 		# client is closing connection
-		self.log.info('client is closing connection' + contents[0])
+		self.log.info('client is closing connection %s', contents[0])
 
 		# increment disconnected counter
-		try:
-			self.disconnected += 1
-		except:
+		if self.disconnected is None:
 			self.disconnected = 1
+		else:
+			self.disconnected += 1
 
 		# when all disconnected
 		if self.disconnected == self.local_rank_count:
-			del self.disconnected
+			self.disconnected = None
 
 			self.controller_socket.send(('node_shutdown ' + str(self.hostname)).ljust(64).encode('utf-8'))
 			self.controller_socket.close()
-			
+
 			self.shutdown = True
-		
+
 	def process_rank_lookup(self, sokt, contents):
 		"""Process lookup request."""
 
@@ -493,84 +489,97 @@ class HeadDaemon:
 			hostname = socket.gethostname()
 			address = socket.gethostbyname(hostname)
 
-			msg = 'rank %i %s %s' % (rank, hostname, address) 
+			msg = 'rank %i %s %s' % (rank, hostname, address)
 			self.log.info('responding "%s"', msg)
 			sokt.send(msg.ljust(64).encode('utf-8'))
 
 		elif os.environ['EXAMPI_ENV'] == 'slurm':
+			# TODO implement slurm lookup
 			raise NotImplementedError
-		
+
 		else:
 			raise NotImplementedError
 
 	def process_error(self, sokt, contents):
+		"""Handle error packet from ControllerDaemon. An error occured somewhere, gather node epoch."""
+
 		self.log.info('starting to signal all on-node processes')
 
 		controller_epoch = int(contents[0])
 
 		# check if node only has dead processes
-		if len(self.ranks) == 0:
+		if not self.ranks:
 			self.log.info('all processes resident on node are dead')
 
 			# send node_epoch automatically
 			msg = 'node_epoch ' + str(controller_epoch) + '\0'
 			data = msg.ljust(64).encode('utf-8')
 			self.send_to_controller(data)
-		
+
 		else:
-			for rank in self.ranks.keys():
+			for rank in self.ranks:
 				pid = self.ranks[rank]['pid']
-				
+
 				# signal mpi process for error state
 				self.log.info('signalling rank ' + str(rank) + ' with pid ' + str(pid))
 				os.kill(pid, signal.SIGUSR2)
 				# processes will send cleanup
 
-		self.log.info('finished signalling ' + str(len(self.ranks)) + ' ranks')
+		self.log.info('finished signalling %i ranks', len(self.ranks))
 
 	def process_cleanup(self, sokt, contents):
+		"""Handle clean up packet from application."""
+
 		rank = int(contents[0])
-		pid = int(contents[1])
 		epoch = int(contents[2])
 
 		self.ranks[rank]['epoch'] = epoch
-		try:
-			self.node_minimum_epoch = min(self.node_minimum_epoch, epoch)
-		except:
+		if self.node_minimum_epoch is None:
 			self.node_minimum_epoch = epoch
+		else:
+			self.node_minimum_epoch = min(self.node_minimum_epoch, epoch)
 
 		# increment cleanups
-		try:
-			self.cleanups += 1
-		except:
+		if self.cleanups is None:
 			self.cleanups = 1
+		else:
+			self.cleanups += 1
 
 		# check if all cleanups complete
 		if self.cleanups == len(self.ranks):
-			del self.cleanups
-			
+			self.cleanups = None
+			self.node_minimum_epoch = None
+
 			# always send minimum epoch number
 			msg = 'node_epoch ' + str(self.node_minimum_epoch) + '\0'
 			data = msg.ljust(64).encode('utf-8')
 			self.send_to_controller(data)
 
 	def process_commit(self, sokt, contents):
+		"""Handle epoch commit from controller."""
+
 		# controller has decided on epoch
 		epoch = int(contents[0])
-		
+
 		# send commit to alive ranks
 		msg = 'commit ' + str(epoch) + '\0'
 		data = msg.ljust(64).encode('utf-8')
 		self.send_to_ranks(data)
-			
+
 		# send restart to active fault daemons
 		msg = 'restart ' + str(epoch) + '\0'
 		data = msg.ljust(64).encode('utf-8')
 		self.send_to_fault_daemons(data)
-		
-		# TODO remove active fault daemons
 
-if __name__ == '__main__':
+		# TODO remove active fault daemons
+		# they are going inactive after received 'restart'
+
+def main():
+	"""Main function launches HeadDaemon."""
+
 	#
 	instance = HeadDaemon()
 	instance.launch()
+
+if __name__ == '__main__':
+	main()
