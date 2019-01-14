@@ -157,7 +157,7 @@ class HeadDaemon:
 	def generate_packet_switch(self):
 		# process -> head daemon(1)
 		self.packet_switch['barrier'] = self.process_barrier
-		#self.packet_switch['lookup'] = None # TODO dynamic connection building
+		self.packet_switch['lookup'] = self.process_rank_lookup
 		self.packet_switch['cleanup'] = self.process_cleanup
 		self.packet_switch['shutdown_ack'] = self.process_shutdown_ack
 
@@ -207,12 +207,6 @@ class HeadDaemon:
 			self.root_node = self.global_nodes[0] 
 			self.root_host = socket.gethostbyname(self.root_node)
 
-	def lookup_rank(self):
-		if os.environ['EXAMPI_ENV'] == 'local':
-			return self.root_node
-		
-		else:
-			raise NotImplementedError
 
 	def launch_controller_daemon(self):
 		self.log.info('checking responsibility for controller')
@@ -328,7 +322,7 @@ class HeadDaemon:
 			self.send_to_fault_daemon(data, daemon)
 
 		self.log.info('finished sending to all fault daemons')
-
+		
 	def process_barrier(self, sokt, contents):
 		# barrier RANK PID
 		rank = int(contents[0])
@@ -488,10 +482,24 @@ class HeadDaemon:
 			self.shutdown = True
 		
 	def process_rank_lookup(self, sokt, contents):
+		"""Process lookup request."""
+
+		rank = int(contents[0])
+
+		self.log.info('lookup for %i', rank)
+
 		# todo local rank is asking for remote address
 		if os.environ['EXAMPI_ENV'] == 'local':
-			return socket.gethostname()
+			hostname = socket.gethostname()
+			address = socket.gethostbyname(hostname)
 
+			msg = 'rank %i %s %s' % (rank, hostname, address) 
+			self.log.info('responding "%s"', msg)
+			sokt.send(msg.ljust(64).encode('utf-8'))
+
+		elif os.environ['EXAMPI_ENV'] == 'slurm':
+			raise NotImplementedError
+		
 		else:
 			raise NotImplementedError
 

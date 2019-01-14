@@ -89,22 +89,29 @@ class FaultDaemon(object):
 
 	def __init__(self, udp_transport_base=31115):
 		self.udp_transport_base = udp_transport_base
-
-		#
+		self.rank = None
 		self.job_id = None
 		self.world_size = None
+		self.epoch = 0
+
+		self.read_environment()
+		self.setup_logger()
+		
+		# create sub environment
+		self.sub_env = None
+		self.setup_environment()
+
+		# launch head daemon if required
+		self.head_daemon_instance = None
+		self.launch_head_daemon()
 
 		#
-		self.epoch = None
-		self.rank = None
 		self.config_name = None
 		self.config_file = None
 		self.epoch_name = None
 		self.epoch_file = None
 
 		#
-		self.sub_env = None
-		self.head_daemon_instance = None
 		self.head_connection = None
 
 		#
@@ -113,12 +120,8 @@ class FaultDaemon(object):
 
 		#
 		self.setup_launch(0)
-		self.setup_logger()
 
 #		self.setup_signal_handler()
-
-		# launch head daemon if required
-		self.launch_head_daemon()
 
 	def __del__(self):
 		self.log.info('fault daemon shutting down')
@@ -171,13 +174,29 @@ class FaultDaemon(object):
 
 		self.epoch = epoch
 
-		self.setup_environment()
-
 		self.setup_file_handles()
 
 		self.write_configuration()
 
 		self.write_epoch()
+
+	def read_environment(self):
+		"""Read data from environment variables for fault daemon to function."""
+
+		if os.environ['EXAMPI_ENV'] == 'slurm':
+			self.rank = int(os.environ['SLURM_PROCID'])
+			self.job_id = int(os.environ['SLURM_JOB_ID'])
+			self.world_size = int(os.environ['SLURM_NTASKS'])
+			self.local_id = int(os.environ['SLURM_LOCALID'])
+		
+		elif os.environ['EXAMPI_ENV'] == 'local':
+			self.rank = int(os.environ['EXAMPI_RANK'])
+			self.job_id = int(os.environ['EXAMPI_JOB_ID'])
+			self.world_size = int(os.environ['EXAMPI_WORLD_SIZE'])
+			self.local_id = int(os.environ['EXAMPI_LOCALID'])
+			
+		else:
+			raise ValueError
 
 	def setup_logger(self):
 		"""Setup FaultDaemon logger if needed."""
@@ -226,25 +245,18 @@ class FaultDaemon(object):
 		# change environment depending on scheduler
 		if self.sub_env['EXAMPI_ENV'] == 'slurm':
 			# application MPI rank
-			self.rank = int(self.sub_env['SLURM_PROCID'])
-			self.job_id = int(self.sub_env['SLURM_JOB_ID'])
-			self.world_size = int(self.sub_env['SLURM_NTASKS'])
-
 			self.sub_env['EXAMPI_RANK'] = str(self.rank)
-			self.sub_env['EXAMPI_WORLD_SIZE'] = self.sub_env['SLURM_NTASKS']
-			self.sub_env['EXAMPI_JOB_ID'] = str(self.sub_env['SLURM_JOB_ID'])
-			self.sub_env['EXAMPI_LOCALID'] = str(self.sub_env['SLURM_LOCALID'])
+			self.sub_env['EXAMPI_WORLD_SIZE'] = str(self.world_size)
+			self.sub_env['EXAMPI_JOB_ID'] = str(self.job_id)
+			self.sub_env['EXAMPI_LOCALID'] = str(self.local_id)
 			self.sub_env['EXAMPI_GTIDS'] = self.sub_env['SLURM_GTIDS']
 
 		else: # local
-			self.rank = int(self.sub_env['EXAMPI_RANK'])
-			self.job_id = int(self.sub_env['EXAMPI_JOB_ID'])
-			self.world_size = int(self.sub_env['EXAMPI_WORLD_SIZE'])
-
 			self.sub_env['EXAMPI_GTIDS'] = ','.join(str(rank) for rank in xrange(self.world_size))
 
 		# announce daemon socket port
 		self.sub_env['EXAMPI_UDP_TRANSPORT_BASE'] = str(self.udp_transport_base)
+		# TODO this needs to be moved 
 		self.sub_env['EXAMPI_EPOCH'] = str(self.epoch)
 
 		# remove any keys with SLURM association
@@ -324,7 +336,7 @@ class FaultDaemon(object):
 		self.log.info('read epoch file: %s', str(epoch))
 
 		# send termination message
-		msg = 'termination %i %i %i' % (self.rank, error_code, epoch)
+		msg = 'termination %i %i %i' % (self.rank, error_code, self.epoch)
 		self.log.info('sending msg: %s', msg)
 		data = msg.ljust(64).encode('utf-8')
 
@@ -362,8 +374,8 @@ class FaultDaemon(object):
 		"""Check if HeadDaemon is required to be launch from this FaultDaemon and launch it."""
 
 		# launch head daemon if assigned
-		if int(self.sub_env['EXAMPI_LOCALID']) == 0:
-			self.log.info('fault daemon %s launching head daemon', self.sub_env['EXAMPI_RANK'])
+		if self.local_id == 0:
+			self.log.info('fault daemon %s launching head daemon', self.rank)
 
 			command = ['exampi_head_daemon']
 			self.head_daemon_instance = subprocess.Popen(command, env=self.sub_env)
@@ -375,9 +387,9 @@ class FaultDaemon(object):
 		process = subprocess.Popen(command, env=self.sub_env)
 		process.wait()
 
-		self.log.info("application process completed")
+		self.log.info("application process completed with %i", process.returncode)
 
-		return process.returncode
+		return int(process.returncode)
 
 	def execute(self):
 		"""Start execution of MPI application wrapped by FaultDaemon."""
