@@ -147,7 +147,6 @@ class ControllerDaemon(object):
 		"""Send data packet to all HeadDaemons."""
 
 		self.log.info('sending %s to all head daemons', data)
-
 		self.log.info('present head daemons %s', self.head_daemons)
 
 		for host, attr in self.head_daemons.iteritems():
@@ -155,7 +154,7 @@ class ControllerDaemon(object):
 
 		self.log.info('sent to all head daemons')
 
-	def node_barrier(self, sokt, data):
+	def node_barrier(self, sokt, contents):
 		"""Process node_barrier packet from HeadDaemon. When all HeadDaemons have entered
 		send release packet to all HeadDaemons."""
 
@@ -175,7 +174,7 @@ class ControllerDaemon(object):
 
 		# if all nodes are present then release
 		if self.head_daemon_count == int(os.environ['EXAMPI_NODE_COUNT']):
-			del self.head_daemon_count
+			self.head_daemon_count = None
 
 			self.log.info('sending release')
 
@@ -239,9 +238,8 @@ class ControllerDaemon(object):
 			self.send_to_head_daemons(data)
 
 		elif errorcode == daemon.errorcodes['MPI_ABORT']:
-			# 255
+			# error code 255
 			# TODO send kill command to all head daemons
-			# shut down everything, MPI PROCESS CALLED ABORT
 			# HALT AND CATCH FIRE
 			raise NotImplementedError
 
