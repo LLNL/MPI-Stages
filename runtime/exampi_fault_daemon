@@ -31,7 +31,7 @@ class FaultDaemon(object):
 		#
 		self.hostname = socket.gethostname()
 		self.localhost = socket.gethostbyname(self.hostname)
-		
+
 		# create sub environment
 		self.sub_env = None
 		self.setup_environment()
@@ -117,13 +117,13 @@ class FaultDaemon(object):
 			self.job_id = int(os.environ['SLURM_JOB_ID'])
 			self.world_size = int(os.environ['SLURM_NTASKS'])
 			self.local_id = int(os.environ['SLURM_LOCALID'])
-		
+
 		elif os.environ['EXAMPI_ENV'] == 'local':
 			self.rank = int(os.environ['EXAMPI_RANK'])
 			self.job_id = int(os.environ['EXAMPI_JOB_ID'])
 			self.world_size = int(os.environ['EXAMPI_WORLD_SIZE'])
 			self.local_id = int(os.environ['EXAMPI_LOCALID'])
-			
+
 		else:
 			raise ValueError
 

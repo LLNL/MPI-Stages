@@ -15,6 +15,8 @@ import time
 import daemon
 
 def prefix_sum(array):
+	"""Simple implementation of prefix sum. We don't want external dependencies."""
+
 	out = []
 
 	for idx, item in enumerate(array):
@@ -475,7 +477,7 @@ class HeadDaemon(object):
 
 				hostname = self.hostname
 				address = self.address
-				
+
 			else:
 				# rank is not on local node
 				self.log.info('rank %i is not local', rank)
