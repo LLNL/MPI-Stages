@@ -17,7 +17,7 @@ class FaultDaemon(object):
 	"""FaultDaemon is the class representing the FaultDaemon wrapper around an MPI Stages enabled
 	application. FaultDaemon also instantiates HeadDaemon and ControllerDaemon."""
 
-	def __init__(self, udp_transport_base=30021):
+	def __init__(self, udp_transport_base=31121):
 		self.udp_transport_base = udp_transport_base
 		self.rank = None
 		self.job_id = None
@@ -26,11 +26,17 @@ class FaultDaemon(object):
 
 		self.read_environment()
 		self.setup_logger()
+		self.log.info('FaultDaemon is starting up.')
+
+		#
+		self.hostname = socket.gethostname()
+		self.localhost = socket.gethostbyname(self.hostname)
 		
 		# create sub environment
 		self.sub_env = None
 		self.setup_environment()
 		self.set_epoch(0)
+		self.log.info('environment was setup.')
 
 		# launch head daemon if required
 		self.head_daemon_instance = None
@@ -46,14 +52,12 @@ class FaultDaemon(object):
 		self.head_connection = None
 
 		#
-		self.hostname = socket.gethostname()
-		self.localhost = socket.gethostbyname(self.hostname)
-
-		#
 		self.setup_file_handles()
 		self.write_configuration()
 
 #		self.setup_signal_handler()
+
+		self.log.info('FaultDaemon startup finished.')
 
 	def __del__(self):
 		self.log.info('fault daemon shutting down')
@@ -94,12 +98,16 @@ class FaultDaemon(object):
 	def delete_files(self):
 		"""Delete configuration and epoch files used for ExaMPI Stages."""
 
+		self.log.info('deleting config and epoch files.')
+
 		self.config_file.close()
 		self.epoch_file.close()
 
 		# delete config and epoch files
 		os.remove(self.config_file.name)
 		os.remove(self.epoch_file.name)
+
+		self.log.info('finished deleting files.')
 
 	def read_environment(self):
 		"""Read data from environment variables for fault daemon to function."""
@@ -171,20 +179,21 @@ class FaultDaemon(object):
 			self.sub_env['EXAMPI_JOB_ID'] = str(self.job_id)
 			self.sub_env['EXAMPI_LOCALID'] = str(self.local_id)
 			self.sub_env['EXAMPI_GTIDS'] = self.sub_env['SLURM_GTIDS']
+			self.sub_env['EXAMPI_NODELIST'] = self.sub_env['SLURM_JOB_NODELIST']
+			self.sub_env['EXAMPI_TASKS_PER_NODE'] = self.sub_env['SLURM_TASKS_PER_NODE']
 
 		else: # local
 			self.sub_env['EXAMPI_GTIDS'] = ','.join(str(rank) for rank in xrange(self.world_size))
+			self.sub_env['EXAMPI_NODELIST'] = str(self.hostname)
+			self.sub_env['EXAMPI_TASKS_PER_NODE'] = str(self.world_size)
 
 		# announce daemon socket port
 		self.sub_env['EXAMPI_UDP_TRANSPORT_BASE'] = str(self.udp_transport_base)
 
-		# remove any keys with SLURM association
-		for key in self.sub_env.keys():
-			if 'SLURM' in key:
-				del self.sub_env[key]
-
 	def set_epoch(self, epoch):
 		"""Sets the epoch in which we are starting."""
+
+		self.log.info('setting epoch to %i', epoch)
 
 		self.epoch = epoch
 		self.sub_env['EXAMPI_EPOCH'] = str(self.epoch)
@@ -255,7 +264,7 @@ class FaultDaemon(object):
 		self.log.info('read epoch file: %s', str(epoch))
 
 		# send termination message
-		msg = 'termination %i %i %i' % (self.rank, error_code, self.epoch)
+		msg = 'termination %i %i %i' % (self.rank, error_code, int(epoch))
 		self.log.info('sending msg: %s', msg)
 		data = msg.ljust(64).encode('utf-8')
 
@@ -313,6 +322,8 @@ class FaultDaemon(object):
 	def execute(self):
 		"""Start execution of MPI application wrapped by FaultDaemon."""
 
+		self.log.info('executing fault loop')
+
 		# connect to head daemon
 		self.establish_head_connection()
 
@@ -322,14 +333,20 @@ class FaultDaemon(object):
 		# (re)start application until complete
 		restart = True
 		while restart:
+			self.log.info('launching command "%s"', ' '.join(command))
+
 			# launch external MPI application
 			error_code = self.launch(command)
 
 			# inform head daemon
 			restart = self.inform_head(error_code)
 
+			self.log.info('informed head daemon, restarting %s', restart)
+
 		# terminate daemon connection
 		self.terminate_head_connection()
+
+		self.log.info('fault loop complete')
 
 def main():
 	"""Launcher for FaultDaemon."""

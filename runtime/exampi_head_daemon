@@ -14,48 +14,16 @@ import time
 
 import daemon
 
-#def prefix_sum(array):
-#	out = []
-#
-#	for idx, item in enumerate(array):
-#		if idx == 0:
-#			out.append(item)
-#		else:
-#			out.append(item + out[idx-1])
-#
-#	return out
+def prefix_sum(array):
+	out = []
 
-#def lookup_setup():
-#	# uncompress task list
-#	prefixes = []
-#	for element in os.environ['SLURM_TASKS_PER_NODE'].split(','):
-#		if '(' in element:
-#			# 143(x27)
-#			count, mult = element.split('(x')
-#
-#			for idx in xrange(int(mult[:-1])):
-#				prefixes.append(count)
-#
-#		else:
-#			prefixes.append(int(element))
-#
-#	# generate prefix sum array
-#	global task_count_offsets
-#	task_count_offsets = prefix_sum(prefixes)
+	for idx, item in enumerate(array):
+		if idx == 0:
+			out.append(item)
+		else:
+			out.append(item + out[idx-1])
 
-#def lookup_rank(rank):
-#	if os.environ['EXAMPI_ENV'] == 'local':
-#		return 'localhost'
-#
-#	# local rank
-#	if rank in local_global_ids:
-#		return local_nodename
-#
-#	# global rank
-#	else:
-#		for idx, bound in enumerate(task_count_offsets):
-#			if bound <= rank:
-#				return nodelist[idx]
+	return out
 
 class HeadDaemon(object):
 	"""The HeadDaemon class managing a single node."""
@@ -76,6 +44,9 @@ class HeadDaemon(object):
 
 		self.shutdown = False
 
+		self.hostname = socket.gethostname()
+		self.address = socket.gethostbyname(self.hostname)
+
 		self.controller_socket = None
 		self.setup_server_socket()
 
@@ -92,14 +63,12 @@ class HeadDaemon(object):
 		self.local_rank_count = None
 		self.local_ranks = []
 
-		self.hostname = socket.gethostname()
-		self.localhost = socket.gethostbyname(self.hostname)
-
 		# global daemon
 		self.root_node = None
 		self.root_host = None
 		self.node_waiting_set = set()
 		self.global_node_count = None
+
 		self.global_nodes = []
 
 		self.world_size = int(os.environ['EXAMPI_WORLD_SIZE'])
@@ -155,10 +124,7 @@ class HeadDaemon(object):
 		self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		self.server_socket.setblocking(0)
 
-		self.hostname = socket.gethostname()
-		self.localhost = socket.gethostbyname(self.hostname)
-
-		self.server_socket.bind((self.localhost, int(os.environ['EXAMPI_HEAD_DAEMON_PORT'])))
+		self.server_socket.bind((self.address, int(os.environ['EXAMPI_HEAD_DAEMON_PORT'])))
 		self.server_socket.listen(5)
 
 		self.sockets.append(self.server_socket)
@@ -182,7 +148,7 @@ class HeadDaemon(object):
 		self.packet_switch['commit'] = self.process_commit
 
 	def prepare_lookup(self):
-		"""TODO"""
+		"""Prepare lookup caches for slurm and local lookup requests."""
 
 		if os.environ['EXAMPI_ENV'] == 'local':
 			self.local_rank_count = int(os.environ['EXAMPI_WORLD_SIZE'])
@@ -194,26 +160,54 @@ class HeadDaemon(object):
 			self.root_node = socket.gethostname()
 			self.root_host = socket.gethostbyname(self.root_node)
 
-		else:
+		elif os.environ['EXAMPI_ENV'] == 'slurm':
 			# fill local ranks
 			self.local_ranks = [int(gid) for gid in os.environ['EXAMPI_GTIDS'].split(',')]
 			self.local_rank_count = len(self.local_ranks)
 
-			command = ['scontrol']
-
-			command.append('show')
-			command.append('hostnames')
-			command.append(os.environ['SLURM_JOB_NODELIST'])
+			command = ['scontrol', 'show', 'hostnames', os.environ['EXAMPI_NODELIST']]
+			self.log.info('calling command %s', str(command))
 
 			process = subprocess.Popen(command, stdout=subprocess.PIPE)
 			stdout, stderr = process.communicate()
 
 			self.global_nodes = stdout.splitlines()
+
+			if not self.global_nodes:
+				self.log.error('scontrol call failed')
+				raise ValueError
+
+			self.log.info('asked slurm for hostnames: %s', str(self.global_nodes))
 			self.global_node_count = len(self.global_nodes)
 
 			self.root_node = self.global_nodes[0]
 			self.root_host = socket.gethostbyname(self.root_node)
 
+			prefixes = []
+			for element in os.environ['EXAMPI_TASKS_PER_NODE'].split(','):
+				self.log.info('processing element %s', element)
+
+				# XXX SLURM specific
+				if '(' in element:
+					# combined task count for multiple nodes: 143(x21)
+					count, mult = element.split('(x')
+
+					self.log.info('count %s mult %s', count, mult)
+
+					for idx in xrange(int(mult[:-1])):
+						prefixes.append(int(count))
+
+				else:
+					# simple task count for node
+					prefixes.append(int(element))
+
+
+			self.task_offsets = prefix_sum(prefixes)
+			self.log.info('prefixes %s prefix sum %s', prefixes, self.task_offsets)
+
+		else:
+			self.log.error('environment not recognized %s', os.environ['EXAMPI_ENV'])
+			raise ValueError
 
 	def launch_controller_daemon(self):
 		"""Launches the controller daemon if global id is 0."""
@@ -372,21 +366,6 @@ class HeadDaemon(object):
 			self.send_to_controller(data)
 			self.log.info('sent node_barrier')
 
-#	def process_global_barrier(self, data, addr):
-#		msg, hostname = data.split()
-#
-#		# register, if all, then send release messages
-#		self.node_waiting_set.add(hostname)
-#		self.log.info('registered node ' + hostname + ':waiting')
-#
-#		self.log.info('check ' + str(len(self.node_waiting_set)) + ' == ' + str(self.global_node_count))
-#		if len(self.node_waiting_set) == self.global_node_count:
-#			self.log.info('complete global barrier, sending global release')
-#
-#			# send node release messages
-#			data = 'release\0'.ljust(64).encode('utf-8')
-#			self.send_to_head_daemons(data)
-
 	def process_release(self, sokt, contents):
 		"""Handle release packet from controller daemon."""
 
@@ -443,8 +422,7 @@ class HeadDaemon(object):
 				self.send_to_controller(data)
 
 		else:
-			self.log.error('unknown errorcode received')
-			self.log.error(str(contents))
+			self.log.error('unknown errorcode received %s', contents)
 			raise ValueError
 
 	def process_shutdown(self, sokt, contents):
@@ -481,24 +459,43 @@ class HeadDaemon(object):
 		"""Process lookup request."""
 
 		rank = int(contents[0])
-
 		self.log.info('lookup for %i', rank)
 
-		# todo local rank is asking for remote address
 		if os.environ['EXAMPI_ENV'] == 'local':
-			hostname = socket.gethostname()
-			address = socket.gethostbyname(hostname)
+			# all ranks are on local node (shared node/computer)
+			self.log.info('found rank %i local', rank)
 
-			msg = 'rank %i %s %s' % (rank, hostname, address)
-			self.log.info('responding "%s"', msg)
-			sokt.send(msg.ljust(64).encode('utf-8'))
+			hostname = self.hostname
+			address = self.address
 
 		elif os.environ['EXAMPI_ENV'] == 'slurm':
-			# TODO implement slurm lookup
-			raise NotImplementedError
+			if rank in self.local_ranks:
+				# rank is found on local node
+				self.log.info('found rank %i local', rank)
+
+				hostname = self.hostname
+				address = self.address
+				
+			else:
+				# rank is not on local node
+				self.log.info('rank %i is not local', rank)
+
+				for idx, bound in enumerate(self.task_offsets):
+					if rank < bound:
+						hostname = self.global_nodes[idx]
+						address = socket.gethostbyname(hostname)
+						self.log.info('found %s %s', hostname, address)
+
+						break
 
 		else:
-			raise NotImplementedError
+			self.log.error('environment not recognized %s', os.environ['EXAMPI_ENV'])
+			raise ValueError
+
+		# respond to request
+		msg = 'rank %i %s %s' % (rank, hostname, address)
+		self.log.info('responding "%s"', msg)
+		sokt.send(msg.ljust(64).encode('utf-8'))
 
 	def process_error(self, sokt, contents):
 		"""Handle error packet from ControllerDaemon. An error occured somewhere, gather node epoch."""
@@ -547,13 +544,13 @@ class HeadDaemon(object):
 
 		# check if all cleanups complete
 		if self.cleanups == len(self.ranks):
-			self.cleanups = None
-			self.node_minimum_epoch = None
-
 			# always send minimum epoch number
 			msg = 'node_epoch ' + str(self.node_minimum_epoch) + '\0'
 			data = msg.ljust(64).encode('utf-8')
 			self.send_to_controller(data)
+
+			self.cleanups = None
+			self.node_minimum_epoch = None
 
 	def process_commit(self, sokt, contents):
 		"""Handle epoch commit from controller."""
