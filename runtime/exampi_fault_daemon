@@ -263,6 +263,9 @@ class FaultDaemon(object):
 		epoch = self.epoch_file.readline()
 		self.log.info('read epoch file: %s', str(epoch))
 
+		if not epoch:
+			epoch = '0'
+
 		# send termination message
 		msg = 'termination %i %i %i' % (self.rank, error_code, int(epoch))
 		self.log.info('sending msg: %s', msg)
