@@ -132,23 +132,23 @@ class RuntimeHandler(object):
 		"""Launch the required environment launcher."""
 
 		# check if executable is valid
-		if self.arguments.nocheckprogram:
-			executable = self.arguments.program[0]
+		#if self.arguments.nocheckprogram:
+		#	executable = self.arguments.program[0]
 
-			if not os.path.isfile(executable):
-				sys.stderr.write('executable passed was not valid.')
+		#	if not os.path.isfile(executable):
+		#		sys.stderr.write('executable passed was not valid.')
 
-				if self.arguments.extendprogram:
-					# file does not exist, try to append cwd
-					executable_path = '%s/%s' % (os.getcwd(), executable)
+		#		if self.arguments.extendprogram:
+		#			# file does not exist, try to append cwd
+		#			executable_path = '%s/%s' % (os.getcwd(), executable)
 
-					if not os.path.isfile(executable_path):
-						raise ValueError
-					else:
-						# assign executable_path to be used
-						sys.stderr.write('prepended cwd: %s' % executable_path)
+		#			if not os.path.isfile(executable_path):
+		#				raise ValueError
+		#			else:
+		#				# assign executable_path to be used
+		#				sys.stderr.write('prepended cwd: %s' % executable_path)
 
-						self.arguments.program = executable_path
+		#				self.arguments.program = executable_path
 
 		# NOTE could replace with dictionary
 		# runtimes[self.runtime](arguments)
