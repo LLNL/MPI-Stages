@@ -28,7 +28,7 @@ void BasicProgress::addEndpoints()
 
 		size_t beg = remote.find_first_of(":");
 		std::string port = remote.substr(beg+1);
-		std::string ip = remote.substr(0, beg); 
+		std::string ip = remote.substr(0, beg);
 		debugpp("ip " << ip);
 
 		debugpp("ports " << port);
@@ -49,7 +49,9 @@ void BasicProgress::sendThreadProc(bool *alive, AsyncQueue<Request> *outbox)
 	while (*alive)
 	{
 		debugpp("sendThread: fetching promise");
+
 		std::unique_ptr<Request> r = outbox->promise().get();
+
 		debugpp("sendThread:  got result from outbox future");
 
 		// send message to remote in this thread
@@ -74,8 +76,10 @@ void BasicProgress::matchThreadProc(bool *alive,
 	while (*alive)
 	{
 		debugpp("matchThread: before request");
-		// TODO this is a malloc!
+
+		// TODO generate unique request objects via a memory pool
 		std::unique_ptr<Request> r = make_unique<Request>();
+
 		debugpp("matchThread:  made request, about to peek...");
 
 		exampi::transport->peek(r->getHeaderIovecs(), 0);
@@ -315,7 +319,10 @@ std::future<MPI_Status> BasicProgress::postSend(UserArray array, Endpoint dest,
 	debugpp("basic::Interface::postSend(...)");
 
 	// create request
+	
+	// TODO replace with common memory pool
 	std::unique_ptr<Request> r = make_unique<Request>();
+
 	r->op = Op::Send;
 	r->source = exampi::rank;
 	r->stage = exampi::epoch;
@@ -339,7 +346,11 @@ std::future<MPI_Status> BasicProgress::postRecv(UserArray array,
 	debugpp("basic::Interface::postRecv(...)");
 
 	// make request
+	// TODO replace with memory pool
+
 	std::unique_ptr<Request> r = make_unique<Request>();
+
+
 	r->op = Op::Receive;
 	r->source = source.rank;
 	r->array = array;
