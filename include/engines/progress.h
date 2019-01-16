@@ -1,7 +1,6 @@
 #ifndef __EXAMPI_BASIC_PROGRESS_H
 #define __EXAMPI_BASIC_PROGRESS_H
 
-#include "basic.h"
 #include <map>
 #include <unordered_map>
 #include <list>
@@ -9,8 +8,10 @@
 #include <set>
 #include <memory>
 #include <algorithm>
-#include <sigHandler.h>
-#include <comm.h>
+
+#include "basic.h"
+#include "sigHandler.h"
+#include "comm.h"
 #include "transports/transport.h"
 #include "interfaces/interface.h"
 #include "daemon.h"
@@ -184,11 +185,13 @@ public:
 class BasicProgress: public Progress
 {
 private:
-	AsyncQueue<Request> outbox;
+	AsyncQueue<MemoryPool<Request>::unique_ptr> outbox;
 	MemoryPool<Request> request_pool;
 
-	std::list<std::unique_ptr<Request>> matchList;
-	std::list<std::unique_ptr<Request>> unexpectedList;
+	//std::list<std::unique_ptr<Request>> matchList;
+	std::list<MemoryPool<Request>::unique_ptr> matchList;
+	//std::list<std::unique_ptr<Request>> unexpectedList;
+	std::list<MemoryPool<Request>::unique_ptr> unexpectedList;
 
 	std::mutex matchLock;
 	std::mutex unexpectedLock;

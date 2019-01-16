@@ -3,7 +3,7 @@
 namespace exampi
 {
 
-BasicProgress::BasicProgress() : request_pool(128)
+BasicProgress::BasicProgress() : request_pool(256)
 {
 }
 
@@ -56,7 +56,7 @@ void BasicProgress::sendThreadProc()
 		debugpp("sendThread: fetching promise");
 
 		//std::unique_ptr<Request> r(outbox->promise().get());
-		std::unique_ptr<Request> r(this->outbox.promise().get());
+		MemoryPool<Request>::unique_ptr r(this->outbox.promise().get());
 
 		debugpp("sendThread:  got result from outbox future");
 
@@ -88,7 +88,7 @@ void BasicProgress::matchThreadProc()
 		debugpp("matchThread: before request");
 
 		//std::unique_ptr<Request> r = make_unique<Request>();
-		std::unique_ptr<Request> r(this->request_pool.alloc());
+		MemoryPool<Request>::unique_ptr r(this->request_pool.alloc());
 
 		debugpp("matchThread:  made request, about to peek...");
 
@@ -150,8 +150,8 @@ void BasicProgress::matchThreadProc()
 				{
 					debugpp("\tUnexpected message\n");
 
-					std::unique_ptr<Request> tmp = make_unique<Request>();
-					//std::unique_ptr<Request> r(this->request_pool.alloc());
+					//std::unique_ptr<Request> tmp = make_unique<Request>();
+					MemoryPool<Request>::unique_ptr tmp(this->request_pool.alloc());
 
 					ssize_t length;
 					exampi::transport->receive(tmp->getTempIovecs(), 0, &length);
@@ -368,7 +368,7 @@ std::future<MPI_Status> BasicProgress::postSend(UserArray array, Endpoint dest,
 	// create request
 
 	//std::unique_ptr<Request> r = make_unique<Request>();
-	std::unique_ptr<Request> r(this->request_pool.alloc());
+	MemoryPool<Request>::unique_ptr r(this->request_pool.alloc());
 
 	r->op = Op::Send;
 	r->source = exampi::rank;
@@ -395,8 +395,7 @@ std::future<MPI_Status> BasicProgress::postRecv(UserArray array,
 	// make request
 
 	//std::unique_ptr<Request> r = make_unique<Request>();
-	//Request *r = this->request_pool.alloc();
-	std::unique_ptr<Request> r(this->request_pool.alloc());
+	MemoryPool<Request>::unique_ptr r(this->request_pool.alloc());
 
 	r->op = Op::Receive;
 	r->source = source.rank;
@@ -425,8 +424,9 @@ std::future<MPI_Status> BasicProgress::postRecv(UserArray array,
 
 		// put request into match list for later matching
 		unexpectedLock.unlock();
+
 		matchList.push_back(std::move(r));
-		// TODO free request somehow
+
 		matchLock.unlock();
 	}
 	else
