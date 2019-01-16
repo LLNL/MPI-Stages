@@ -15,6 +15,7 @@
 #include "interfaces/interface.h"
 #include "daemon.h"
 #include "config.h"
+#include "pool.h"
 
 namespace exampi
 {
@@ -184,6 +185,7 @@ class BasicProgress: public Progress
 {
 private:
 	AsyncQueue<Request> outbox;
+	MemoryPool<Request> request_pool;
 
 	std::list<std::unique_ptr<Request>> matchList;
 	std::list<std::unique_ptr<Request>> unexpectedList;
@@ -197,18 +199,25 @@ private:
 	bool alive;
 	exampi::Group *group;
 	exampi::Comm *communicator;
+
+	// XXX where is this used?
 	typedef std::unordered_map<std::string, pthread_t> ThreadMap;
 	ThreadMap tm_;
 
 	void addEndpoints();
 
-	static void sendThreadProc(bool *alive, AsyncQueue<Request> *outbox);
-	static void matchThreadProc(bool *alive,
-	                            std::list<std::unique_ptr<Request>> *matchList,
-	                            std::list<std::unique_ptr<Request>> *unexpectedList,
-	                            std::mutex *matchLock, std::mutex *unexpectedLock);
+	//static void sendThreadProc(bool *alive, AsyncQueue<Request> *outbox);
+	void sendThreadProc();
+
+	//static void matchThreadProc(bool *alive,
+	//                            std::list<std::unique_ptr<Request>> *matchList,
+	//                            std::list<std::unique_ptr<Request>> *unexpectedList,
+	//                            std::mutex *matchLock, std::mutex *unexpectedLock);
+	void matchThreadProc();
 
 public:
+	BasicProgress();
+	
 	virtual int init();
 	virtual int init(std::istream &t);
 	virtual void finalize();
