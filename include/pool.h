@@ -22,6 +22,7 @@ class MemoryPool
 
 		MemoryPool_item *next;
 		StorageType datum;
+
 	public:
 		MemoryPool_item *get_next_item() const
 		{

@@ -374,11 +374,11 @@ std::future<MPI_Status> BasicProgress::postSend(UserArray array, Endpoint dest,
 {
 	debugpp("basic::Interface::postSend(...)");
 
-	// create request
-
+	// fetch new request
 	//std::unique_ptr<Request> r = make_unique<Request>();
 	MemoryPool<Request>::unique_ptr r(this->request_pool.alloc());
 
+	// fill request with data
 	r->op = Op::Send;
 	r->source = exampi::rank;
 	r->stage = exampi::epoch;
