@@ -117,7 +117,14 @@ void BasicProgress::matchThreadProc()
 
 		// search for match
 		//auto result = std::find_if(matchList->begin(), matchList->end(), [t, s, c, e](const std::unique_ptr<Request> &i) -> bool {return (i->tag == t && i->source == s && i->stage == e && i->comm == c);});
-		auto result = std::find_if(this->matchList.begin(), this->matchList.end(), [t, s, c, e](const std::unique_ptr<Request> &i) -> bool {return (i->tag == t && i->source == s && i->stage == e && i->comm == c);});
+		auto result = std::find_if(
+			this->matchList.begin(), 
+			this->matchList.end(),
+			[t, s, c, e](const MemoryPool<Request>::unique_ptr &i) -> bool
+			{
+				return (i->tag == t && i->source == s && i->stage == e && i->comm == c);
+			}
+		);
 
 		// failed to find match
 		//if (result == matchList->end())
@@ -418,7 +425,7 @@ std::future<MPI_Status> BasicProgress::postRecv(UserArray array,
 	unexpectedLock.lock();
 	matchLock.lock();
 	auto res = std::find_if(unexpectedList.begin(), unexpectedList.end(),
-	                        [tag,s, c, e](const std::unique_ptr<Request> &i) -> bool {i->unpack(); return i->tag == tag && i->source == s && i->stage == e && i->comm == c;});
+	                        [tag,s, c, e](const MemoryPool<Request>::unique_ptr &i) -> bool {i->unpack(); return i->tag == tag && i->source == s && i->stage == e && i->comm == c;});
 
 	//
 	if (res == unexpectedList.end())

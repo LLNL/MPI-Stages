@@ -3,6 +3,9 @@
 
 #include "ExaMPI.h"
 
+namespace exampi
+{
+
 template<typename T>
 class AsyncQueue
 {
@@ -60,7 +63,7 @@ public:
 		std::unique_lock<std::mutex> lock(promiseLock);
 		
 		// TODO MR 22/01/19 replace with MemoryPool
-		promises.push_back(make_unique<std::promise<T>());
+		promises.push_back(make_unique<std::promise<T>>());
 
 		debugpp("AQ: Promise pushed; about to get_future...");
 
@@ -82,5 +85,7 @@ public:
 		test();
 	}
 };
+
+}
 
 #endif
