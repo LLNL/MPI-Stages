@@ -7,7 +7,7 @@ CXX ?= c++
 # flags
 CXXFLAGS += -Wall -Wextra -pedantic 
 #CXXFLAGS += -std=c++11 -g -pthread -DDEBUG
-CXXFLAGS += -std=c++11 -g -pthread -O2
+CXXFLAGS += -std=c++11 -g -pthread -O2 -fno-inline-small-functions
 LDFLAGS = 
 
 # target definitions

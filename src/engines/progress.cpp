@@ -57,11 +57,17 @@ void BasicProgress::sendThreadProc()
 
 		//std::unique_ptr<Request> r(outbox->promise().get());
 		MemoryPool<Request>::unique_ptr r(this->outbox.promise().get());
+		
+
+		// get protocol message 
 
 		debugpp("sendThread:  got result from outbox future");
 
 		// send message to remote in this thread
-		exampi::transport->send(r->getIovecs(), r->endpoint.rank, 0);
+		// FIXME remove iovs
+		auto iovs = r->getIovecs();
+
+		exampi::transport->send(iovs, r->endpoint.rank, 0);
 		debugpp("sendThread: sent message");
 
 		// TODO:  check that sending actually completed
@@ -92,7 +98,10 @@ void BasicProgress::matchThreadProc()
 
 		debugpp("matchThread:  made request, about to peek...");
 
-		exampi::transport->peek(r->getHeaderIovecs(), 0);
+		// FIXME remove iovs
+		auto iovs = r->getHeaderIovecs();
+		exampi::transport->peek(iovs, 0);
+
 		debugpp("matchThread:  finished peeking");
 		r->unpack();
 
@@ -161,7 +170,11 @@ void BasicProgress::matchThreadProc()
 					MemoryPool<Request>::unique_ptr tmp(this->request_pool.alloc());
 
 					ssize_t length;
-					exampi::transport->receive(tmp->getTempIovecs(), 0, &length);
+
+					// FIXME remove iovs
+					auto iovs = tmp->getTempIovecs();
+					exampi::transport->receive(iovs, 0, &length);
+
 					tmp->status.count = length - 32;
 
 					//unexpectedList->push_back(std::move(tmp));
@@ -184,7 +197,11 @@ void BasicProgress::matchThreadProc()
 			debugpp("\tDatatype says extent is " << (*result)->array.datatype->getExtent());
 
 			ssize_t length;
-			exampi::transport->receive((*result)->getIovecs(), 0, &length);
+
+			// FIXME remove iovs
+			auto iovs = (*result)->getIovecs();
+			exampi::transport->receive(iovs, 0, &length);
+
 			(*result)->unpack();
 
 			// set MPI_Status for calling thread

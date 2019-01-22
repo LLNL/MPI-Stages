@@ -110,7 +110,10 @@ public:
 	int source;
 	MPI_Comm comm;
 	UserArray array;
+
+	// FIXME remove iovec, scope violation, socket level things should live in UDPTransport
 	struct iovec temp;
+
 	Endpoint endpoint;
 	int stage;
 	MPI_Status status; // maybe not needed --sf

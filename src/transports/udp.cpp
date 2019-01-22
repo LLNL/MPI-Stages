@@ -37,13 +37,13 @@ void Socket::destroy()
 	close(fd);
 }
 
-Message::Message() : iov()
-{
-	hdr.msg_control = NULL;
-	hdr.msg_controllen = 0;
-}
+//Message::Message() : iov()
+//{
+//	hdr.msg_control = NULL;
+//	hdr.msg_controllen = 0;
+//}
 
-Message::Message(std::vector<struct iovec> i) : iov(i)
+Message::Message(std::vector<struct iovec> &i) : iov(i)
 {
 	hdr.msg_control = NULL;
 	hdr.msg_controllen = 0;

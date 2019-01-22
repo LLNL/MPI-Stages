@@ -85,6 +85,8 @@ int BasicInterface::MPI_Finalize()
 int BasicInterface::MPI_Send(const void *buf, int count, MPI_Datatype datatype,
                              int dest, int tag, MPI_Comm comm)
 {
+	// TODO argument checking
+
 	debugpp("MPI_Send MPI_Stages check");
 	if (exampi::handler->isErrSet())
 	{
@@ -103,6 +105,8 @@ int BasicInterface::MPI_Send(const void *buf, int count, MPI_Datatype datatype,
 		szcount 
 	}, 
 	{ dest, context }, tag);
+	
+	// TODO request generator
 	
 	// is this where it waits?
 	MPI_Status st = stf.get();

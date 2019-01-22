@@ -29,11 +29,11 @@ private:
 	struct msghdr hdr;
 
 	// TODO REMOVE THIS
-	std::vector<struct iovec> iov;
+	std::vector<struct iovec> &iov;
 
 public:
-	Message();
-	Message(std::vector<struct iovec> i);
+	Message(std::vector<struct iovec> &i);
+
 	void addBuf(exampi::Buf *b);
 	void updateHeader();
 	void updateHeader(Address &addr);
