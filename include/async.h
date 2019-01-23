@@ -27,6 +27,7 @@ protected:
 		std::unique_lock<std::mutex> lock(promiseLock);
 
 		// blocks until >0 promises and data
+		// FIXME this only ever allows a single slot in AsyncQueue
 		pcond.wait(lock, [&]() -> bool { return (promises.size() > 0 && data.size() > 0); });
 
 		if(promises.size() > 0)
@@ -68,6 +69,7 @@ public:
 		debugpp("AQ: Promise pushed; about to get_future...");
 
 		auto result = promises.back()->get_future();
+
 		lock.unlock();
 		pcond.notify_all();
 

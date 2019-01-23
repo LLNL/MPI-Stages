@@ -5,7 +5,8 @@
 #include <memory>
 #include <assert.h>
 
-// potentially do a SCSP kind of thing, we have sequential maybe
+#include "debug.h"
+
 // https://thinkingeek.com/2017/11/19/simple-memory-pool/
 // MR: this is a dirty copy of that, use that as base for good implementation
 
@@ -78,6 +79,8 @@ class MemoryPool
 
 	std::unique_ptr<MemoryPool_arena> arena;
 	MemoryPool_item *free_list;
+	size_t allocated_items;
+	size_t allocated_arenas;
 
 	std::mutex sharedlock;
 
@@ -87,23 +90,31 @@ public:
 	MemoryPool(size_t arena_size)
 	: arena_size(arena_size), 
 	  arena(new MemoryPool_arena(arena_size)),
-	  free_list(arena->get_storage())
+	  free_list(arena->get_storage()),
+	  allocated_items(0),
+	  allocated_arenas(1)
 	{
 	}
 
 	template <typename... Args> 
 	unique_ptr alloc(Args &&... args)
 	{
+		debugpp("allocating " << typeid(T).name() << " from " << this->allocated_arenas << " arenas");
+
 		std::lock_guard<std::mutex> lock(this->sharedlock);
 
 		// allocate a new arena if needed
     	if (free_list == nullptr)
     	{   
+			debugpp("allocating additional arena");
+
         	std::unique_ptr<MemoryPool_arena> new_arena(new MemoryPool_arena(arena_size));
 
         	new_arena->set_next_arena(std::move(arena));
         	arena.reset(new_arena.release());
         	free_list = arena->get_storage();
+
+			this->allocated_arenas++;
     	}   
 
 		// fetch next empty
@@ -115,14 +126,18 @@ public:
 		// construct object in allocated space
     	new (result) T(std::forward<Args>(args)...);
 
-    	//return std::unique_ptr<T, std::function<void(T*)>>(result, [this](T* t)->void {this->free(t);});
-    	return unique_ptr(result, [this](T* t)->void {this->free(t);});
+		this->allocated_items++;
+		debugpp("item is number " << this->allocated_items);
+
+    	return unique_ptr(result, [this](T* t) -> void { this->free(t); });
 	}
 	
-
 	void free(T* t)
 	{
+		debugpp("freeing item, now at " << this->allocated_items << " : " << this->allocated_arenas);
+
         std::lock_guard<std::mutex> lock(this->sharedlock);
+		this->allocated_items--;
         
         t->T::~T();
         
