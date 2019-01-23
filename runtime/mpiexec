@@ -219,7 +219,13 @@ class RuntimeHandler(object):
 
 			# construct command
 			command = ['exampi_fault_daemon']
-			command.extend(arguments.program)
+
+			# check for other
+			if rank > 0 and arguments.other is not None:
+				command.append(arguments.other)				
+
+			else:
+				command.extend(arguments.program)
 
 			self.log.info('mpiexec launching %s', str(command))
 
@@ -352,6 +358,9 @@ def parse_arguments():
 
 	# allow explicit controller daemon port setting
 	parser.add_argument('--controlport', type=int, default=None)
+
+	# separate executable
+	parser.add_argument('--other', type=str, default=None, help='Only supported locally.')
 
 	return parser.parse_args()
 
