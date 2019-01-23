@@ -75,17 +75,18 @@ class MemoryPool
 		}
 	};
 
-	size_t arena_size;
-
 	std::unique_ptr<MemoryPool_arena> arena;
 	MemoryPool_item *free_list;
+
 	size_t allocated_items;
 	size_t allocated_arenas;
+	size_t arena_size;
 
 	std::mutex sharedlock;
 
 public:
-	typedef std::unique_ptr<T, std::function<void(T*)>> unique_ptr;
+	// shortcut unique ptr type for simplicity
+	typedef typename std::unique_ptr<T, std::function<void(T*)>> unique_ptr;
 
 	MemoryPool(size_t arena_size)
 	: arena_size(arena_size), 
@@ -139,10 +140,12 @@ public:
         std::lock_guard<std::mutex> lock(this->sharedlock);
 		this->allocated_items--;
         
+		// call deconstructor
         t->T::~T();
         
         MemoryPool_item *current_item = MemoryPool_item::storage_to_item(t);
         
+		// return item to pool
         current_item->set_next_item(this->free_list);
         this->free_list = current_item;
 	}

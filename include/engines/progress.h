@@ -194,6 +194,7 @@ private:
 
 	//std::list<std::unique_ptr<Request>> matchList;
 	std::list<MemoryPool<Request>::unique_ptr> matchList;
+
 	//std::list<std::unique_ptr<Request>> unexpectedList;
 	std::list<MemoryPool<Request>::unique_ptr> unexpectedList;
 

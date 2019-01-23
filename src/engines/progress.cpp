@@ -65,8 +65,10 @@ void BasicProgress::sendThreadProc()
 
 		// send message to remote in this thread
 		// FIXME remove iovs
+		// XXX 6.72%
 		auto iovs = r->getIovecs();
 
+		// XXX 58.83%
 		exampi::transport->send(iovs, r->endpoint.rank, 0);
 		debugpp("sendThread: sent message");
 

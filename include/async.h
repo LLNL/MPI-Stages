@@ -2,6 +2,7 @@
 #define __EXAMPI_ASYNC_H
 
 #include "ExaMPI.h"
+#include "pool.h"
 
 namespace exampi
 {
@@ -10,9 +11,12 @@ template<typename T>
 class AsyncQueue
 {
 protected:
+	MemoryPool<std::promise<T>> promise_pool;
+
 	std::list<T> data;
 
-	std::list<std::unique_ptr<std::promise<T>>> promises;
+	//std::list<std::unique_ptr<std::promise<T>>> promises;
+	std::list<typename MemoryPool<std::promise<T>>::unique_ptr> promises;
 
 	std::mutex promiseLock;
 	std::mutex dataLock;
@@ -21,8 +25,6 @@ protected:
 	void test()
 	{
 		debugpp("AQ:  testing");
-
-		// XXX MR what does this test?
 
 		std::unique_lock<std::mutex> lock(promiseLock);
 
@@ -50,7 +52,7 @@ protected:
 	}
 
 public:
-	AsyncQueue()
+	AsyncQueue() : promise_pool(256)
 	{
 		debugpp("AsyncQueue:  constructing");
 	}
@@ -60,11 +62,10 @@ public:
 		debugpp("AQ: Promise requested.  data(" << data.size() << ") promises(" << promises.size() << ")");
 		
 		// TODO MR 22/01/19 avoid lock constantly
-
 		std::unique_lock<std::mutex> lock(promiseLock);
 		
-		// FIXME MR 22/01/19 replace with MemoryPool
-		promises.push_back(make_unique<std::promise<T>>());
+		//promises.push_back(make_unique<std::promise<T>>());
+		promises.push_back(this->promise_pool.alloc());
 
 		debugpp("AQ: Promise pushed; about to get_future...");
 
