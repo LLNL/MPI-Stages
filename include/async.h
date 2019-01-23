@@ -11,12 +11,12 @@ template<typename T>
 class AsyncQueue
 {
 protected:
-	MemoryPool<std::promise<T>> promise_pool;
+	//MemoryPool<std::promise<T>> promise_pool;
 
 	std::list<T> data;
 
-	//std::list<std::unique_ptr<std::promise<T>>> promises;
-	std::list<typename MemoryPool<std::promise<T>>::unique_ptr> promises;
+	std::list<std::unique_ptr<std::promise<T>>> promises;
+	//std::list<typename MemoryPool<std::promise<T>>::unique_ptr> promises;
 
 	std::mutex promiseLock;
 	std::mutex dataLock;
@@ -52,7 +52,8 @@ protected:
 	}
 
 public:
-	AsyncQueue() : promise_pool(256)
+	//AsyncQueue() : promise_pool(256)
+	AsyncQueue()
 	{
 		debugpp("AsyncQueue:  constructing");
 	}
@@ -64,8 +65,8 @@ public:
 		// TODO MR 22/01/19 avoid lock constantly
 		std::unique_lock<std::mutex> lock(promiseLock);
 		
-		//promises.push_back(make_unique<std::promise<T>>());
-		promises.push_back(this->promise_pool.alloc());
+		promises.push_back(make_unique<std::promise<T>>());
+		//promises.push_back(this->promise_pool.alloc());
 
 		debugpp("AQ: Promise pushed; about to get_future...");
 

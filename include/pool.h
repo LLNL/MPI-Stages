@@ -98,10 +98,12 @@ public:
 	}
 
 	template <typename... Args> 
-	unique_ptr alloc(Args &&... args)
+	MemoryPool::unique_ptr alloc(Args &&... args)
 	{
 		debugpp("allocating " << typeid(T).name() << " from " << this->allocated_arenas << " arenas");
 
+		// TODO use mutex only to reset free set
+		// free set is a collection of 1 link with an atomic to iterate
 		std::lock_guard<std::mutex> lock(this->sharedlock);
 
 		// allocate a new arena if needed
@@ -130,11 +132,14 @@ public:
 		this->allocated_items++;
 		debugpp("item is number " << this->allocated_items);
 
-    	return unique_ptr(result, [this](T* t) -> void { this->free(t); });
+    	return MemoryPool::unique_ptr(result, [this](T* t) -> void { this->free(t); });
 	}
 	
 	void free(T* t)
 	{
+		// TODO make this smarter
+		// use a free list to point to non reset ones, avoid doing mutex if we are not low of items.
+
 		debugpp("freeing item, now at " << this->allocated_items << " : " << this->allocated_arenas);
 
         std::lock_guard<std::mutex> lock(this->sharedlock);
