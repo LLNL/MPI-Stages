@@ -37,7 +37,7 @@ protected:
 			{
 				debugpp("AQ:  data and promises, advancing");
 
-				// MR 22/01/19 calling thread does comms between threads?
+				// MR 22/01/19 calling thread does copy between threads?
 				promises.front()->set_value(std::move(data.front()));
 
 				promises.pop_front();
@@ -65,6 +65,7 @@ public:
 		// TODO MR 22/01/19 avoid lock constantly
 		std::unique_lock<std::mutex> lock(promiseLock);
 		
+		// NOTE is this two new operations?
 		promises.push_back(make_unique<std::promise<T>>());
 		//promises.push_back(this->promise_pool.alloc());
 

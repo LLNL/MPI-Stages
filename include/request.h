@@ -29,6 +29,7 @@ public:
 	int stage;
 	MPI_Status status; // maybe not needed --sf
 
+	// NOTE could use custom allocator here
 	std::promise<MPI_Status> completionPromise;
 
 	void pack()
