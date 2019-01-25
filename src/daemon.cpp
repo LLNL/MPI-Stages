@@ -126,7 +126,7 @@ int Daemon::recv_barrier_release()
 	debugpp("in recv_barrier_release " << exampi::rank);
 
 	char msg[64];
-	int err = ::recv(this->sock, msg, 64, NULL);
+	int err = ::recv(this->sock, msg, 64, 0);
 	debugpp("rank recv barrier release " << err << " msg " << msg);
 	if(err != 64)
 	{
@@ -171,7 +171,7 @@ int Daemon::wait_commit()
 	debugpp("in wait_commit " << exampi::rank);
 
 	char msg[64];
-	int err = ::recv(this->sock, msg, 64, NULL);
+	int err = ::recv(this->sock, msg, 64, 0);
 	debugpp("rank recv commit " << err << " msg " << msg);
 	if(err != 64)
 	{

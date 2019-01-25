@@ -5,24 +5,11 @@
 namespace exampi
 {
 
-BasicInterface *BasicInterface::instance = nullptr;
-
-BasicInterface *BasicInterface::get_instance()
+BasicInterface &BasicInterface::get_instance()
 {
-	if (instance == 0)
-	{
-		instance = new BasicInterface();
-	}
+	static BasicInterface instance;
+
 	return instance;
-}
-
-void BasicInterface::destroy_instance()
-{
-	if (instance != nullptr)
-	{
-		delete instance;
-		instance = nullptr;
-	}
 }
 
 int BasicInterface::MPI_Init(int *argc, char ***argv)
@@ -109,7 +96,8 @@ int BasicInterface::MPI_Send(const void *buf, int count, MPI_Datatype datatype,
 	// TODO request generator
 	
 	// is this where it waits?
-	MPI_Status st = stf.get();
+	//MPI_Status st = stf.get();
+	stf.wait();
 	
 	debugpp("Finished MPI_Send: " << mpiStatusString(st));
 
@@ -635,7 +623,11 @@ int BasicInterface::MPI_Barrier(MPI_Comm comm)
 double BasicInterface::MPI_Wtime()
 {
 	double wtime;
-	struct timespec t = {.tv_sec = 0, .tv_nsec = 0};
+
+	struct timespec t;
+	t.tv_sec = 0;
+	t.tv_nsec = 0;
+
 	clock_gettime(CLOCK_REALTIME, &t);
 	wtime = t.tv_sec;
 	wtime += t.tv_nsec/1.0e+9;

@@ -11,7 +11,7 @@ extern "C"
 
 	int PMPI_Comm_set_errhandler(MPI_Comm comm, MPI_Errhandler err)
 	{
-		int rc = exampi::BasicInterface::get_instance()->MPI_Comm_set_errhandler(comm,
+		int rc = exampi::BasicInterface::get_instance().MPI_Comm_set_errhandler(comm,
 		         err);
 		return rc;
 	}

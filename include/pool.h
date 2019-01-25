@@ -75,13 +75,14 @@ class MemoryPool
 		}
 	};
 
-	std::unique_ptr<MemoryPool_arena> arena;
-	MemoryPool_item *free_list;
 
+	size_t arena_size;
 	size_t allocated_items;
 	size_t allocated_arenas;
-	size_t arena_size;
 
+	std::unique_ptr<MemoryPool_arena> arena;
+	MemoryPool_item *free_list;
+	
 	std::mutex sharedlock;
 
 public:
@@ -90,12 +91,11 @@ public:
 
 	MemoryPool(size_t arena_size)
 	: arena_size(arena_size), 
+      allocated_items(0),
+	  allocated_arenas(1),
 	  arena(new MemoryPool_arena(arena_size)),
-	  free_list(arena->get_storage()),
-	  allocated_items(0),
-	  allocated_arenas(1)
-	{
-	}
+	  free_list(arena->get_storage())
+	{;}
 
 	template <typename... Args> 
 	MemoryPool::unique_ptr alloc(Args &&... args)

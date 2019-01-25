@@ -9,7 +9,7 @@ extern "C"
 
 	int PMPIX_Get_fault_epoch(int *out)
 	{
-		int rc = exampi::BasicInterface::get_instance()->MPIX_Get_fault_epoch(out);
+		int rc = exampi::BasicInterface::get_instance().MPIX_Get_fault_epoch(out);
 		return rc;
 	}
 
