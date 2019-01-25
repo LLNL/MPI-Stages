@@ -10,14 +10,16 @@ namespace exampi
 class Datatype
 {
 protected:
-	const MPI_Datatype &mpiDatatype;
+	MPI_Datatype mpiDatatype;
 	size_t extent;
 	bool associative;
 	bool weakAssociative;
 	bool commutative;
 
 public:
-	Datatype(const MPI_Datatype &dt, size_t ex, bool assoc, bool wassoc, bool comm)
+	Datatype() {;}
+
+	Datatype(MPI_Datatype dt, size_t ex, bool assoc, bool wassoc, bool comm)
 		: mpiDatatype(dt), extent(ex), associative(assoc), weakAssociative(wassoc),
 		  commutative(comm) {;}
 
