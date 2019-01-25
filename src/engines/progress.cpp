@@ -57,9 +57,9 @@ void BasicProgress::sendThreadProc()
 
 		//std::unique_ptr<Request> r(outbox->promise().get());
 		MemoryPool<Request>::unique_ptr r(this->outbox.promise().get());
-		
 
-		// get protocol message 
+
+		// get protocol message
 
 		debugpp("sendThread:  got result from outbox future");
 
@@ -73,7 +73,7 @@ void BasicProgress::sendThreadProc()
 		debugpp("sendThread: sent message");
 
 		// TODO:  check that sending actually completed
-		
+
 		//r->completionPromise.set_value( { .count = 0, .cancelled = 0,
 		//                                  .MPI_SOURCE = r->source, .MPI_TAG = r->tag, .MPI_ERROR = MPI_SUCCESS });
 
@@ -140,13 +140,13 @@ void BasicProgress::matchThreadProc()
 		// search for match
 		//auto result = std::find_if(matchList->begin(), matchList->end(), [t, s, c, e](const std::unique_ptr<Request> &i) -> bool {return (i->tag == t && i->source == s && i->stage == e && i->comm == c);});
 		auto result = std::find_if(
-			this->matchList.begin(), 
-			this->matchList.end(),
-			[t, s, c, e](const MemoryPool<Request>::unique_ptr &i) -> bool
-			{
-				return (i->tag == t && i->source == s && i->stage == e && i->comm == c);
-			}
-		);
+		                  this->matchList.begin(),
+		                  this->matchList.end(),
+		                  [t, s, c, e](const MemoryPool<Request>::unique_ptr &i) -> bool
+		{
+			return (i->tag == t && i->source == s && i->stage == e && i->comm == c);
+		}
+		              );
 
 		// failed to find match
 		//if (result == matchList->end())
@@ -198,7 +198,7 @@ void BasicProgress::matchThreadProc()
 				}
 			}
 		}
-		
+
 		// match found
 		else
 		{
@@ -221,7 +221,7 @@ void BasicProgress::matchThreadProc()
 			//(*result)->completionPromise.set_value( { .count = length - 32,
 			//                                        .cancelled = 0, .MPI_SOURCE = (*result)->source,
 			//                                        .MPI_TAG = (*result)->tag, .MPI_ERROR = MPI_SUCCESS });
-			
+
 			MPI_Status status;
 			status.count = length - 32;
 			status.cancelled = 0;
@@ -238,7 +238,7 @@ void BasicProgress::matchThreadProc()
 
 			debugpp(" matching done, matchthread done");
 		}
-		
+
 		// NOT commented out as part of bug-perf work
 		//matchLock->unlock();
 	}
@@ -246,7 +246,7 @@ void BasicProgress::matchThreadProc()
 
 int BasicProgress::init()
 {
-		
+
 
 	addEndpoints();
 	alive = true;
@@ -298,7 +298,7 @@ void BasicProgress::finalize()
 	matchLock.unlock();
 	unexpectedLock.unlock();
 
-	
+
 	ThreadMap::const_iterator it = tm_.find("1");
 	if (it != tm_.end())
 	{

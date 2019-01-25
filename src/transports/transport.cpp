@@ -63,7 +63,7 @@ std::future<int> BasicTransport::send(std::vector<struct iovec> &iov, int dest,
 
 	// FIXME recreate socket each call to send
 	Socket s;
-	
+
 	// FIXME allocates a vector!
 	Message msg(iov);
 

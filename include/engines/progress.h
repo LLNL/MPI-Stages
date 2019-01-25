@@ -138,7 +138,7 @@ private:
 
 public:
 	BasicProgress();
-	
+
 	virtual int init();
 	virtual int init(std::istream &t);
 	virtual void finalize();

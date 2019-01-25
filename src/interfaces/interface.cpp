@@ -29,15 +29,13 @@ int BasicInterface::MPI_Init(int *argc, char ***argv)
 	debugpp("MPI_Init passed EXAMPI_LAUNCHED check.");
 
 	debugpp("Taking rank to be arg " << std::string(std::getenv("EXAMPI_RANK")));
-	rank = std::stoi(std::string(std::getenv("EXAMPI_RANK")));
+	exampi::rank = std::stoi(std::string(std::getenv("EXAMPI_RANK")));
 
 	//debugpp("Taking epoch config to be " << **argv);
 	exampi::epochConfig = std::string(std::getenv("EXAMPI_EPOCH_FILE"));
 
 	debugpp("Taking epoch to be " << std::string(std::getenv("EXAMPI_EPOCH")));
 	exampi::epoch = std::stoi(std::string(std::getenv("EXAMPI_EPOCH")));
-
-	exampi::rank = rank;
 
 	// TODO this initializes progress and transport
 	recovery_code = exampi::checkpoint->load();
@@ -89,16 +87,16 @@ int BasicInterface::MPI_Send(const void *buf, int count, MPI_Datatype datatype,
 	std::future<MPI_Status> stf = exampi::progress->postSend(
 	{
 		const_cast<void *>(buf), &(exampi::datatypes[datatype]),
-		szcount 
-	}, 
+		szcount
+	},
 	{ dest, context }, tag);
-	
+
 	// TODO request generator
-	
+
 	// is this where it waits?
 	//MPI_Status st = stf.get();
 	stf.wait();
-	
+
 	debugpp("Finished MPI_Send: " << mpiStatusString(st));
 
 	return 0;

@@ -39,7 +39,7 @@ size_t TCPTransport::addEndpoint(const int rank,
 	return endpoints.size();
 }
 
-std::future<int> TCPTransport::send(std::vector<struct iovec> iov, int dest,
+std::future<int> TCPTransport::send(std::vector<struct iovec> &iov, int dest,
                                     MPI_Comm comm)
 {
 	//std::cout << "\tbasic::Transport::send(..., " << dest <<", " << comm << ")\n";
@@ -68,7 +68,7 @@ std::future<int> TCPTransport::send(std::vector<struct iovec> iov, int dest,
 	return std::promise<int>().get_future();
 }
 
-std::future<int> TCPTransport::receive(std::vector<struct iovec> iov,
+std::future<int> TCPTransport::receive(std::vector<struct iovec> &iov,
                                        MPI_Comm comm,
                                        ssize_t *count)
 {
@@ -133,7 +133,7 @@ int TCPTransport::cleanUp(MPI_Comm comm)
 	return 0;
 }
 
-int TCPTransport::peek(std::vector<struct iovec> iov, MPI_Comm comm)
+int TCPTransport::peek(std::vector<struct iovec> &iov, MPI_Comm comm)
 {
 	TCPMessage msg(iov);
 	int sd;

@@ -13,7 +13,6 @@ class TCPTransport: public exampi::Transport
 private:
 	std::string address;
 	std::unordered_map<int,Address> endpoints;
-	uint16_t port;
 
 	TCPSocket tcpListenSocket;
 
@@ -29,13 +28,13 @@ public:
 	virtual size_t addEndpoint(const int rank,
 	                           const std::vector<std::string> &opts);
 
-	virtual std::future<int> send(std::vector<struct iovec> iov, int dest,
+	virtual std::future<int> send(std::vector<struct iovec> &iov, int dest,
 	                              MPI_Comm comm);
-	virtual std::future<int> receive(std::vector<struct iovec> iov, MPI_Comm comm,
+	virtual std::future<int> receive(std::vector<struct iovec> &iov, MPI_Comm comm,
 	                                 ssize_t *count);
 	virtual int cleanUp(MPI_Comm comm);
 
-	virtual int peek(std::vector<struct iovec> iov, MPI_Comm comm);
+	virtual int peek(std::vector<struct iovec> &iov, MPI_Comm comm);
 
 	virtual int save(std::ostream &t);
 	virtual int load(std::istream &t);
