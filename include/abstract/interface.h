@@ -76,9 +76,7 @@ public:
 
 	virtual int MPIX_Deserialize_handles() = 0;
 
-	virtual int MPIX_Deserialize_handler_register(const MPIX_Deserialize_handler) =
-
-	    0;
+	virtual int MPIX_Deserialize_handler_register(const MPIX_Deserialize_handler) = 0;
 
 	virtual int MPIX_Serialize_handles() = 0;
 
