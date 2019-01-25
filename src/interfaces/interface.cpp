@@ -85,6 +85,8 @@ int BasicInterface::MPI_Finalize()
 int BasicInterface::MPI_Send(const void *buf, int count, MPI_Datatype datatype,
                              int dest, int tag, MPI_Comm comm)
 {
+	// TODO argument checking, sanitize
+
 	debugpp("MPI_Send MPI_Stages check");
 	if (exampi::handler->isErrSet())
 	{
@@ -96,12 +98,19 @@ int BasicInterface::MPI_Send(const void *buf, int count, MPI_Datatype datatype,
 	int context = c->get_context_id_pt2pt();
 	size_t szcount = count;
 
-	//
-	MPI_Status st = exampi::progress->postSend(
+	// waits on the get()
+	std::future<MPI_Status> stf = exampi::progress->postSend(
 	{
 		const_cast<void *>(buf), &(exampi::datatypes[datatype]),
-		szcount }, { dest, context }, tag).get();
-
+		szcount 
+	}, 
+	{ dest, context }, tag);
+	
+	// TODO request generator
+	
+	// is this where it waits?
+	MPI_Status st = stf.get();
+	
 	debugpp("Finished MPI_Send: " << mpiStatusString(st));
 
 	return 0;

@@ -56,31 +56,39 @@ size_t BasicTransport::addEndpoint(const int rank,
 	return endpoints.size();
 }
 
-std::future<int> BasicTransport::send(std::vector<struct iovec> iov, int dest,
+std::future<int> BasicTransport::send(std::vector<struct iovec> &iov, int dest,
                                       MPI_Comm comm)
 {
 	debugpp("basic::Transport::send(..., " << dest << ", " << comm);
 
+	// FIXME recreate socket each call to send
 	Socket s;
+	
+	// FIXME allocates a vector!
 	Message msg(iov);
 
 	//debugpp("basic::Transport::send: endpoints" << endpoints[dest]);
 	msg.send(s, endpoints[dest]);
+
 	return std::promise<int>().get_future();
 }
 
-std::future<int> BasicTransport::receive(std::vector<struct iovec> iov,
+std::future<int> BasicTransport::receive(std::vector<struct iovec> &iov,
         MPI_Comm comm,
         ssize_t *count)
 {
 	debugpp("basic::Transport::receive(...)");
 	debugpp("\tiov says size is " << iov.size());
+
 	Message msg(iov);
 
 	debugpp("basic::Transport::receive, constructed msg, calling msg.receive");
 	//msg.receive(recvSocket, tcpSock); /*For TCP transport*/
+
 	*count = msg.receive(recvSocket);
+
 	debugpp("basic::Transport::receive returning");
+
 	return std::promise<int>().get_future();
 }
 
@@ -114,7 +122,7 @@ int BasicTransport::cleanUp(MPI_Comm comm)
 	return 0;
 }
 
-int BasicTransport::peek(std::vector<struct iovec> iov, MPI_Comm comm)
+int BasicTransport::peek(std::vector<struct iovec> &iov, MPI_Comm comm)
 {
 	debugpp("peek: msg.peek()");
 
