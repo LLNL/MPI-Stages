@@ -17,11 +17,6 @@ protected:
 	bool commutative;
 
 public:
-	// TODO THIS IS A NULL REFERENCE
-	// TODO Why do we need this?
-	Datatype() : mpiDatatype(0), extent(0), associative(false),
-		weakAssociative(false), commutative(false) {;}
-
 	Datatype(const MPI_Datatype &dt, size_t ex, bool assoc, bool wassoc, bool comm)
 		: mpiDatatype(dt), extent(ex), associative(assoc), weakAssociative(wassoc),
 		  commutative(comm) {;}
@@ -53,12 +48,6 @@ public:
 		return commutative;
 	}
 };
-
-
-
-
-
-
 
 } // exampi
 
