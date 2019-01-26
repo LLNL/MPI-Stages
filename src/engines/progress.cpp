@@ -7,42 +7,47 @@ BasicProgress::BasicProgress() : request_pool(256)
 {
 }
 
-void BasicProgress::addEndpoints()
-{
-	// read in size
-	Config &config = Config::get_instance();
+//void BasicProgress::addEndpoints()
+//{
+//	// read in size
+//	Config &config = Config::get_instance();
+//
+//	debugpp("BasicProgress addEngpoints " << config["size"]);
+//	int size = std::stoi(std::string(std::getenv("EXAMPI_WORLD_SIZE")));
+//
+//	// read in endpoints
+//	std::vector < std::string > elem;
 
-	debugpp("BasicProgress addEngpoints " << config["size"]);
-	//int size = std::stoi(config["size"]);
-	int size = std::stoi(std::string(std::getenv("EXAMPI_WORLD_SIZE")));
+// FIXME
+//	std::list<int> rankList;
+//	for (int i = 0; i < size; i++)
+//	{
+//		elem.clear();
 
-	// read in endpoints
-	std::vector < std::string > elem;
-	std::list<int> rankList;
-	for (int i = 0; i < size; i++)
-	{
-		elem.clear();
-		rankList.push_back(i);
+// FIXME
+//		rankList.push_back(i);
+//
+//		std::string rank = std::to_string(i);
+//
+//		std::string remote = config[rank];
+//		debugpp(remote);
+//
+//		size_t beg = remote.find_first_of(":");
+//		std::string port = remote.substr(beg+1);
+//		std::string ip = remote.substr(0, beg);
+//		debugpp("ip " << ip);
+//
+//		debugpp("ports " << port);
+//
+//		elem.push_back(ip);
+//		elem.push_back(port);
+//
+//		exampi::transport->addEndpoint(i, elem);
+//	}
 
-		std::string rank = std::to_string(i);
-
-		std::string remote = config[rank];
-		debugpp(remote);
-
-		size_t beg = remote.find_first_of(":");
-		std::string port = remote.substr(beg+1);
-		std::string ip = remote.substr(0, beg);
-		debugpp("ip " << ip);
-
-		debugpp("ports " << port);
-
-		elem.push_back(ip);
-		elem.push_back(port);
-
-		exampi::transport->addEndpoint(i, elem);
-	}
-	group = new Group(rankList);
-}
+// FIXME
+//	group = new Group(rankList);
+//}
 
 //void BasicProgress::sendThreadProc(bool *alive, AsyncQueue<Request> *outbox)
 void BasicProgress::sendThreadProc()
@@ -246,10 +251,13 @@ void BasicProgress::matchThreadProc()
 
 int BasicProgress::init()
 {
-
-
-	addEndpoints();
 	alive = true;
+
+	// create global group
+	std::list<int> rankList;
+	for(int idx = 0; idx < exampi::worldSize; ++idx)
+		rankList.push_back(idx);
+	group = new Group(rankList);
 
 	//sendThread = std::thread { sendThreadProc, &alive, &outbox };
 	sendThread = std::thread(&BasicProgress::sendThreadProc, this);

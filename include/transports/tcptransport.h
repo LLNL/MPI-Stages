@@ -25,9 +25,6 @@ public:
 	virtual void finalize();
 	virtual void init(std::istream &t);
 
-	virtual size_t addEndpoint(const int rank,
-	                           const std::vector<std::string> &opts);
-
 	virtual std::future<int> send(std::vector<struct iovec> &iov, int dest,
 	                              MPI_Comm comm);
 	virtual std::future<int> receive(std::vector<struct iovec> &iov, MPI_Comm comm,

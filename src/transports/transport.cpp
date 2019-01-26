@@ -26,6 +26,25 @@ BasicTransport::BasicTransport()
 
 void BasicTransport::init()
 {
+	// add all endpoints
+	debugpp("adding endpoints");
+
+	Config &config = Config::get_instance();
+
+	for(long int rank = 0; rank < exampi::worldSize; ++rank)
+	{
+		std::string descriptor = config[std::to_string(rank)];
+
+		size_t delimiter = descriptor.find_first_of(":");
+		std::string ip = descriptor.substr(0, delimiter);
+		std::string port = descriptor.substr(delimiter+1);
+
+		Address address(ip, std::stoi(port));
+		endpoints[rank] = address;
+		debugpp("added address for rank " << rank << " as " << ip << " " << port);
+	}
+
+	// bind port
 	debugpp("binding udp port " << this->port);
 	recvSocket.bindPort(this->port);
 }
@@ -38,22 +57,6 @@ void BasicTransport::init(std::istream &t)
 void BasicTransport::finalize()
 {
 	recvSocket.destroy();
-}
-
-size_t BasicTransport::addEndpoint(const int rank,
-                                   const std::vector<std::string> &opts)
-{
-	debugpp("adding endpoint " << opts[0] << ":" << opts[1]);
-	uint16_t rport = std::stoi(opts[1]);
-	// TODO:  see basic/udp.h; need move constructor to avoid copy here
-
-	Address addr(opts[0], rport);
-
-	debugpp("Transport add endpoint rank " << exampi::rank << " assigning " << rank
-	        << " to " << opts[0] << ":" << rport);
-
-	endpoints[rank] = addr;
-	return endpoints.size();
 }
 
 std::future<int> BasicTransport::send(std::vector<struct iovec> &iov, int dest,

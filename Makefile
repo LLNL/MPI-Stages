@@ -6,8 +6,9 @@ CXX ?= c++
 
 # flags
 CXXFLAGS += -Wall -Wextra -pedantic -Wno-unused-parameter
-#CXXFLAGS += -std=c++11 -pthread -DDEBUG -fno-inline
 CXXFLAGS += -std=c++11 -g -pthread -O2
+
+#CXXFLAGS += -DDEBUG 
 
 LDFLAGS = 
 

@@ -118,14 +118,17 @@ private:
 	std::thread matchThread;
 
 	bool alive;
+	
+	// should move to global state mpi
+	// global group
 	exampi::Group *group;
+
+	// MPI_COMM_WORLD
 	exampi::Comm *communicator;
 
 	// XXX where is this used?
 	typedef std::unordered_map<std::string, pthread_t> ThreadMap;
 	ThreadMap tm_;
-
-	void addEndpoints();
 
 	//static void sendThreadProc(bool *alive, AsyncQueue<Request> *outbox);
 	void sendThreadProc();

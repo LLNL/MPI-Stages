@@ -37,6 +37,8 @@ int BasicInterface::MPI_Init(int *argc, char ***argv)
 	debugpp("Taking epoch to be " << std::string(std::getenv("EXAMPI_EPOCH")));
 	exampi::epoch = std::stoi(std::string(std::getenv("EXAMPI_EPOCH")));
 
+	exampi::worldSize = std::stoi(std::string(std::getenv("EXAMPI_WORLD_SIZE")));	
+
 	// TODO this initializes progress and transport
 	recovery_code = exampi::checkpoint->load();
 
@@ -94,8 +96,7 @@ int BasicInterface::MPI_Send(const void *buf, int count, MPI_Datatype datatype,
 	// TODO request generator
 
 	// is this where it waits?
-	//MPI_Status st = stf.get();
-	stf.wait();
+	MPI_Status st = stf.get();
 
 	debugpp("Finished MPI_Send: " << mpiStatusString(st));
 
@@ -290,6 +291,7 @@ int BasicInterface::MPI_Bcast(void *buf, int count, MPI_Datatype datatype,
 
 int BasicInterface::MPI_Comm_rank(MPI_Comm comm, int *r)
 {
+	debugpp("entered MPI_Comm_rank");
 	if (exampi::handler->isErrSet())
 	{
 		return MPIX_TRY_RELOAD;
@@ -302,6 +304,8 @@ int BasicInterface::MPI_Comm_rank(MPI_Comm comm, int *r)
 
 int BasicInterface::MPI_Comm_size(MPI_Comm comm, int *r)
 {
+	debugpp("entered MPI_Comm_size");
+
 	if (exampi::handler->isErrSet())
 	{
 		return MPIX_TRY_RELOAD;
@@ -310,6 +314,7 @@ int BasicInterface::MPI_Comm_size(MPI_Comm comm, int *r)
 	Comm *c = exampi::communicators.at(comm);
 
 	*r = (c)->get_local_group()->get_process_list().size();
+
 	return 0;
 }
 
@@ -543,6 +548,8 @@ int BasicInterface::MPIX_Checkpoint_read()
 
 int BasicInterface::MPIX_Get_fault_epoch(int *epoch)
 {
+	debugpp("entered MPIX_Get_fault_epoch");
+
 	if (exampi::handler->isErrSet())
 	{
 		return MPIX_TRY_RELOAD;
@@ -635,6 +642,7 @@ double BasicInterface::MPI_Wtime()
 
 int BasicInterface::MPI_Comm_set_errhandler(MPI_Comm comm, MPI_Errhandler err)
 {
+	debugpp("entered comm error set");
 	// This sets the signal handler for SIGUSR2
 	// will call cleanup
 	exampi::handler->setErrToHandle(SIGUSR2);

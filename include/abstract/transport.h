@@ -11,8 +11,6 @@ class Transport
 public:
 	virtual void init() = 0;
 	virtual void finalize() = 0;
-	virtual size_t addEndpoint(const int rank,
-	                           const std::vector<std::string> &opts) = 0;
 
 	virtual std::future<int> send(std::vector<struct iovec> &iov, int dest,
 	                              MPI_Comm comm) = 0;
