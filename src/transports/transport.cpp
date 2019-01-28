@@ -26,6 +26,25 @@ BasicTransport::BasicTransport()
 
 void BasicTransport::init()
 {
+	// add all endpoints
+	debugpp("adding endpoints");
+
+	Config &config = Config::get_instance();
+
+	for(long int rank = 0; rank < exampi::worldSize; ++rank)
+	{
+		std::string descriptor = config[std::to_string(rank)];
+
+		size_t delimiter = descriptor.find_first_of(":");
+		std::string ip = descriptor.substr(0, delimiter);
+		std::string port = descriptor.substr(delimiter+1);
+
+		Address address(ip, std::stoi(port));
+		endpoints[rank] = address;
+		debugpp("added address for rank " << rank << " as " << ip << " " << port);
+	}
+
+	// bind port
 	debugpp("binding udp port " << this->port);
 	recvSocket.bindPort(this->port);
 }
@@ -40,47 +59,39 @@ void BasicTransport::finalize()
 	recvSocket.destroy();
 }
 
-size_t BasicTransport::addEndpoint(const int rank,
-                                   const std::vector<std::string> &opts)
-{
-	debugpp("adding endpoint " << opts[0] << ":" << opts[1]);
-	uint16_t rport = std::stoi(opts[1]);
-	// TODO:  see basic/udp.h; need move constructor to avoid copy here
-
-	Address addr(opts[0], rport);
-
-	debugpp("Transport add endpoint rank " << exampi::rank << " assigning " << rank
-	        << " to " << opts[0] << ":" << rport);
-
-	endpoints[rank] = addr;
-	return endpoints.size();
-}
-
-std::future<int> BasicTransport::send(std::vector<struct iovec> iov, int dest,
+std::future<int> BasicTransport::send(std::vector<struct iovec> &iov, int dest,
                                       MPI_Comm comm)
 {
 	debugpp("basic::Transport::send(..., " << dest << ", " << comm);
 
+	// FIXME recreate socket each call to send
 	Socket s;
+
+	// FIXME allocates a vector!
 	Message msg(iov);
 
 	//debugpp("basic::Transport::send: endpoints" << endpoints[dest]);
 	msg.send(s, endpoints[dest]);
+
 	return std::promise<int>().get_future();
 }
 
-std::future<int> BasicTransport::receive(std::vector<struct iovec> iov,
+std::future<int> BasicTransport::receive(std::vector<struct iovec> &iov,
         MPI_Comm comm,
         ssize_t *count)
 {
 	debugpp("basic::Transport::receive(...)");
 	debugpp("\tiov says size is " << iov.size());
+
 	Message msg(iov);
 
 	debugpp("basic::Transport::receive, constructed msg, calling msg.receive");
 	//msg.receive(recvSocket, tcpSock); /*For TCP transport*/
+
 	*count = msg.receive(recvSocket);
+
 	debugpp("basic::Transport::receive returning");
+
 	return std::promise<int>().get_future();
 }
 
@@ -114,7 +125,7 @@ int BasicTransport::cleanUp(MPI_Comm comm)
 	return 0;
 }
 
-int BasicTransport::peek(std::vector<struct iovec> iov, MPI_Comm comm)
+int BasicTransport::peek(std::vector<struct iovec> &iov, MPI_Comm comm)
 {
 	debugpp("peek: msg.peek()");
 

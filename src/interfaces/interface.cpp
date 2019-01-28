@@ -5,24 +5,11 @@
 namespace exampi
 {
 
-BasicInterface *BasicInterface::instance = nullptr;
-
-BasicInterface *BasicInterface::get_instance()
+BasicInterface &BasicInterface::get_instance()
 {
-	if (instance == 0)
-	{
-		instance = new BasicInterface();
-	}
+	static BasicInterface instance;
+
 	return instance;
-}
-
-void BasicInterface::destroy_instance()
-{
-	if (instance != nullptr)
-	{
-		delete instance;
-		instance = nullptr;
-	}
 }
 
 int BasicInterface::MPI_Init(int *argc, char ***argv)
@@ -42,7 +29,7 @@ int BasicInterface::MPI_Init(int *argc, char ***argv)
 	debugpp("MPI_Init passed EXAMPI_LAUNCHED check.");
 
 	debugpp("Taking rank to be arg " << std::string(std::getenv("EXAMPI_RANK")));
-	rank = std::stoi(std::string(std::getenv("EXAMPI_RANK")));
+	exampi::rank = std::stoi(std::string(std::getenv("EXAMPI_RANK")));
 
 	//debugpp("Taking epoch config to be " << **argv);
 	exampi::epochConfig = std::string(std::getenv("EXAMPI_EPOCH_FILE"));
@@ -50,7 +37,7 @@ int BasicInterface::MPI_Init(int *argc, char ***argv)
 	debugpp("Taking epoch to be " << std::string(std::getenv("EXAMPI_EPOCH")));
 	exampi::epoch = std::stoi(std::string(std::getenv("EXAMPI_EPOCH")));
 
-	exampi::rank = rank;
+	exampi::worldSize = std::stoi(std::string(std::getenv("EXAMPI_WORLD_SIZE")));	
 
 	// TODO this initializes progress and transport
 	recovery_code = exampi::checkpoint->load();
@@ -85,6 +72,8 @@ int BasicInterface::MPI_Finalize()
 int BasicInterface::MPI_Send(const void *buf, int count, MPI_Datatype datatype,
                              int dest, int tag, MPI_Comm comm)
 {
+	// TODO argument checking, sanitize
+
 	debugpp("MPI_Send MPI_Stages check");
 	if (exampi::handler->isErrSet())
 	{
@@ -96,11 +85,18 @@ int BasicInterface::MPI_Send(const void *buf, int count, MPI_Datatype datatype,
 	int context = c->get_context_id_pt2pt();
 	size_t szcount = count;
 
-	//
-	MPI_Status st = exampi::progress->postSend(
+	// waits on the get()
+	std::future<MPI_Status> stf = exampi::progress->postSend(
 	{
 		const_cast<void *>(buf), &(exampi::datatypes[datatype]),
-		szcount }, { dest, context }, tag).get();
+		szcount
+	},
+	{ dest, context }, tag);
+
+	// TODO request generator
+
+	// is this where it waits?
+	MPI_Status st = stf.get();
 
 	debugpp("Finished MPI_Send: " << mpiStatusString(st));
 
@@ -295,6 +291,7 @@ int BasicInterface::MPI_Bcast(void *buf, int count, MPI_Datatype datatype,
 
 int BasicInterface::MPI_Comm_rank(MPI_Comm comm, int *r)
 {
+	debugpp("entered MPI_Comm_rank");
 	if (exampi::handler->isErrSet())
 	{
 		return MPIX_TRY_RELOAD;
@@ -307,6 +304,8 @@ int BasicInterface::MPI_Comm_rank(MPI_Comm comm, int *r)
 
 int BasicInterface::MPI_Comm_size(MPI_Comm comm, int *r)
 {
+	debugpp("entered MPI_Comm_size");
+
 	if (exampi::handler->isErrSet())
 	{
 		return MPIX_TRY_RELOAD;
@@ -315,6 +314,7 @@ int BasicInterface::MPI_Comm_size(MPI_Comm comm, int *r)
 	Comm *c = exampi::communicators.at(comm);
 
 	*r = (c)->get_local_group()->get_process_list().size();
+
 	return 0;
 }
 
@@ -548,6 +548,8 @@ int BasicInterface::MPIX_Checkpoint_read()
 
 int BasicInterface::MPIX_Get_fault_epoch(int *epoch)
 {
+	debugpp("entered MPIX_Get_fault_epoch");
+
 	if (exampi::handler->isErrSet())
 	{
 		return MPIX_TRY_RELOAD;
@@ -626,7 +628,11 @@ int BasicInterface::MPI_Barrier(MPI_Comm comm)
 double BasicInterface::MPI_Wtime()
 {
 	double wtime;
-	struct timespec t = {.tv_sec = 0, .tv_nsec = 0};
+
+	struct timespec t;
+	t.tv_sec = 0;
+	t.tv_nsec = 0;
+
 	clock_gettime(CLOCK_REALTIME, &t);
 	wtime = t.tv_sec;
 	wtime += t.tv_nsec/1.0e+9;
@@ -636,6 +642,7 @@ double BasicInterface::MPI_Wtime()
 
 int BasicInterface::MPI_Comm_set_errhandler(MPI_Comm comm, MPI_Errhandler err)
 {
+	debugpp("entered comm error set");
 	// This sets the signal handler for SIGUSR2
 	// will call cleanup
 	exampi::handler->setErrToHandle(SIGUSR2);

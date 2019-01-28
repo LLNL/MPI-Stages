@@ -12,9 +12,8 @@ class Daemon
 public:
 	static Daemon &get_instance();
 
-	Daemon(Daemon &)					= delete;
+	Daemon(Daemon &)				= delete;
 	void operator=(Daemon const &)	= delete;
-
 
 	int barrier();
 	int send_clean_up();
@@ -26,7 +25,6 @@ private:
 
 	int sock;
 	sockaddr_in daemon;
-	sockaddr_in local;
 
 	Daemon();
 

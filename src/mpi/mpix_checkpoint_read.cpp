@@ -9,7 +9,7 @@ extern "C"
 
 	int PMPIX_Checkpoint_read()
 	{
-		int rc = exampi::BasicInterface::get_instance()->MPIX_Checkpoint_read();
+		int rc = exampi::BasicInterface::get_instance().MPIX_Checkpoint_read();
 		return rc;
 	}
 

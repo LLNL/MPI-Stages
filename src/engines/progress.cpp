@@ -3,90 +3,138 @@
 namespace exampi
 {
 
-void BasicProgress::addEndpoints()
+BasicProgress::BasicProgress() : request_pool(256)
 {
-	// read in size
-	Config &config = Config::get_instance();
-
-	debugpp("BasicProgress addEngpoints " << config["size"]);
-	//int size = std::stoi(config["size"]);
-	int size = std::stoi(std::string(std::getenv("EXAMPI_WORLD_SIZE")));
-
-	// read in endpoints
-	std::vector < std::string > elem;
-	std::list<int> rankList;
-	for (int i = 0; i < size; i++)
-	{
-		// TODO something breaks!
-		elem.clear();
-		rankList.push_back(i);
-
-		std::string rank = std::to_string(i);
-
-		std::string remote = config[rank];
-		debugpp(remote);
-
-		size_t beg = remote.find_first_of(":");
-		std::string port = remote.substr(beg+1);
-		std::string ip = remote.substr(0, beg); 
-		debugpp("ip " << ip);
-
-		debugpp("ports " << port);
-
-		elem.push_back(ip);
-		elem.push_back(port);
-
-		exampi::transport->addEndpoint(i, elem);
-	}
-	group = new Group(rankList);
 }
 
-void BasicProgress::sendThreadProc(bool *alive, AsyncQueue<Request> *outbox)
+//void BasicProgress::addEndpoints()
+//{
+//	// read in size
+//	Config &config = Config::get_instance();
+//
+//	debugpp("BasicProgress addEngpoints " << config["size"]);
+//	int size = std::stoi(std::string(std::getenv("EXAMPI_WORLD_SIZE")));
+//
+//	// read in endpoints
+//	std::vector < std::string > elem;
+
+// FIXME
+//	std::list<int> rankList;
+//	for (int i = 0; i < size; i++)
+//	{
+//		elem.clear();
+
+// FIXME
+//		rankList.push_back(i);
+//
+//		std::string rank = std::to_string(i);
+//
+//		std::string remote = config[rank];
+//		debugpp(remote);
+//
+//		size_t beg = remote.find_first_of(":");
+//		std::string port = remote.substr(beg+1);
+//		std::string ip = remote.substr(0, beg);
+//		debugpp("ip " << ip);
+//
+//		debugpp("ports " << port);
+//
+//		elem.push_back(ip);
+//		elem.push_back(port);
+//
+//		exampi::transport->addEndpoint(i, elem);
+//	}
+
+// FIXME
+//	group = new Group(rankList);
+//}
+
+//void BasicProgress::sendThreadProc(bool *alive, AsyncQueue<Request> *outbox)
+void BasicProgress::sendThreadProc()
 {
 	debug_add_thread("send");
 	debugpp("Launching sendThreadProc(...)");
 
-	while (*alive)
+	//while (*alive)
+	while(this->alive)
 	{
 		debugpp("sendThread: fetching promise");
-		std::unique_ptr<Request> r = outbox->promise().get();
+
+		//std::unique_ptr<Request> r(outbox->promise().get());
+		MemoryPool<Request>::unique_ptr r(this->outbox.promise().get());
+
+
+		// get protocol message
+
 		debugpp("sendThread:  got result from outbox future");
 
 		// send message to remote in this thread
-		exampi::transport->send(r->getIovecs(), r->endpoint.rank, 0);
+		// FIXME remove iovs
+		// XXX 6.72%
+		auto iovs = r->getIovecs();
+
+		// XXX 58.83%
+		exampi::transport->send(iovs, r->endpoint.rank, 0);
 		debugpp("sendThread: sent message");
+
 		// TODO:  check that sending actually completed
-		r->completionPromise.set_value( { .count = 0, .cancelled = 0,
-		                                  .MPI_SOURCE = r->source, .MPI_TAG = r->tag, .MPI_ERROR = MPI_SUCCESS });
+
+		//r->completionPromise.set_value( { .count = 0, .cancelled = 0,
+		//                                  .MPI_SOURCE = r->source, .MPI_TAG = r->tag, .MPI_ERROR = MPI_SUCCESS });
+
+		// construct MPI_Status
+		MPI_Status status;
+		status.count = 0;
+		status.cancelled = 0;
+		status.MPI_SOURCE = r->source;
+		status.MPI_TAG = r->tag;
+		status.MPI_ERROR = MPI_SUCCESS;
+		r->completionPromise.set_value(status);
+
 		// let r drop scope and die (unique_ptr)
 		debugpp("sendThread: completed message");
 	}
 }
 
-void BasicProgress::matchThreadProc(bool *alive,
-                                    std::list<std::unique_ptr<Request>> *matchList,
-                                    std::list<std::unique_ptr<Request>> *unexpectedList,
-                                    std::mutex *matchLock, std::mutex *unexpectedLock)
+//void BasicProgress::matchThreadProc(bool *alive,
+//                                    std::list<std::unique_ptr<Request>> *matchList,
+//                                    std::list<std::unique_ptr<Request>> *unexpectedList,
+//                                    std::mutex *matchLock
+//									  std::mutex *unexpectedLock)
+void BasicProgress::matchThreadProc()
 {
 	debug_add_thread("match");
 	debugpp("Launching matchThreadProc(...)");
 
-	while (*alive)
+	//while (*alive)
+	while(this->alive)
 	{
 		debugpp("matchThread: before request");
-		// TODO this is a malloc!
-		std::unique_ptr<Request> r = make_unique<Request>();
+
+		//std::unique_ptr<Request> r = make_unique<Request>();
+		MemoryPool<Request>::unique_ptr r(this->request_pool.alloc());
+
 		debugpp("matchThread:  made request, about to peek...");
 
-		exampi::transport->peek(r->getHeaderIovecs(), 0);
+		// FIXME remove iovs
+		auto iovs = r->getHeaderIovecs();
+		exampi::transport->peek(iovs, 0);
+
 		debugpp("matchThread:  finished peeking");
 		r->unpack();
 
 		debugpp("matchThread:  received, unexpectedlock locking");
-		unexpectedLock->lock();
+
+		//unexpectedLock->lock();
+		this->unexpectedLock.lock();
+
 		debugpp("matchThread:  match lock locking");
-		matchLock->lock();
+
+		//matchLock->lock();
+		this->matchLock.lock();
+
 		debugpp("matchThread:  locked everything");
+
 		int t = r->tag;
 		int s = r->source;
 		int c = r->comm;
@@ -95,84 +143,137 @@ void BasicProgress::matchThreadProc(bool *alive,
 		debugpp("matchThread context " << c);
 
 		// search for match
-		auto result =
-		    std::find_if(matchList->begin(), matchList->end(),
-		                 [t, s, c, e](const std::unique_ptr<Request> &i) -> bool {return (i->tag == t && i->source == s && i->stage == e && i->comm == c);});
+		//auto result = std::find_if(matchList->begin(), matchList->end(), [t, s, c, e](const std::unique_ptr<Request> &i) -> bool {return (i->tag == t && i->source == s && i->stage == e && i->comm == c);});
+		auto result = std::find_if(
+		                  this->matchList.begin(),
+		                  this->matchList.end(),
+		                  [t, s, c, e](const MemoryPool<Request>::unique_ptr &i) -> bool
+		{
+			return (i->tag == t && i->source == s && i->stage == e && i->comm == c);
+		}
+		              );
 
 		// failed to find match
-		if (result == matchList->end())
+		//if (result == matchList->end())
+		if (result == this->matchList.end())
 		{
 			//
-			matchLock->unlock();
+			//matchLock->unlock();
+			this->matchLock.unlock();
+
 			debugpp("WARNING:  Failed to match incoming msg");
 
 			if (t == MPIX_CLEANUP_TAG)
 			{
 				exampi::transport->cleanUp(0);
 				exampi::progress->stop();
-				unexpectedLock->unlock();
+
+				//unexpectedLock->unlock();
+				this->unexpectedLock.unlock();
 			}
 			else
 			{
 				if (e != exampi::epoch)
 				{
-					unexpectedLock->unlock();
+					//unexpectedLock->unlock();
+					this->unexpectedLock.unlock();
+
 					debugpp("WARNING: Message from last stage (discarded)");
 				}
 				else
 				{
 					debugpp("\tUnexpected message\n");
-					std::unique_ptr<Request> tmp = make_unique<Request>();
+
+					//std::unique_ptr<Request> tmp = make_unique<Request>();
+					MemoryPool<Request>::unique_ptr tmp(this->request_pool.alloc());
+
 					ssize_t length;
-					exampi::transport->receive(tmp->getTempIovecs(), 0, &length);
+
+					// FIXME remove iovs
+					auto iovs = tmp->getTempIovecs();
+					exampi::transport->receive(iovs, 0, &length);
+
 					tmp->status.count = length - 32;
-					unexpectedList->push_back(std::move(tmp));
-					unexpectedLock->unlock();
+
+					//unexpectedList->push_back(std::move(tmp));
+					this->unexpectedList.push_back(std::move(tmp));
+
+					//unexpectedLock->unlock();
+					this->unexpectedLock.unlock();
 				}
 			}
 		}
+
+		// match found
 		else
 		{
-			unexpectedLock->unlock();
+			//unexpectedLock->unlock();
+			this->unexpectedLock.unlock();
 
 			debugpp("matchThread:  matched, about to receive remainder");
 			debugpp("\tTarget array is " << (*result)->array.toString());
 			debugpp("\tDatatype says extent is " << (*result)->array.datatype->getExtent());
 
 			ssize_t length;
-			exampi::transport->receive((*result)->getIovecs(), 0, &length);
+
+			// FIXME remove iovs
+			auto iovs = (*result)->getIovecs();
+			exampi::transport->receive(iovs, 0, &length);
+
 			(*result)->unpack();
 
 			// set MPI_Status for calling thread
-			(*result)->completionPromise.set_value( { .count = length - 32,
-			                                        .cancelled = 0, .MPI_SOURCE = (*result)->source,
-			                                        .MPI_TAG = (*result)->tag, .MPI_ERROR = MPI_SUCCESS });
-			matchList->erase(result);
-			matchLock->unlock();
+			//(*result)->completionPromise.set_value( { .count = length - 32,
+			//                                        .cancelled = 0, .MPI_SOURCE = (*result)->source,
+			//                                        .MPI_TAG = (*result)->tag, .MPI_ERROR = MPI_SUCCESS });
+
+			MPI_Status status;
+			status.count = length - 32;
+			status.cancelled = 0;
+			status.MPI_SOURCE = (*result)->source;
+			status.MPI_TAG = (*result)->tag;
+			status.MPI_ERROR = MPI_SUCCESS;
+			(*result)->completionPromise.set_value(status);
+
+			//matchList->erase(result);
+			this->matchList.erase(result);
+
+			//matchLock->unlock();
+			this->matchLock.unlock();
+
 			debugpp(" matching done, matchthread done");
 		}
 
+		// NOT commented out as part of bug-perf work
 		//matchLock->unlock();
 	}
 }
 
 int BasicProgress::init()
 {
-	addEndpoints();
 	alive = true;
 
-	sendThread = std::thread { sendThreadProc, &alive, &outbox };
+	// create global group
+	std::list<int> rankList;
+	for(int idx = 0; idx < exampi::worldSize; ++idx)
+		rankList.push_back(idx);
+	group = new Group(rankList);
+
+	//sendThread = std::thread { sendThreadProc, &alive, &outbox };
+	sendThread = std::thread(&BasicProgress::sendThreadProc, this);
 
 	//recvThread = std::thread{recvThreadProc, &alive, &inbox};
 
-	matchThread = std::thread { matchThreadProc, &alive, &matchList, &unexpectedList,
-	                            &matchLock, &unexpectedLock };
+	//matchThread = std::thread { matchThreadProc, &alive, &matchList, &unexpectedList,
+	//                            &matchLock, &unexpectedLock };
+	matchThread = std::thread(&BasicProgress::matchThreadProc, this);
 
 	exampi::groups.push_back(group);
 	communicator = new Comm(true, group, group);
 	communicator->set_rank(exampi::rank);
 	communicator->set_context(0, 1);
 	exampi::communicators.push_back(communicator);
+
 	return 0;
 }
 
@@ -184,23 +285,28 @@ int BasicProgress::init(std::istream &t)
 
 void BasicProgress::finalize()
 {
+	// delete all communicators
 	for(auto &&com : exampi::communicators)
 	{
 		delete com;
 	}
 	exampi::communicators.clear();
 
+	// delete all groups
 	for (auto &&group : exampi::groups)
 	{
 		delete group;
 	}
 	exampi::groups.clear();
 
+	// terminate threads
 	alive = false;
 	matchList.clear();
 	unexpectedList.clear();
 	matchLock.unlock();
 	unexpectedLock.unlock();
+
+
 	ThreadMap::const_iterator it = tm_.find("1");
 	if (it != tm_.end())
 	{
@@ -222,9 +328,17 @@ int BasicProgress::stop()
 	for (auto &r : matchList)
 	{
 		(r)->unpack();
-		(r)->completionPromise.set_value( { .count = 0, .cancelled = 0,
-		                                    .MPI_SOURCE = (r)->source, .MPI_TAG = (r)->tag, .MPI_ERROR =
-		                                        MPIX_TRY_RELOAD });
+		//(r)->completionPromise.set_value( { .count = 0, .cancelled = 0,
+		//                                    .MPI_SOURCE = (r)->source, .MPI_TAG = (r)->tag, .MPI_ERROR =
+		//                                        MPIX_TRY_RELOAD });
+
+		MPI_Status status;
+		status.count = 0;
+		status.cancelled = 0;
+		status.MPI_SOURCE = (r)->source;
+		status.MPI_TAG = (r)->tag;
+		status.MPI_ERROR = MPIX_TRY_RELOAD;
+		(r)->completionPromise.set_value(status);
 	}
 	matchList.clear();
 	unexpectedList.clear();
@@ -265,7 +379,7 @@ void BasicProgress::cleanUp()
 	if (size > 0)
 	{
 		exampi::handler->setErrToZero();
-		exampi::BasicInterface::get_instance()->MPI_Send((void *) 0, 0, MPI_INT,
+		exampi::BasicInterface::get_instance().MPI_Send((void *) 0, 0, MPI_INT,
 		        exampi::rank, MPIX_CLEANUP_TAG, MPI_COMM_WORLD);
 		exampi::handler->setErrToOne();
 	}
@@ -314,8 +428,11 @@ std::future<MPI_Status> BasicProgress::postSend(UserArray array, Endpoint dest,
 {
 	debugpp("basic::Interface::postSend(...)");
 
-	// create request
-	std::unique_ptr<Request> r = make_unique<Request>();
+	// fetch new request
+	//std::unique_ptr<Request> r = make_unique<Request>();
+	MemoryPool<Request>::unique_ptr r(this->request_pool.alloc());
+
+	// fill request with data
 	r->op = Op::Send;
 	r->source = exampi::rank;
 	r->stage = exampi::epoch;
@@ -328,6 +445,7 @@ std::future<MPI_Status> BasicProgress::postSend(UserArray array, Endpoint dest,
 	auto result = r->completionPromise.get_future();
 
 	// give to send thread
+	// XXX this is the mechanism by which postSend does not return?
 	outbox.put(std::move(r));
 
 	return result;
@@ -339,7 +457,10 @@ std::future<MPI_Status> BasicProgress::postRecv(UserArray array,
 	debugpp("basic::Interface::postRecv(...)");
 
 	// make request
-	std::unique_ptr<Request> r = make_unique<Request>();
+
+	//std::unique_ptr<Request> r = make_unique<Request>();
+	MemoryPool<Request>::unique_ptr r(this->request_pool.alloc());
+
 	r->op = Op::Receive;
 	r->source = source.rank;
 	r->array = array;
@@ -350,6 +471,7 @@ std::future<MPI_Status> BasicProgress::postRecv(UserArray array,
 	int s = source.rank;
 	int c = source.comm;
 	int e = exampi::epoch;
+
 	auto result = r->completionPromise.get_future();
 
 	// search unexpected message queue
@@ -357,7 +479,7 @@ std::future<MPI_Status> BasicProgress::postRecv(UserArray array,
 	unexpectedLock.lock();
 	matchLock.lock();
 	auto res = std::find_if(unexpectedList.begin(), unexpectedList.end(),
-	                        [tag,s, c, e](const std::unique_ptr<Request> &i) -> bool {i->unpack(); return i->tag == tag && i->source == s && i->stage == e && i->comm == c;});
+	                        [tag,s, c, e](const MemoryPool<Request>::unique_ptr &i) -> bool {i->unpack(); return i->tag == tag && i->source == s && i->stage == e && i->comm == c;});
 
 	//
 	if (res == unexpectedList.end())
@@ -366,7 +488,9 @@ std::future<MPI_Status> BasicProgress::postRecv(UserArray array,
 
 		// put request into match list for later matching
 		unexpectedLock.unlock();
+
 		matchList.push_back(std::move(r));
+
 		matchLock.unlock();
 	}
 	else
@@ -380,8 +504,17 @@ std::future<MPI_Status> BasicProgress::postRecv(UserArray array,
 		//memcpy(array.ptr, )
 		memcpy(array.getIovec().iov_base, (*res)->temp.iov_base,
 		       array.getIovec().iov_len);
-		(r)->completionPromise.set_value( { .count = (*res)->status.count, .cancelled = 0,
-		                                    .MPI_SOURCE = (*res)->source, .MPI_TAG = (*res)->tag, .MPI_ERROR = MPI_SUCCESS});
+		//(r)->completionPromise.set_value( { .count = (*res)->status.count, .cancelled = 0,
+		//                                    .MPI_SOURCE = (*res)->source, .MPI_TAG = (*res)->tag, .MPI_ERROR = MPI_SUCCESS});
+
+		MPI_Status status;
+		status.count = (*res)->status.count;
+		status.cancelled = 0;
+		status.MPI_SOURCE = (*res)->source;
+		status.MPI_TAG = (*res)->tag;
+		status.MPI_ERROR = MPI_SUCCESS;
+		(r)->completionPromise.set_value(status);
+
 		unexpectedList.erase(res);
 		unexpectedLock.unlock();
 
@@ -432,9 +565,13 @@ int BasicProgress::save(std::ostream &t)
 int BasicProgress::load(std::istream &t)
 {
 	alive = true;
-	sendThread = std::thread { sendThreadProc, &alive, &outbox };
-	matchThread = std::thread { matchThreadProc, &alive, &matchList, &unexpectedList,
-	                            &matchLock, &unexpectedLock };
+	//sendThread = std::thread { sendThreadProc, &alive, &outbox };
+
+	sendThread = std::thread(&BasicProgress::sendThreadProc, this);
+
+	//matchThread = std::thread { matchThreadProc, &alive, &matchList, &unexpectedList,
+	//                            &matchLock, &unexpectedLock };
+	matchThread = std::thread(&BasicProgress::matchThreadProc, this);
 
 	int comm_size, group_size;
 	int r, p2p, coll, id;

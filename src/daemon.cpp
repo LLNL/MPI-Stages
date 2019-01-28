@@ -13,11 +13,6 @@
 namespace exampi
 {
 
-// TODO these ports should be given in the environment variables
-// handle through config
-//int DAEMON_UDP_PORT = 50000;
-//int PROC_BASE_UDP_PORT = 40000;
-
 Daemon &Daemon::get_instance()
 {
 	// Create singleton object if first time
@@ -36,12 +31,6 @@ Daemon::Daemon()
 		return;
 	}
 
-	//int reuse = 1;
-	//setsockopt(this->sock, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(int));
-	//int buf_size = 0;
-	//setsockopt(this->sock, SOL_SOCKET, SO_SNDBUF, &buf_size, sizeof(int));
-	//setsockopt(this->sock, SOL_SOCKET, SO_RCVBUF, &buf_size, sizeof(int));
-
 	// find hostname
 	char hostname[1024];
 	gethostname(hostname, 1024);
@@ -58,7 +47,6 @@ Daemon::Daemon()
 
 	this->daemon.sin_family = AF_INET;
 	this->daemon.sin_port = htons(daemon_port);
-	//this->daemon.sin_addr.s_addr = inet_addr(ip->h_addr_list[0]);
 	this->daemon.sin_addr = *host;
 	debugpp("generated daemon sockaddr_in");
 
@@ -126,7 +114,7 @@ int Daemon::recv_barrier_release()
 	debugpp("in recv_barrier_release " << exampi::rank);
 
 	char msg[64];
-	int err = ::recv(this->sock, msg, 64, NULL);
+	int err = ::recv(this->sock, msg, 64, 0);
 	debugpp("rank recv barrier release " << err << " msg " << msg);
 	if(err != 64)
 	{
@@ -171,7 +159,7 @@ int Daemon::wait_commit()
 	debugpp("in wait_commit " << exampi::rank);
 
 	char msg[64];
-	int err = ::recv(this->sock, msg, 64, NULL);
+	int err = ::recv(this->sock, msg, 64, 0);
 	debugpp("rank recv commit " << err << " msg " << msg);
 	if(err != 64)
 	{

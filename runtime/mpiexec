@@ -132,23 +132,23 @@ class RuntimeHandler(object):
 		"""Launch the required environment launcher."""
 
 		# check if executable is valid
-		if self.arguments.nocheckprogram:
-			executable = self.arguments.program[0]
+		#if self.arguments.nocheckprogram:
+		#	executable = self.arguments.program[0]
 
-			if not os.path.isfile(executable):
-				sys.stderr.write('executable passed was not valid.')
+		#	if not os.path.isfile(executable):
+		#		sys.stderr.write('executable passed was not valid.')
 
-				if self.arguments.extendprogram:
-					# file does not exist, try to append cwd
-					executable_path = '%s/%s' % (os.getcwd(), executable)
+		#		if self.arguments.extendprogram:
+		#			# file does not exist, try to append cwd
+		#			executable_path = '%s/%s' % (os.getcwd(), executable)
 
-					if not os.path.isfile(executable_path):
-						raise ValueError
-					else:
-						# assign executable_path to be used
-						sys.stderr.write('prepended cwd: %s' % executable_path)
+		#			if not os.path.isfile(executable_path):
+		#				raise ValueError
+		#			else:
+		#				# assign executable_path to be used
+		#				sys.stderr.write('prepended cwd: %s' % executable_path)
 
-						self.arguments.program = executable_path
+		#				self.arguments.program = executable_path
 
 		# NOTE could replace with dictionary
 		# runtimes[self.runtime](arguments)
@@ -219,7 +219,13 @@ class RuntimeHandler(object):
 
 			# construct command
 			command = ['exampi_fault_daemon']
-			command.extend(arguments.program)
+
+			# check for other
+			if rank > 0 and arguments.other is not None:
+				command.append(arguments.other)				
+
+			else:
+				command.extend(arguments.program)
 
 			self.log.info('mpiexec launching %s', str(command))
 
@@ -352,6 +358,9 @@ def parse_arguments():
 
 	# allow explicit controller daemon port setting
 	parser.add_argument('--controlport', type=int, default=None)
+
+	# separate executable
+	parser.add_argument('--other', type=str, default=None, help='Only supported locally.')
 
 	return parser.parse_args()
 
