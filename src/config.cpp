@@ -52,4 +52,4 @@ const std::string &Config::operator[](const std::string &i)
 	return dict[i];
 }
 
-}; //exampi
+} //exampi

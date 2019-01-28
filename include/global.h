@@ -11,7 +11,9 @@
 #include <sstream>
 
 #include <mpi.h>
-#include <datatypes.h>
+
+#include "datatype.h"
+
 #include <sys/uio.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -23,7 +25,6 @@
 #include <arpa/inet.h>
 #include <future>
 
-#include <datatype.h>
 #include <comm.h>
 #include <group.h>
 #include <errHandler.h>

@@ -121,7 +121,8 @@ public:
 		//        << "\t\t" << hdr.msg_iovlen << " iovecs\n"
 		//       << "\t\t" << str << "\n";
 
-		ssize_t length = sendmsg(sock, &hdr, 0);
+		//ssize_t length = sendmsg(sock, &hdr, 0);
+		sendmsg(sock, &hdr, 0);
 		//std::cout << "Send to TCP " << length << "\n";
 	}
 	ssize_t receive(int &sock)

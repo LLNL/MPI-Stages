@@ -5,6 +5,22 @@ namespace exampi
 
 void TCPTransport::init()
 {
+	// add all endpoints
+	Config &config = Config::get_instance();
+
+	for(long int rank = 0; rank < exampi::worldSize; ++rank)
+	{
+		std::string descriptor = config[std::to_string(rank)];
+
+		size_t delimiter = descriptor.find_first_of(":");
+		std::string ip = descriptor.substr(0, delimiter);
+		std::string port = descriptor.substr(delimiter+1);
+
+		Address address(ip, std::stoi(port));
+		endpoints[rank] = address;
+		debugpp("added address for rank " << rank << " as " << ip << " " << port);
+	}
+
 	tcpListenSocket.bindPort(8080);
 
 	for (int i = 0; i < exampi::worldSize; i++)
@@ -27,19 +43,7 @@ void TCPTransport::init(std::istream &t)
 	init();
 }
 
-size_t TCPTransport::addEndpoint(const int rank,
-                                 const std::vector<std::string> &opts)
-{
-	uint16_t port = std::stoi(opts[1]);
-	// TODO:  see basic/udp.h; need move constructor to avoid copy here
-	Address addr(opts[0], port);
-
-	//std::cout << "\tAssigning " << rank << " to " << opts[0] << ":" << port << "\n";
-	endpoints[rank] = addr;
-	return endpoints.size();
-}
-
-std::future<int> TCPTransport::send(std::vector<struct iovec> iov, int dest,
+std::future<int> TCPTransport::send(std::vector<struct iovec> &iov, int dest,
                                     MPI_Comm comm)
 {
 	//std::cout << "\tbasic::Transport::send(..., " << dest <<", " << comm << ")\n";
@@ -68,7 +72,7 @@ std::future<int> TCPTransport::send(std::vector<struct iovec> iov, int dest,
 	return std::promise<int>().get_future();
 }
 
-std::future<int> TCPTransport::receive(std::vector<struct iovec> iov,
+std::future<int> TCPTransport::receive(std::vector<struct iovec> &iov,
                                        MPI_Comm comm,
                                        ssize_t *count)
 {
@@ -133,7 +137,7 @@ int TCPTransport::cleanUp(MPI_Comm comm)
 	return 0;
 }
 
-int TCPTransport::peek(std::vector<struct iovec> iov, MPI_Comm comm)
+int TCPTransport::peek(std::vector<struct iovec> &iov, MPI_Comm comm)
 {
 	TCPMessage msg(iov);
 	int sd;

@@ -29,8 +29,8 @@ private:
 
 public:
 	//BasicInterface();
-	static BasicInterface *get_instance();
-	static void destroy_instance();
+	static BasicInterface &get_instance();
+
 	BasicInterface(const BasicInterface &c) = delete;
 	BasicInterface &operator=(const BasicInterface &c) = delete;
 

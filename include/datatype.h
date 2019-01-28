@@ -10,19 +10,16 @@ namespace exampi
 class Datatype
 {
 protected:
-	const MPI_Datatype &mpiDatatype;
+	MPI_Datatype mpiDatatype;
 	size_t extent;
 	bool associative;
 	bool weakAssociative;
 	bool commutative;
 
 public:
-	// TODO THIS IS A NULL REFERENCE
-	// TODO Why do we need this?
-	Datatype() : mpiDatatype(0), extent(0), associative(false),
-		weakAssociative(false), commutative(false) {;}
+	Datatype() {;}
 
-	Datatype(const MPI_Datatype &dt, size_t ex, bool assoc, bool wassoc, bool comm)
+	Datatype(MPI_Datatype dt, size_t ex, bool assoc, bool wassoc, bool comm)
 		: mpiDatatype(dt), extent(ex), associative(assoc), weakAssociative(wassoc),
 		  commutative(comm) {;}
 
@@ -53,12 +50,6 @@ public:
 		return commutative;
 	}
 };
-
-
-
-
-
-
 
 } // exampi
 

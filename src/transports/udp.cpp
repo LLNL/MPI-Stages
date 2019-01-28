@@ -78,7 +78,7 @@ void Message::send(Socket &sock, Address &addr)
 	// debug output
 	char str[INET_ADDRSTRLEN];
 
-	// XXX 
+	// XXX
 	inet_ntop(AF_INET, &(addr.get()->sin_addr), str, INET_ADDRSTRLEN);
 
 	debugpp("basic::Transport::udp::send\t" << hdr.msg_iovlen << " iovecs\t" <<

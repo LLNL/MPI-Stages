@@ -60,11 +60,12 @@ public:
 
 	std::future<T> promise()
 	{
-		debugpp("AQ: Promise requested.  data(" << data.size() << ") promises(" << promises.size() << ")");
-		
+		debugpp("AQ: Promise requested.  data(" << data.size() << ") promises(" <<
+		        promises.size() << ")");
+
 		// TODO MR 22/01/19 avoid lock constantly
 		std::unique_lock<std::mutex> lock(promiseLock);
-		
+
 		// NOTE is this two new operations?
 		promises.push_back(make_unique<std::promise<T>>());
 		//promises.push_back(this->promise_pool.alloc());
@@ -82,7 +83,7 @@ public:
 	void put(T &&v)
 	{
 		debugpp("Inserting into aqueue");
-		
+
 		// push unique ptr into linked list
 		data.push_back(std::move(v));
 

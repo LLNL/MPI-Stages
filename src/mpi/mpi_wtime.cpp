@@ -10,7 +10,7 @@ extern "C"
 
 	double PMPI_Wtime(void)
 	{
-		double ret = exampi::BasicInterface::get_instance()->MPI_Wtime();
+		double ret = exampi::BasicInterface::get_instance().MPI_Wtime();
 		return ret;
 	}
 

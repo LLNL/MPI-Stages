@@ -9,7 +9,7 @@ extern "C"
 
 	int PMPIX_Serialize_handles()
 	{
-		int rc = exampi::BasicInterface::get_instance()->MPIX_Serialize_handles();
+		int rc = exampi::BasicInterface::get_instance().MPIX_Serialize_handles();
 		return rc;
 	}
 

@@ -13,18 +13,16 @@
 namespace exampi
 {
 
-template <typename T> 
+template <typename T>
 class MemoryPool
 {
 	union MemoryPool_item
 	{
-	private:
-		using StorageType = alignas(alignof(T)) char[sizeof(T)];
-
+private:
 		MemoryPool_item *next;
-		StorageType datum;
+		alignas(alignof(T)) char datum[sizeof(T)];
 
-	public:
+public:
 		MemoryPool_item *get_next_item() const
 		{
 			return next;
@@ -33,7 +31,7 @@ class MemoryPool
 		{
 			next = n;
 		}
-		
+
 		T *get_storage()
 		{
 			return reinterpret_cast<T *>(datum);
@@ -75,84 +73,86 @@ class MemoryPool
 		}
 	};
 
-	std::unique_ptr<MemoryPool_arena> arena;
-	MemoryPool_item *free_list;
 
+	size_t arena_size;
 	size_t allocated_items;
 	size_t allocated_arenas;
-	size_t arena_size;
+
+	std::unique_ptr<MemoryPool_arena> arena;
+	MemoryPool_item *free_list;
 
 	std::mutex sharedlock;
 
 public:
 	// shortcut unique ptr type for simplicity
-	typedef typename std::unique_ptr<T, std::function<void(T*)>> unique_ptr;
+	typedef typename std::unique_ptr<T, std::function<void(T *)>> unique_ptr;
 
 	MemoryPool(size_t arena_size)
-	: arena_size(arena_size), 
-	  arena(new MemoryPool_arena(arena_size)),
-	  free_list(arena->get_storage()),
-	  allocated_items(0),
-	  allocated_arenas(1)
-	{
-	}
+		: arena_size(arena_size),
+		  allocated_items(0),
+		  allocated_arenas(1),
+		  arena(new MemoryPool_arena(arena_size)),
+		  free_list(arena->get_storage())
+	{;}
 
-	template <typename... Args> 
+	template <typename... Args>
 	MemoryPool::unique_ptr alloc(Args &&... args)
 	{
-		debugpp("allocating " << typeid(T).name() << " from " << this->allocated_arenas << " arenas");
+		debugpp("allocating " << typeid(T).name() << " from " << this->allocated_arenas
+		        << " arenas");
 
 		// TODO use mutex only to reset free set
 		// free set is a collection of 1 link with an atomic to iterate
 		std::lock_guard<std::mutex> lock(this->sharedlock);
 
 		// allocate a new arena if needed
-    	if (free_list == nullptr)
-    	{   
+		if (free_list == nullptr)
+		{
 			debugpp("allocating additional arena");
 
-        	std::unique_ptr<MemoryPool_arena> new_arena(new MemoryPool_arena(arena_size));
+			std::unique_ptr<MemoryPool_arena> new_arena(new MemoryPool_arena(arena_size));
 
-        	new_arena->set_next_arena(std::move(arena));
-        	arena.reset(new_arena.release());
-        	free_list = arena->get_storage();
+			new_arena->set_next_arena(std::move(arena));
+			arena.reset(new_arena.release());
+			free_list = arena->get_storage();
 
 			this->allocated_arenas++;
-    	}   
+		}
 
 		// fetch next empty
-    	MemoryPool_item *current_item = free_list;
-    	free_list = current_item->get_next_item();
+		MemoryPool_item *current_item = free_list;
+		free_list = current_item->get_next_item();
 
-    	T *result = current_item->get_storage();
+		T *result = current_item->get_storage();
 
 		// construct object in allocated space
-    	new (result) T(std::forward<Args>(args)...);
+		new (result) T(std::forward<Args>(args)...);
 
 		this->allocated_items++;
 		debugpp("item is number " << this->allocated_items);
 
-    	return MemoryPool::unique_ptr(result, [this](T* t) -> void { this->free(t); });
+		return MemoryPool::unique_ptr(result, [this](T* t) -> void { this->free(t); });
 	}
-	
-	void free(T* t)
+
+	void free(T *t)
 	{
 		// TODO make this smarter
 		// use a free list to point to non reset ones, avoid doing mutex if we are not low of items.
 
-		debugpp("freeing item, now at " << this->allocated_items << " : " << this->allocated_arenas);
+		debugpp("freeing item, now at " << this->allocated_items << " : " <<
+		        this->allocated_arenas);
 
-        std::lock_guard<std::mutex> lock(this->sharedlock);
+		std::lock_guard<std::mutex> lock(this->sharedlock);
 		this->allocated_items--;
-        
+
 		// call deconstructor
-        t->T::~T();
-        
-        MemoryPool_item *current_item = MemoryPool_item::storage_to_item(t);
-        
+		t->T::~T();
+
+		MemoryPool_item *current_item = MemoryPool_item::storage_to_item(t);
+
 		// return item to pool
-        current_item->set_next_item(this->free_list);
-        this->free_list = current_item;
+		current_item->set_next_item(this->free_list);
+		this->free_list = current_item;
 	}
 };
 
