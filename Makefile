@@ -6,6 +6,7 @@ CXX ?= c++
 
 # flags
 CXXFLAGS += -Wall -Wextra -pedantic -Wno-unused-parameter
+CXXFLAGS += -Wno-unused-parameter -Wno-unused-function -Wno-unused-variable -Wno-unused-but-set-variable
 CXXFLAGS += -std=c++11 -g -pthread -O2
 
 #CXXFLAGS += -DDEBUG 
