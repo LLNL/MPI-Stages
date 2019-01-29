@@ -445,7 +445,6 @@ std::future<MPI_Status> BasicProgress::postSend(UserArray array, Endpoint dest,
 	auto result = r->completionPromise.get_future();
 
 	// give to send thread
-	// XXX this is the mechanism by which postSend does not return?
 	outbox.put(std::move(r));
 
 	return result;

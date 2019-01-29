@@ -73,8 +73,10 @@ int BasicInterface::MPI_Send(const void *buf, int count, MPI_Datatype datatype,
                              int dest, int tag, MPI_Comm comm)
 {
 	// TODO argument checking, sanitize
-
 	debugpp("MPI_Send MPI_Stages check");
+
+	// stages check
+	// TODO replace by preprocessor statement?
 	if (exampi::handler->isErrSet())
 	{
 		return MPIX_TRY_RELOAD;
@@ -91,7 +93,11 @@ int BasicInterface::MPI_Send(const void *buf, int count, MPI_Datatype datatype,
 		const_cast<void *>(buf), &(exampi::datatypes[datatype]),
 		szcount
 	},
-	{ dest, context }, tag);
+	{ 
+		dest, 
+		context
+	}, 
+	tag);
 
 	// TODO request generator
 
@@ -149,18 +155,24 @@ int BasicInterface::MPI_Recv(void *buf, int count, MPI_Datatype datatype,
 int BasicInterface::MPI_Isend(const void *buf, int count, MPI_Datatype datatype,
                               int dest, int tag, MPI_Comm comm, MPI_Request *request)
 {
+	// stages check
 	if (exampi::handler->isErrSet())
 	{
 		return MPIX_TRY_RELOAD;
 	}
+
+	// 
 	Comm *c = exampi::communicators.at(comm);
 	int context = c->get_context_id_pt2pt();
 	size_t szcount = count;
+
 	// have to move construct the future; i'll fix this later with a pool in progress
 	std::future<MPI_Status> *f = new std::future<MPI_Status>();
 	(*f) = exampi::progress->postSend( { const_cast<void *>(buf),
 	                                     &(exampi::datatypes[datatype]), szcount },
 	{ dest, context }, tag);
+
+	// opaque handle to user thread
 	(*request) = reinterpret_cast<MPI_Request>(f);
 
 	return 0;
