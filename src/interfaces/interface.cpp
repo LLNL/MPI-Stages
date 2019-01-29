@@ -69,119 +69,214 @@ int BasicInterface::MPI_Finalize()
 	return 0;
 }
 
-int BasicInterface::MPI_Send(const void *buf, int count, MPI_Datatype datatype,
-                             int dest, int tag, MPI_Comm comm)
+int BasicInterface::MPI_Send(const void *buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm)
 {
-	// TODO argument checking, sanitize
+//	// TODO argument checking, sanitize
+//
+//	// STAY
+//	debugpp("MPI_Send MPI_Stages check");
+//	if (exampi::handler->isErrSet())
+//	{
+//		return MPIX_TRY_RELOAD;
+//	}
+//
+//	//
+//	Comm *c = exampi::communicators.at(comm);
+//	int context = c->get_context_id_pt2pt();
+//	size_t szcount = count;
+//
+//	// waits on the get()
+//	std::future<MPI_Status> stf = exampi::progress->postSend(
+//	{
+//		const_cast<void *>(buf),
+//		&(exampi::datatypes[datatype]),
+//		szcount
+//	},
+//	{ dest, context }, tag);
+//
+//	// TODO request generator
+//
+//	// is this where it waits?
+//	MPI_Status st = stf.get();
+//
+//	debugpp("Finished MPI_Send: " << mpiStatusString(st));
+//
+//	return 0;
 
-	debugpp("MPI_Send MPI_Stages check");
-	if (exampi::handler->isErrSet())
-	{
-		return MPIX_TRY_RELOAD;
-	}
+	// offload into persistent channel
+	int err;
+	err = MPI_Send_init(buf, count, datatype, dest, tag, comm, request);
+	if(err != MPI_SUCCESS) return err;
 
-	//
-	Comm *c = exampi::communicators.at(comm);
-	int context = c->get_context_id_pt2pt();
-	size_t szcount = count;
+	err = MPI_Start(request);
+	if(err != MPI_SUCCESS) return err;
 
-	// waits on the get()
-	std::future<MPI_Status> stf = exampi::progress->postSend(
-	{
-		const_cast<void *>(buf), &(exampi::datatypes[datatype]),
-		szcount
-	},
-	{ dest, context }, tag);
-
-	// TODO request generator
-
-	// is this where it waits?
-	MPI_Status st = stf.get();
-
-	debugpp("Finished MPI_Send: " << mpiStatusString(st));
-
-	return 0;
+	err = MPI_Wait(request, MPI_STATUS_IGNORE);
+	return err;
 }
 
 int BasicInterface::MPI_Recv(void *buf, int count, MPI_Datatype datatype,
                              int source,
                              int tag, MPI_Comm comm, MPI_Status *status)
 {
-	debugpp("MPI_Recv MPI_Stages check");
-	if (exampi::handler->isErrSet())
-	{
-		return MPIX_TRY_RELOAD;
-	}
+//	debugpp("MPI_Recv MPI_Stages check");
+//	if (exampi::handler->isErrSet())
+//	{
+//		return MPIX_TRY_RELOAD;
+//	}
+//
+//	//
+//	Comm *c = exampi::communicators.at(comm);
+//	int context = c->get_context_id_pt2pt();
+//	size_t szcount = count;
+//
+//	//
+//	debugpp("MPI_Recv post recv call");
+//	// wait for received message
+//	MPI_Status st = exampi::progress->postRecv(
+//	{
+//		const_cast<void *>(buf), &(exampi::datatypes[datatype]),
+//		szcount }, {source, context}, tag).get();
+//
+//	debugpp("Finished MPI_Recv: " << mpiStatusString(st));
+//
+//	if (st.MPI_ERROR == MPIX_TRY_RELOAD)
+//	{
+//		debugpp("MPIX_TRY_RELOAD FOUND");
+//
+//		if(status != MPI_STATUS_IGNORE)
+//			memmove(status, &st, sizeof(MPI_Status));
+//
+//		return MPIX_TRY_RELOAD;
+//	}
+//	else
+//	{
+//		if(status != MPI_STATUS_IGNORE)
+//			memmove(status, &st, sizeof(MPI_Status));
+//
+//		return 0;
+//	}
 
-	//
-	Comm *c = exampi::communicators.at(comm);
-	int context = c->get_context_id_pt2pt();
-	size_t szcount = count;
+	// offload into persistent channel
+	int err;
+	err = MPI_Recv_init(buf, count, datatype, source, tag, comm, request);
+	if(err != MPI_SUCCESS) return err;
 
-	//
-	debugpp("MPI_Recv post recv call");
-	// wait for received message
-	MPI_Status st = exampi::progress->postRecv(
-	{
-		const_cast<void *>(buf), &(exampi::datatypes[datatype]),
-		szcount }, {source, context}, tag).get();
+	err = MPI_Start(request);
+	if(err != MPI_SUCCESS) return err;
 
-	debugpp("Finished MPI_Recv: " << mpiStatusString(st));
-
-	if (st.MPI_ERROR == MPIX_TRY_RELOAD)
-	{
-		debugpp("MPIX_TRY_RELOAD FOUND");
-
-		if(status != MPI_STATUS_IGNORE)
-			memmove(status, &st, sizeof(MPI_Status));
-
-		return MPIX_TRY_RELOAD;
-	}
-	else
-	{
-		if(status != MPI_STATUS_IGNORE)
-			memmove(status, &st, sizeof(MPI_Status));
-
-		return 0;
-	}
+	err = MPI_Wait(request, MPI_STATUS_IGNORE);
+	return err;
 }
 
 int BasicInterface::MPI_Isend(const void *buf, int count, MPI_Datatype datatype,
                               int dest, int tag, MPI_Comm comm, MPI_Request *request)
 {
-	if (exampi::handler->isErrSet())
-	{
-		return MPIX_TRY_RELOAD;
-	}
-	Comm *c = exampi::communicators.at(comm);
-	int context = c->get_context_id_pt2pt();
-	size_t szcount = count;
-	// have to move construct the future; i'll fix this later with a pool in progress
-	std::future<MPI_Status> *f = new std::future<MPI_Status>();
-	(*f) = exampi::progress->postSend( { const_cast<void *>(buf),
-	                                     &(exampi::datatypes[datatype]), szcount },
-	{ dest, context }, tag);
-	(*request) = reinterpret_cast<MPI_Request>(f);
+//	// TODO sanitize
+//	//CHECK_COMM(comm);
+//	//CHECK_COUNT(count);
+//	//CHECK_TAG(tag);
+//	//CHECK_DATATYPE(datatype);
+//	//CHECK_RANK(dest);
+//
+//	// MPI Stages error check
+//	// TODO CHECK_STAGES_ERROR();
+//	//if (exampi::handler->isErrSet())
+//	//{
+//	//	return MPIX_TRY_RELOAD;
+//	//}
+//
+//	Comm *c = exampi::communicators.at(comm);
+//	int context = c->get_context_id_pt2pt();
+//	size_t szcount = count;
+//	// have to move construct the future; i'll fix this later with a pool in progress
+//	std::future<MPI_Status> *f = new std::future<MPI_Status>();
+//	(*f) = exampi::progress->postSend( { const_cast<void *>(buf),
+//	                                     &(exampi::datatypes[datatype]), szcount },
+//	{ dest, context }, tag);
+//	(*request) = reinterpret_cast<MPI_Request>(f);
+//
+//	return MPI_SUCCESS;
 
-	return 0;
+	// offload into persistent channel
+	int err;
+	err = MPI_Send_init(buf, count, datatype, dest, tag, comm, request);
+	if(err != MPI_SUCCESS) return err;
+
+	err = MPI_Start(request);
+	return err;
 }
 
 int BasicInterface::MPI_Irecv(void *buf, int count, MPI_Datatype datatype,
                               int source, int tag, MPI_Comm comm, MPI_Request *request)
 {
+//	if (exampi::handler->isErrSet())
+//	{
+//		return MPIX_TRY_RELOAD;
+//	}
+//	Comm *c = exampi::communicators.at(comm);
+//	int context = c->get_context_id_pt2pt();
+//
+//	size_t szcount = count;
+//	std::future<MPI_Status> *f = new std::future<MPI_Status>();
+//	(*f) = exampi::progress->postRecv( { const_cast<void *>(buf),
+//	                                     &(exampi::datatypes[datatype]), szcount }, {source, context}, tag);
+//	(*request) = reinterpret_cast<MPI_Request>(f);
+//	return 0;
+
+	// offload into persistent channel
+	int err;
+	err = MPI_Recv_init(buf, count, datatype, source, tag, comm, request);
+	if(err != MPI_SUCCESS) return err;
+	
+	err = MPI_Start(request);
+	return err;
+}
+
+int MPI_Send_init(void* buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm, MPI_Request *request)
+{
+	// TODO sanitize user input
+	//CHECK_COMM(comm);
+	//CHECK_COUNT(count);
+	//CHECK_TAG(tag);
+	//CHECK_DATATYPE(datatype);
+	//CHECK_RANK(dest);
+
+	// mpi stages error check
+	// TODO CHECK_STAGES_ERROR();
 	if (exampi::handler->isErrSet())
 	{
 		return MPIX_TRY_RELOAD;
 	}
-	Comm *c = exampi::communicators.at(comm);
-	int context = c->get_context_id_pt2pt();
 
-	size_t szcount = count;
-	std::future<MPI_Status> *f = new std::future<MPI_Status>();
-	(*f) = exampi::progress->postRecv( { const_cast<void *>(buf),
-	                                     &(exampi::datatypes[datatype]), szcount }, {source, context}, tag);
-	(*request) = reinterpret_cast<MPI_Request>(f);
-	return 0;
+	// request generation
+	// TODO
+
+	// celebrate!
+	return MPI_SUCCESS;
+}
+
+int MPI_Recv_init(void* buf, int count, MPI_Datatype datatype, int source, int tag, MPI_Comm comm, MPI_Request *request) 
+{
+	// TODO sanitize user input
+	//CHECK_COMM(comm);
+	//CHECK_COUNT(count);
+	//CHECK_TAG(tag);
+	//CHECK_DATATYPE(datatype);
+	//CHECK_RANK(dest);
+
+	// mpi stages error check
+	// TODO CHECK_STAGES_ERROR();
+	if (exampi::handler->isErrSet())
+	{
+		return MPIX_TRY_RELOAD;
+	}
+
+	// request generation
+	// TODO
+
+	// celebrate!
+	return MPI_SUCCESS;
 }
 
 int BasicInterface::MPI_Sendrecv(const void *sendbuf, int sendcount,
@@ -193,6 +288,7 @@ int BasicInterface::MPI_Sendrecv(const void *sendbuf, int sendcount,
 	{
 		return MPIX_TRY_RELOAD;
 	}
+
 	MPI_Request recvreq;
 	int rc = MPI_Irecv(recvbuf, recvcount, recvtype, source, recvtag, comm,
 	                   &recvreq);
@@ -200,36 +296,78 @@ int BasicInterface::MPI_Sendrecv(const void *sendbuf, int sendcount,
 	{
 		return MPIX_TRY_RELOAD;
 	}
+
 	rc = MPI_Send(sendbuf, sendcount, sendtype, dest, sendtag, comm);
+
 	if (rc != MPI_SUCCESS)
 	{
 		return MPIX_TRY_RELOAD;
 	}
+
 	MPI_Wait(&recvreq, status);
+
 	return MPI_SUCCESS;
 }
 
-
-int BasicInterface::MPI_Wait(MPI_Request *request, MPI_Status *status)
+int BasicInterface::MPI_Start(MPI_Request *request)
 {
+	// TODO sanitize user input
+	//CHECK_REQUEST(request);
+
+	// mpi stages error check
+	// TODO CHECK_STAGES_ERROR();
 	if (exampi::handler->isErrSet())
 	{
 		return MPIX_TRY_RELOAD;
 	}
 
-	if(status != MPI_STATUS_IGNORE)
+	// hand request to progress engine
+	int err = exampi::progress->handle_request(request);
+	// TODO check error
+	
+	// celebrate!
+	return MPI_SUCCESS;
+}
+
+int BasicInterface::MPI_Wait(MPI_Request *request, MPI_Status *status)
+{
+	// TODO sanitize user input
+	//CHECK_REQUEST(request);
+	//CHECK_STATUS(status);
+
+	// mpi stages error check
+	// TODO CHECK_STAGES_ERROR();
+	if (exampi::handler->isErrSet())
 	{
-		std::future<MPI_Status> *f =
-		    reinterpret_cast<std::future<MPI_Status> *>(*request);
-		(*status) = f->get();
+		return MPIX_TRY_RELOAD;
 	}
 
+	// 
+	std::future<MPI_Status> *f = reinterpret_cast<std::future<MPI_Status> *>(*request);
+
+	// either fill or wait on status
+	if(status != MPI_STATUS_IGNORE)
+	{
+		(*status) = f->get();
+	}
+	else
+	{
+		f->wait();
+	}
+
+	// celebrate!
 	return MPI_SUCCESS;
 }
 
 int BasicInterface::MPI_Waitall(int count, MPI_Request array_of_requests[],
                                 MPI_Status array_of_statuses[])
 {
+	// TODO sanitize user input
+	//CHECK_REQUEST(request);
+	//CHECK_STATUS(status);
+
+	// mpi stages error check
+	// TODO CHECK_STAGES_ERROR();
 	if (exampi::handler->isErrSet())
 	{
 		return MPIX_TRY_RELOAD;

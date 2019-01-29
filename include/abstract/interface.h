@@ -20,6 +20,8 @@ public:
 	virtual int MPI_Get_count(MPI_Status *status, MPI_Datatype datatype,
 	                          int *count) = 0;
 
+	virtual int MPI_Start(MPI_Request *request) =0;
+	
 	virtual int MPI_Wait(MPI_Request *request, MPI_Status *status) = 0;
 
 	virtual int MPI_Waitall(int count, MPI_Request array_of_requests[],
@@ -54,6 +56,9 @@ public:
 
 	virtual int MPI_Irecv(void *buf, int count, MPI_Datatype datatype, int dest,
 	                      int tag, MPI_Comm comm, MPI_Request *request) = 0;
+
+	virtual int MPI_Send_init(void* buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm, MPI_Request *request) = 0;
+	virtual int MPI_Recv_init(void* buf, int count, MPI_Datatype datatype, int source, int tag, MPI_Comm comm, MPI_Request *request) = 0;
 
 		// collective
 	virtual int MPI_Barrier(MPI_Comm comm) = 0;

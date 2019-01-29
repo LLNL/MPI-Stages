@@ -55,10 +55,16 @@ public:
 	int MPI_Irecv(void *buf, int count, MPI_Datatype datatype,
 	              int source, int tag, MPI_Comm comm, MPI_Request *request);
 
+
+	int MPI_Send_init(void* buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm, MPI_Request *request);
+	int MPI_Recv_init(void* buf, int count, MPI_Datatype datatype, int source, int tag, MPI_Comm comm, MPI_Request *request);
+
 	int MPI_Sendrecv(const void *sendbuf, int sendcount,
 	                 MPI_Datatype sendtype, int dest, int sendtag, void *recvbuf, int recvcount,
 	                 MPI_Datatype recvtype, int source, int recvtag, MPI_Comm comm,
 	                 MPI_Status *status);
+
+	int MPI_Start(MPI_Request *request);
 
 	int MPI_Wait(MPI_Request *request, MPI_Status *status);
 
