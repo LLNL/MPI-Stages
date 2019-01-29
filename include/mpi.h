@@ -61,6 +61,7 @@ typedef void (*MPIX_Deserialize_handler) (MPIX_Handles handle);
 #define MPIX_SUCCESS_RESTART 103
 #define MPIX_CLEANUP_TAG 1
 #define MPI_UNDEFINED -1
+#define MPI_ERR_MPIEXEC 104
 
 #define MPI_ERR_COMM	10
 #define MPI_ERR_COUNT	11

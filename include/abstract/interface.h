@@ -57,8 +57,8 @@ public:
 	virtual int MPI_Irecv(void *buf, int count, MPI_Datatype datatype, int dest,
 	                      int tag, MPI_Comm comm, MPI_Request *request) = 0;
 
-	virtual int MPI_Send_init(void* buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm, MPI_Request *request) = 0;
-	virtual int MPI_Recv_init(void* buf, int count, MPI_Datatype datatype, int source, int tag, MPI_Comm comm, MPI_Request *request) = 0;
+	virtual int MPI_Send_init(const void* buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm, MPI_Request *request) = 0;
+	virtual int MPI_Recv_init(const void* buf, int count, MPI_Datatype datatype, int source, int tag, MPI_Comm comm, MPI_Request *request) = 0;
 
 		// collective
 	virtual int MPI_Barrier(MPI_Comm comm) = 0;

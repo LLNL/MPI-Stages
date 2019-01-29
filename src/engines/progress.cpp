@@ -425,6 +425,11 @@ void BasicProgress::barrier()
 	//signal.setSignalToZero();
 }
 
+int BasicProgress::handle_request(MPI_Request *request)
+{
+	return -1;
+}
+
 std::future<MPI_Status> BasicProgress::postSend(UserArray array, Endpoint dest,
         int tag)
 {
