@@ -149,7 +149,6 @@ int BasicInterface::MPI_Send_init(const void* buf, int count, MPI_Datatype datat
 
 	// request generation
 	debugpp("generating request object");
-
 	Request *req = request_pool.allocate();
 	if(req == nullptr)
 		return MPI_ERR_INTERN;
@@ -161,23 +160,23 @@ int BasicInterface::MPI_Send_init(const void* buf, int count, MPI_Datatype datat
 	size_t szcount = count;
 
 	// operation descriptor
-	r->op = Op::Send;
+	req->op = Op::Send;
 
 	// 
-	r->source = exampi::rank;
+	rrq->source = exampi::rank;
 
 	// MPI Stages
-	r->stage = exampi::epoch;
+	req->stage = exampi::epoch;
 
 	// context tuple
-	r->tag = tag;
-	r->communicator = comm;
-	r->destination = dest;
+	req->tag = tag;
+	req->communicator = comm;
+	req->destination = dest;
 	
 	// data description
-	r->datatype = datatype;
-	r->count = count;
-	r->buffer = buf;
+	req->datatype = datatype;
+	req->count = count;
+	req->buffer = buf;
 
 	return MPI_SUCCESS;
 }
@@ -208,23 +207,23 @@ int BasicInterface::MPI_Recv_init(const void* buf, int count, MPI_Datatype datat
 	size_t szcount = count;
 
 	// operation descriptor
-	r->op = Op::Receive;
+	req->op = Op::Receive;
 
 	// 
-	r->source = source;
+	req->source = source;
 
 	// MPI Stages
-	r->stage = exampi::epoch;
+	req->stage = exampi::epoch;
 
 	// context tuple
-	r->tag = tag;
-	r->communicator = comm;
-	r->destination;
+	req->tag = tag;
+	req->communicator = comm;
+	req->destination;
 	
 	// data description
-	r->datatype = datatype;
-	r->count = count;
-	r->buffer = buf;
+	req->datatype = datatype;
+	req->count = count;
+	req->buffer = buf;
 
 	// celebrate!
 	return MPI_SUCCESS;
