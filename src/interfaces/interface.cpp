@@ -68,6 +68,11 @@ int BasicInterface::MPI_Finalize()
 	return 0;
 }
 
+int BasicInterface::MPI_Request_free(MPI_Request *request)
+{
+	return -1;
+}
+
 int BasicInterface::MPI_Send(const void *buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm)
 {
 	// offload into persistent channel
@@ -143,40 +148,42 @@ int BasicInterface::MPI_Send_init(const void* buf, int count, MPI_Datatype datat
 	// mpi stages error check
 	// TODO CHECK_STAGES_ERROR();
 	debugpp("checking mpi stages error state");
-	if (exampi::handler->isErrSet())
+	if(exampi::handler->isErrSet())
 	{
 		return MPIX_TRY_RELOAD;
 	}
 
 	// request generation
 	debugpp("generating request object");
+
 	Comm *c = exampi::communicators.at(comm);
 	int context = c->get_context_id_pt2pt();
 	size_t szcount = count;
 
-	MemoryPool<Request>::unique_ptr r(this->request_pool.alloc());
+	Request *req = request_pool.allocate();
+	*request = static_cast<MPI_Request>(static_cast<void*>(req));
 
-	// fill request with data
+	// operation descriptor
 	r->op = Op::Send;
+
+	// 
 	r->source = exampi::rank;
+
+	// MPI Stages
 	r->stage = exampi::epoch;
-	r->array = array;
-	r->endpoint = dest;
+
+	// context tuple
 	r->tag = tag;
-	r->comm = dest.comm;
-
-	//
-	auto result = r->completionPromise.get_future();
-
-	// give to send thread
-	// XXX this is the mechanism by which postSend does not return?
-	outbox.put(std::move(r));
-
-
-
+	r->communicator = comm;
+	r->destination = dest;
 	
-	
-//	(*request) = reinterpret_cast<MPI_Request>(f);
+	// data description
+	r->datatype = datatype;
+	r->count = count;
+	r->buffer = buf;
+
+	int err = exampi::progress->post_request(req);
+	// TODO handle error
 
 	// celebrate!
 	return MPI_SUCCESS;
@@ -201,9 +208,39 @@ int BasicInterface::MPI_Recv_init(const void* buf, int count, MPI_Datatype datat
 	}
 
 	// request generation
-	// TODO
+	debugpp("generating request object");
 
-//	(*request) = reinterpret_cast<MPI_Request>(f);
+	Comm *c = exampi::communicators.at(comm);
+	int context = c->get_context_id_pt2pt();
+	size_t szcount = count;
+
+	Request *req = request_pool.allocate();
+	*request = static_cast<MPI_Request>(static_cast<void*>(req));
+
+	// operation descriptor
+	r->op = Op::Receive;
+
+	// 
+	r->source = source;
+
+	// MPI Stages
+	r->stage = exampi::epoch;
+
+	// context tuple
+	r->tag = tag;
+	r->communicator = comm;
+	r->destination = ;
+	
+	// data description
+	r->datatype = datatype;
+	r->count = count;
+	r->buffer = buf;
+
+	int err = exampi::progress->post_request(req);
+	// TODO handle error
+
+	// celebrate!
+	return MPI_SUCCESS;
 
 	// celebrate!
 	return MPI_SUCCESS;
@@ -272,7 +309,6 @@ int BasicInterface::MPI_Start(MPI_Request *request)
 //		const_cast<void *>(buf), &(exampi::datatypes[datatype]),
 //		szcount }, {source, context}, tag).get();
 
-// waits on the get()
 //	std::future<MPI_Status> stf = exampi::progress->postSend(
 //	{
 //		const_cast<void *>(buf),
@@ -340,40 +376,41 @@ int BasicInterface::MPI_Wait(MPI_Request *request, MPI_Status *status)
 int BasicInterface::MPI_Waitall(int count, MPI_Request array_of_requests[],
                                 MPI_Status array_of_statuses[])
 {
-	// TODO sanitize user input
-	//CHECK_REQUEST(request);
-	//CHECK_STATUS(status);
-
-	// mpi stages error check
-	// TODO CHECK_STAGES_ERROR();
-	if (exampi::handler->isErrSet())
-	{
-		return MPIX_TRY_RELOAD;
-	}
-
-	if (array_of_statuses != MPI_STATUSES_IGNORE)
-	{
-		for (int i = 0; i < count; i++)
-		{
-			if (array_of_requests[i])
-			{
-				array_of_statuses[i].MPI_ERROR = MPI_Wait(array_of_requests + i,
-				                                 array_of_statuses + i);
-				if (array_of_statuses[i].MPI_ERROR)
-					return -1;
-			}
-		}
-	}
-	else
-	{
-		for (int i = 0; i < count; i++)
-		{
-			int rc = MPI_Wait(array_of_requests + i, nullptr);
-			if (rc)
-				return rc;
-		}
-	}
-	return MPI_SUCCESS;
+//	// TODO sanitize user input
+//	//CHECK_REQUEST(request);
+//	//CHECK_STATUS(status);
+//
+//	// mpi stages error check
+//	// TODO CHECK_STAGES_ERROR();
+//	if (exampi::handler->isErrSet())
+//	{
+//		return MPIX_TRY_RELOAD;
+//	}
+//
+//	if (array_of_statuses != MPI_STATUSES_IGNORE)
+//	{
+//		for (int i = 0; i < count; i++)
+//		{
+//			if (array_of_requests[i])
+//			{
+//				array_of_statuses[i].MPI_ERROR = MPI_Wait(array_of_requests + i,
+//				                                 array_of_statuses + i);
+//				if (array_of_statuses[i].MPI_ERROR)
+//					return -1;
+//			}
+//		}
+//	}
+//	else
+//	{
+//		for (int i = 0; i < count; i++)
+//		{
+//			int rc = MPI_Wait(array_of_requests + i, nullptr);
+//			if (rc)
+//				return rc;
+//		}
+//	}
+//	return MPI_SUCCESS;
+	return -1;
 }
 
 int BasicInterface::MPI_Bcast(void *buf, int count, MPI_Datatype datatype,
