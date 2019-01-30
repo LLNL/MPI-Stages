@@ -1,4 +1,3 @@
-#include <ExaMPI.h>
 #include <mpi.h>
 #include "basic.h"
 #include "interfaces/interface.h"

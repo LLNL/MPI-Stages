@@ -11,7 +11,6 @@
 #include "mpi.h"
 #include "mpi_ops.h"
 
-/* #include "ExaMPI.h" */
 /* #include "basic.h"*/
 #define INTERNAL_MAX(x, y)	(((y) > (x)) ? (y) : (x))
 #define INTERNAL_MIN(x, y)	(((x) > (y)) ? (y) : (x))

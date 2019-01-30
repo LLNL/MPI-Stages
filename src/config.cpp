@@ -1,7 +1,5 @@
 #include "config.h"
 
-#include "ExaMPI.h"
-
 namespace exampi
 {
 

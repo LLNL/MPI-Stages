@@ -1,6 +1,5 @@
 #include "daemon.h"
 #include "global.h"
-#include "ExaMPI.h"
 
 #include <sstream>
 #include <iostream>

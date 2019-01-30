@@ -1,7 +1,6 @@
 #ifndef __EXAMPI_ASYNC_H
 #define __EXAMPI_ASYNC_H
 
-#include "ExaMPI.h"
 #include "pool.h"
 
 namespace exampi

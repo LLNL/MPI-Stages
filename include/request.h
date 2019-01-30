@@ -4,13 +4,8 @@
 #include <mutex>
 #include <condition_variable>
 
-//#include "ExaMPI.h"
-
 #include "datatype.h"
 #include "mpi.h"
-
-// TODO remove these
-#include "ExaMPI.h"
 
 namespace exampi
 {

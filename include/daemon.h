@@ -4,6 +4,8 @@
 #include <string>
 #include <netinet/in.h>
 
+#include "debug.h"
+
 namespace exampi
 {
 
