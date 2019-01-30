@@ -2,6 +2,7 @@
 #define __EXAMPI_PROTOCOL_QUEUE_H
 
 #include <mutex>
+#include <list>
 
 #include "debug.h"
 #include "request.h"
@@ -10,19 +11,19 @@
 namespace exampi
 {
 
-class ProgressQueue
+class ProtocolQueue
 {
 private:
-	std::mutex lock;
+	std::mutex queue_lock;
 
-	std::vector<MemoryPool<Request>::unique_ptr> slots;
+	std::list<Request *> slots;
 	
 public:
 	ProgressQueue();
 	~ProgressQueue();
 	
-	void insert(Request);
-	void remove(Request);
+	void insert(Request *request);
+	void remove(Request *request);
 };
 
 }
