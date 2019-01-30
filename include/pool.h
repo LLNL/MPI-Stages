@@ -85,7 +85,7 @@ public:
 
 public:
 	// shortcut unique ptr type for simplicity
-	typedef typename std::unique_ptr<T, std::function<void(T *)>> unique_ptr;
+	//typedef typename std::unique_ptr<T, std::function<void(T *)>> unique_ptr;
 
 	MemoryPool(size_t arena_size)
 		: arena_size(arena_size),
@@ -96,7 +96,7 @@ public:
 	{;}
 
 	template <typename... Args>
-	MemoryPool::unique_ptr alloc(Args &&... args)
+	T* allocate(Args &&... args)
 	{
 		debugpp("allocating " << typeid(T).name() << " from " << this->allocated_arenas
 		        << " arenas");
@@ -131,7 +131,7 @@ public:
 		this->allocated_items++;
 		debugpp("item is number " << this->allocated_items);
 
-		return MemoryPool::unique_ptr(result, [this](T* t) -> void { this->free(t); });
+		return result;
 	}
 
 	void free(T *t)
