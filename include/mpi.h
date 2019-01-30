@@ -71,6 +71,7 @@ typedef void (*MPIX_Deserialize_handler) (MPIX_Handles handle);
 #define MPI_ERR_INTERN 	15
 #define MPI_ERR_REQUEST 16
 #define MPI_ERR_ARG		17
+#define MPI_ERR_BUFFER	18
 
 
 /* other error classes not defined yet */
