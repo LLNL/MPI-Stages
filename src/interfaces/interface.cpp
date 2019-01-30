@@ -70,12 +70,13 @@ int BasicInterface::MPI_Finalize()
 
 int BasicInterface::MPI_Request_free(MPI_Request *request)
 {
+	// TODO
 	return -1;
 }
 
 int BasicInterface::MPI_Send(const void *buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm)
 {
-	// offload into persistent channel
+	// offload into persistent path
 	debugpp("initiating persistent send path");
 	int err;
 	MPI_Request request;
@@ -93,7 +94,7 @@ int BasicInterface::MPI_Send(const void *buf, int count, MPI_Datatype datatype, 
 
 int BasicInterface::MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, int tag, MPI_Comm comm, MPI_Status *status)
 {
-	// offload into persistent channel
+	// offload into persistent path
 	debugpp("initiating persistent recv path");
 	int err;
 	MPI_Request request;
@@ -111,7 +112,7 @@ int BasicInterface::MPI_Recv(void *buf, int count, MPI_Datatype datatype, int so
 
 int BasicInterface::MPI_Isend(const void *buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm, MPI_Request *request)
 {
-	// offload into persistent channel
+	// offload into persistent path
 	debugpp("initiating persistent send path");
 	int err;
 	err = MPI_Send_init(buf, count, datatype, dest, tag, comm, request);
@@ -124,7 +125,7 @@ int BasicInterface::MPI_Isend(const void *buf, int count, MPI_Datatype datatype,
 
 int BasicInterface::MPI_Irecv(void *buf, int count, MPI_Datatype datatype, int source, int tag, MPI_Comm comm, MPI_Request *request)
 {
-	// offload into persistent channel
+	// offload into persistent path
 	debugpp("initiating persistent recv path");
 	int err;
 	err = MPI_Recv_init(buf, count, datatype, source, tag, comm, request);
@@ -137,31 +138,27 @@ int BasicInterface::MPI_Irecv(void *buf, int count, MPI_Datatype datatype, int s
 
 int BasicInterface::MPI_Send_init(const void* buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm, MPI_Request *request)
 {
-	// TODO sanitize user input
-	debugpp("sanitizing user input");
-	//CHECK_COMM(comm);
-	//CHECK_COUNT(count);
-	//CHECK_TAG(tag);
-	//CHECK_DATATYPE(datatype);
-	//CHECK_RANK(dest);
-
-	// mpi stages error check
-	// TODO CHECK_STAGES_ERROR();
-	debugpp("checking mpi stages error state");
-	if(exampi::handler->isErrSet())
-	{
-		return MPIX_TRY_RELOAD;
-	}
+	// sanitize user input
+	CHECK_BUFFER(buf);
+	CHECK_COUNT(count);
+	CHECK_DATATYPE(datatype);
+	CHECK_RANK(dest);
+	CHECK_TAG(tag);
+	CHECK_COMM(comm);
+	CHECK_STAGES_ERROR();
 
 	// request generation
 	debugpp("generating request object");
 
+	Request *req = request_pool.allocate();
+	if(req == nullptr)
+		return MPI_ERR_INTERN;
+
+	*request = static_cast<MPI_Request>(static_cast<void*>(req));
+
 	Comm *c = exampi::communicators.at(comm);
 	int context = c->get_context_id_pt2pt();
 	size_t szcount = count;
-
-	Request *req = request_pool.allocate();
-	*request = static_cast<MPI_Request>(static_cast<void*>(req));
 
 	// operation descriptor
 	r->op = Op::Send;
@@ -182,40 +179,33 @@ int BasicInterface::MPI_Send_init(const void* buf, int count, MPI_Datatype datat
 	r->count = count;
 	r->buffer = buf;
 
-	int err = exampi::progress->post_request(req);
-	// TODO handle error
-
-	// celebrate!
 	return MPI_SUCCESS;
 }
 
 int BasicInterface::MPI_Recv_init(const void* buf, int count, MPI_Datatype datatype, int source, int tag, MPI_Comm comm, MPI_Request *request) 
 {
-	// TODO sanitize user input
+	// sanitize user input
 	debugpp("sanitizing user input");
-	//CHECK_COMM(comm);
-	//CHECK_COUNT(count);
-	//CHECK_TAG(tag);
-	//CHECK_DATATYPE(datatype);
-	//CHECK_RANK(dest);
-
-	// mpi stages error check
-	// TODO CHECK_STAGES_ERROR();
-	debugpp("checking mpi stages error state");
-	if (exampi::handler->isErrSet())
-	{
-		return MPIX_TRY_RELOAD;
-	}
+	CHECK_BUFFER(buf);
+	CHECK_COUNT(count);
+	CHECK_DATATYPE(datatype);
+	CHECK_RANK(source);
+	CHECK_TAG(tag);
+	CHECK_COMM(comm);
+	CHECK_STAGES_ERROR();
 
 	// request generation
 	debugpp("generating request object");
 
+	Request *req = request_pool.allocate();
+	if(req == nullptr)
+		return MPI_ERR_INTERN;
+
+	*request = static_cast<MPI_Request>(static_cast<void*>(req));
+
 	Comm *c = exampi::communicators.at(comm);
 	int context = c->get_context_id_pt2pt();
 	size_t szcount = count;
-
-	Request *req = request_pool.allocate();
-	*request = static_cast<MPI_Request>(static_cast<void*>(req));
 
 	// operation descriptor
 	r->op = Op::Receive;
@@ -229,18 +219,12 @@ int BasicInterface::MPI_Recv_init(const void* buf, int count, MPI_Datatype datat
 	// context tuple
 	r->tag = tag;
 	r->communicator = comm;
-	r->destination = ;
+	r->destination;
 	
 	// data description
 	r->datatype = datatype;
 	r->count = count;
 	r->buffer = buf;
-
-	int err = exampi::progress->post_request(req);
-	// TODO handle error
-
-	// celebrate!
-	return MPI_SUCCESS;
 
 	// celebrate!
 	return MPI_SUCCESS;
@@ -251,6 +235,8 @@ int BasicInterface::MPI_Sendrecv(const void *sendbuf, int sendcount,
                                  MPI_Datatype recvtype, int source, int recvtag, MPI_Comm comm,
                                  MPI_Status *status)
 {
+	// sanitize user input
+	
 //	if (exampi::handler->isErrSet())
 //	{
 //		return MPIX_TRY_RELOAD;
@@ -280,43 +266,21 @@ int BasicInterface::MPI_Sendrecv(const void *sendbuf, int sendcount,
 
 int BasicInterface::MPI_Start(MPI_Request *request)
 {
-	// TODO sanitize user input
-	//CHECK_REQUEST(request);
+	// sanitize user input
+	CHECK_REQUEST(request);
+	CHECK_STAGES_ERROR();
 
-	// mpi stages error check
-	// TODO CHECK_STAGES_ERROR();
-	if (exampi::handler->isErrSet())
-	{
-		return MPIX_TRY_RELOAD;
-	}
+	// check active status
+	// TODO
+	//if(request->active)
+	//{
+	//	return MPI_ERR_REQUEST;
+	//}
 
 	// hand request to progress engine
-	//int err = exampi::progress->handle_request(request);
+	Request *req = static_cast<Request *>(static_cast<void*>(*request));
+	int err = exampi::progress->post_request(request);
 	// TODO check error
-
-//	// have to move construct the future; i'll fix this later with a pool in progress
-//	std::future<MPI_Status> *f = new std::future<MPI_Status>();
-//	(*f) = exampi::progress->postSend( { const_cast<void *>(buf),
-//	                                     &(exampi::datatypes[datatype]), szcount },
-//	{ dest, context }, tag);
-
-//	std::future<MPI_Status> *f = new std::future<MPI_Status>();
-//	(*f) = exampi::progress->postRecv( { const_cast<void *>(buf),
-//	                                     &(exampi::datatypes[datatype]), szcount }, {source, context}, tag);
-
-//	MPI_Status st = exampi::progress->postRecv(
-//	{
-//		const_cast<void *>(buf), &(exampi::datatypes[datatype]),
-//		szcount }, {source, context}, tag).get();
-
-//	std::future<MPI_Status> stf = exampi::progress->postSend(
-//	{
-//		const_cast<void *>(buf),
-//		&(exampi::datatypes[datatype]),
-//		szcount
-//	},
-//	{ dest, context },
-//	tag);
 
 	// celebrate!
 	return MPI_SUCCESS;
@@ -324,33 +288,44 @@ int BasicInterface::MPI_Start(MPI_Request *request)
 
 int BasicInterface::MPI_Wait(MPI_Request *request, MPI_Status *status)
 {
-	// TODO sanitize user input
+	// sanitize user input
 	debugpp("sanitizing user input");
-	//CHECK_REQUEST(request);
-	//CHECK_STATUS(status);
+	CHECK_REQUEST(request);
+	CHECK_STATUS(status);
+	CHECK_STAGES_ERROR();
 
-	// mpi stages error check
-	// TODO CHECK_STAGES_ERROR();
-	debugpp("checking mpi stages error state");
-	if (exampi::handler->isErrSet())
+	// TODO this is where we would do a polling execution until going to sleep
+
+	// wait for completion 
+	std::unique_lock<std::mutex> lock(request->mutex);
+
+	if(!request->complete)
 	{
-		return MPIX_TRY_RELOAD;
+		// wait for completion
+		// TODO predicate for MPI Stages?
+		request->conditional.wait();
 	}
 
-	// 
-	std::future<MPI_Status> *f = reinterpret_cast<std::future<MPI_Status> *>(*request);
-	//MPI_Status st = stf.get();
+	lock.unlock()
+	// request is now definitely completed
 
-	// either fill or wait on status
+	// fill status if needed
 	if(status != MPI_STATUS_IGNORE)
 	{
-		(*status) = f->get();
-	}
-	else
-	{
-		f->wait();
+		status->count = request->count;
+		status->cancelled = static_cast<int>(request->cancelled);
+		status->MPI_SOURCE = request->source;
+		status->MPI_TAG = request->tag;
+		status->MPI_ERROR = MPI_SUCCESS; // TODO check this?
 	}
 
+	// remove if not persistent
+	if(!request->persistent)
+	{
+		//TODO free request
+	}
+
+// TODO 
 //	if (st.MPI_ERROR == MPIX_TRY_RELOAD)
 //	{
 //		debugpp("MPIX_TRY_RELOAD FOUND");
@@ -368,17 +343,27 @@ int BasicInterface::MPI_Wait(MPI_Request *request, MPI_Status *status)
 //		return 0;
 //	}
 
-
 	// celebrate!
 	return MPI_SUCCESS;
+}
+
+int BasicInterface::MPI_Test(MPI_Request *request, int *flag, MPI_Status *status)
+{
+	// sanitize user input
+	debugpp("sanitizing user input");
+	CHECK_REQUEST(request);
+	CHECK_STATUS(status);
+	CHECK_STAGES_ERROR();
+
+	return -1;
 }
 
 int BasicInterface::MPI_Waitall(int count, MPI_Request array_of_requests[],
                                 MPI_Status array_of_statuses[])
 {
-//	// TODO sanitize user input
-//	//CHECK_REQUEST(request);
-//	//CHECK_STATUS(status);
+//	// sanitize user input
+//	CHECK_REQUEST(request);
+//	CHECK_STATUS(status);
 //
 //	// mpi stages error check
 //	// TODO CHECK_STAGES_ERROR();
@@ -421,6 +406,7 @@ int BasicInterface::MPI_Bcast(void *buf, int count, MPI_Datatype datatype,
 	{
 		return MPIX_TRY_RELOAD;
 	}
+
 	int rc;
 	if (exampi::rank == root)
 	{
@@ -919,4 +905,4 @@ int BasicInterface::MPI_Abort(MPI_Comm comm, int errorcode)
 	return errorcode;
 }
 
-} // namespace exampi
+}
