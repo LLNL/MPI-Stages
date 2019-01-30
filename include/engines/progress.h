@@ -19,6 +19,7 @@
 #include "config.h"
 #include "pool.h"
 #include "async.h"
+#include "header.h"
 
 namespace exampi
 {
@@ -74,6 +75,8 @@ public:
 	virtual int stop();
 	virtual void cleanUp();
 	virtual void barrier();
+	
+	virtual int handle_request(MPI_Request *request);
 
 	virtual std::future<MPI_Status> postSend(UserArray array, Endpoint dest,
 	        int tag);

@@ -306,20 +306,22 @@ void BasicProgress::finalize()
 	matchLock.unlock();
 	unexpectedLock.unlock();
 
-
+	// TODO do thread join?
 	ThreadMap::const_iterator it = tm_.find("1");
 	if (it != tm_.end())
 	{
 		pthread_cancel(it->second);
 		tm_.erase("1");
-		//std::cout << "Thread " << "1" << " killed:" << std::endl;
+
+		debugpp("Thread " << "1" << " killed:");
 	}
 	it = tm_.find("2");
 	if (it != tm_.end())
 	{
 		pthread_cancel(it->second);
 		tm_.erase("2");
-		//std::cout << "Thread " << "2" << " killed:" << std::endl;
+
+		debugpp("Thread " << "2" << " killed:");
 	}
 }
 
@@ -421,6 +423,11 @@ void BasicProgress::barrier()
 	//	sleep(1);
 	//}
 	//signal.setSignalToZero();
+}
+
+int BasicProgress::handle_request(MPI_Request *request)
+{
+	return -1;
 }
 
 std::future<MPI_Status> BasicProgress::postSend(UserArray array, Endpoint dest,
@@ -638,6 +645,7 @@ int BasicProgress::load(std::istream &t)
 		exampi::communicators.push_back(com);
 		comm_size--;
 	}
+
 	return MPI_SUCCESS;
 }
 
