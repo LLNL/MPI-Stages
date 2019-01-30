@@ -23,7 +23,7 @@ std::string epochConfig;
 // to do preinit at startup -- init calls will be required anyway
 // to avoid OoI problems, so might as well take advantage of them.
 
-Progress *progress = new BasicProgress();
+Progress *progress = new BlockingProgress();
 
 Transport *transport = new BasicTransport();
 
