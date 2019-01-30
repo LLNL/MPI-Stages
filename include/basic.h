@@ -19,25 +19,25 @@
 namespace exampi
 {
 
-const std::string runtimeConfig("mpihosts.stdin.tmp");
+//const std::string runtimeConfig("mpihosts.stdin.tmp");
 
-class Buf : public BufAbstract
-{
-private:
-	struct iovec v;
-
-public:
-	Buf(void *p, size_t sz)
-	{
-		v.iov_base = p;
-		v.iov_len = sz;
-	}
-
-	struct iovec iov()
-	{
-		return v;
-	}
-};
+//class Buf : public BufAbstract
+//{
+//private:
+//	struct iovec v;
+//
+//public:
+//	Buf(void *p, size_t sz)
+//	{
+//		v.iov_base = p;
+//		v.iov_len = sz;
+//	}
+//
+//	struct iovec iov()
+//	{
+//		return v;
+//	}
+//};
 
 
 } // namespace exampi
