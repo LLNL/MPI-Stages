@@ -31,7 +31,8 @@ public:
 	virtual std::future<MPI_Status> postRecv(UserArray array, Endpoint source,
 	        int tag) = 0;
 
-	virtual int handle_request(MPI_Request *request) = 0;
+	virtual int post_request(MPI_Request *request) = 0;
+	virtual int wait_request(MPI_Request *request) = 0;
 
 	// save groups and communicators
 	virtual int save(std::ostream &t) = 0;
