@@ -15,6 +15,12 @@
 namespace exampi
 {
 
+enum class Op: int
+{
+	Send,
+	Receive
+};
+
 struct Request
 {
 //public:
