@@ -98,7 +98,7 @@ int BasicInterface::MPI_Send(const void *buf, int count, MPI_Datatype datatype,
 	// is this where it waits?
 	MPI_Status st = stf.get();
 
-	debugpp("Finished MPI_Send: " << mpiStatusString(st));
+	//debugpp("Finished MPI_Send: " << mpiStatusString(st));
 
 	return 0;
 }
