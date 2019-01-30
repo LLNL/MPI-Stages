@@ -9,7 +9,7 @@ namespace exampi
 namespace exampi
 {
 
-int BasicProgress::init()
+int BlockingProgress::init()
 {
 	addEndpoints();
 	alive = true;
@@ -29,13 +29,13 @@ int BasicProgress::init()
 	return 0;
 }
 
-int BasicProgress::init(std::istream &t)
+int BlockingProgress::init(std::istream &t)
 {
 	init();
 	return 0;
 }
 
-void BasicProgress::finalize()
+void BlockingProgress::finalize()
 {
 	for(auto &&com : exampi::communicators)
 	{
@@ -70,7 +70,7 @@ void BasicProgress::finalize()
 	}
 }
 
-int BasicProgress::stop()
+int BlockingProgress::stop()
 {
 	for (auto &r : matchList)
 	{
@@ -84,7 +84,7 @@ int BasicProgress::stop()
 	return 0;
 }
 
-void BasicProgress::cleanUp()
+void BlockingProgress::cleanUp()
 {
 	// what is this?
 	sigHandler handler;
@@ -128,8 +128,7 @@ void BasicProgress::cleanUp()
 	 */
 }
 
-
-void BasicProgress::barrier()
+void BlockingProgress::barrier()
 {
 	Daemon &daemon = Daemon::get_instance();
 
@@ -162,88 +161,101 @@ void BasicProgress::barrier()
 	//signal.setSignalToZero();
 }
 
-std::future<MPI_Status> BasicProgress::postSend(UserArray array, Endpoint dest,
-        int tag)
+int BlockingProgress::post_request(Request *request)
 {
-	debugpp("basic::Interface::postSend(...)");
-
-	// create request
-	std::unique_ptr<Request> r = make_unique<Request>();
-	r->op = Op::Send;
-	r->source = exampi::rank;
-	r->stage = exampi::epoch;
-	r->array = array;
-	r->endpoint = dest;
-	r->tag = tag;
-	r->comm = dest.comm;
-
-	//
-	auto result = r->completionPromise.get_future();
-
-	// give to send thread
-	outbox.put(std::move(r));
-
-	return result;
-}
-
-std::future<MPI_Status> BasicProgress::postRecv(UserArray array,
-        Endpoint source, int tag)
-{
-	debugpp("basic::Interface::postRecv(...)");
-
-	// make request
-	std::unique_ptr<Request> r = make_unique<Request>();
-	r->op = Op::Receive;
-	r->source = source.rank;
-	r->array = array;
-	r->endpoint = source;
-	r->tag = tag;
-	r->comm = source.comm;
-	r->stage = exampi::epoch;
-	int s = source.rank;
-	int c = source.comm;
-	int e = exampi::epoch;
-	auto result = r->completionPromise.get_future();
-
-	// search unexpected message queue
-	debugpp("searching unexpected message queue");
-	unexpectedLock.lock();
-	matchLock.lock();
-	auto res = std::find_if(unexpectedList.begin(), unexpectedList.end(),
-	                        [tag,s, c, e](const std::unique_ptr<Request> &i) -> bool {i->unpack(); return i->tag == tag && i->source == s && i->stage == e && i->comm == c;});
-
-	//
-	if (res == unexpectedList.end())
+	if(request->op == Op::Receive)
 	{
-		debugpp("NO match in unexpectedList, push");
-
-		// put request into match list for later matching
-		unexpectedLock.unlock();
-		matchList.push_back(std::move(r));
-		matchLock.unlock();
+		// insert into matching mechanism
 	}
 	else
 	{
-		// found in UMQ
-		matchLock.unlock();
-
-		debugpp("Found match in unexpectedList");
-
-		(*res)->unpack();
-		//memcpy(array.ptr, )
-		memcpy(array.getIovec().iov_base, (*res)->temp.iov_base,
-		       array.getIovec().iov_len);
-		(r)->completionPromise.set_value( { .count = (*res)->status.count, .cancelled = 0,
-		                                    .MPI_SOURCE = (*res)->source, .MPI_TAG = (*res)->tag, .MPI_ERROR = MPI_SUCCESS});
-		unexpectedList.erase(res);
-		unexpectedLock.unlock();
-
+		this->protocol_queue.insert(request);
 	}
-
-	return result;
 }
 
-int BasicProgress::save(std::ostream &t)
+//std::future<MPI_Status> BlockingProgress::postSend(UserArray array, Endpoint dest,
+//        int tag)
+//{
+//	debugpp("basic::Interface::postSend(...)");
+//
+//	// create request
+//	std::unique_ptr<Request> r = make_unique<Request>();
+//	r->op = Op::Send;
+//	r->source = exampi::rank;
+//	r->stage = exampi::epoch;
+//	r->array = array;
+//	r->endpoint = dest;
+//	r->tag = tag;
+//	r->comm = dest.comm;
+//
+//	//
+//	auto result = r->completionPromise.get_future();
+//
+//	// give to send thread
+//	outbox.put(std::move(r));
+	// protocol queue
+//
+//	return result;
+//}
+//
+//std::future<MPI_Status> BlockingProgress::postRecv(UserArray array,
+//        Endpoint source, int tag)
+//{
+//	debugpp("basic::Interface::postRecv(...)");
+//
+//	// make request
+//	std::unique_ptr<Request> r = make_unique<Request>();
+//	r->op = Op::Receive;
+//	r->source = source.rank;
+//	r->array = array;
+//	r->endpoint = source;
+//	r->tag = tag;
+//	r->comm = source.comm;
+//	r->stage = exampi::epoch;
+//	int s = source.rank;
+//	int c = source.comm;
+//	int e = exampi::epoch;
+//	auto result = r->completionPromise.get_future();
+//
+//	// search unexpected message queue
+//	debugpp("searching unexpected message queue");
+//	unexpectedLock.lock();
+//	matchLock.lock();
+//	auto res = std::find_if(unexpectedList.begin(), unexpectedList.end(),
+//	                        [tag,s, c, e](const std::unique_ptr<Request> &i) -> bool {i->unpack(); return i->tag == tag && i->source == s && i->stage == e && i->comm == c;});
+//
+//	//
+//	if (res == unexpectedList.end())
+//	{
+//		debugpp("NO match in unexpectedList, push");
+//
+//		// put request into match list for later matching
+//		unexpectedLock.unlock();
+//		matchList.push_back(std::move(r));
+//		matchLock.unlock();
+//	}
+//	else
+//	{
+//		// found in UMQ
+//		matchLock.unlock();
+//
+//		debugpp("Found match in unexpectedList");
+//
+//		(*res)->unpack();
+//		//memcpy(array.ptr, )
+//		memcpy(array.getIovec().iov_base, (*res)->temp.iov_base,
+//		       array.getIovec().iov_len);
+//		(r)->completionPromise.set_value( { .count = (*res)->status.count, .cancelled = 0,
+//		                                    .MPI_SOURCE = (*res)->source, .MPI_TAG = (*res)->tag, .MPI_ERROR = MPI_SUCCESS});
+//		unexpectedList.erase(res);
+//		unexpectedLock.unlock();
+//
+//	}
+//
+//	return result;
+//}
+
+int BlockingProgress::save(std::ostream &t)
 {
 	//save group
 	int group_size = exampi::groups.size();
@@ -282,7 +294,7 @@ int BasicProgress::save(std::ostream &t)
 	return MPI_SUCCESS;
 }
 
-int BasicProgress::load(std::istream &t)
+int BlockingProgress::load(std::istream &t)
 {
 	alive = true;
 	sendThread = std::thread { sendThreadProc, &alive, &outbox };

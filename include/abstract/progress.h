@@ -32,7 +32,6 @@ public:
 	        int tag) = 0;
 
 	virtual int post_request(MPI_Request *request) = 0;
-	virtual int wait_request(MPI_Request *request) = 0;
 
 	// save groups and communicators
 	virtual int save(std::ostream &t) = 0;

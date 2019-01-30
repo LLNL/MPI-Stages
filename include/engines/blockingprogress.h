@@ -17,8 +17,7 @@ public:
 	BlockingProgress();
 	~BlockingProgress();	
 
-	postSend();
-	postRecv();
+	int post_request(Request *request);
 };
 
 }
