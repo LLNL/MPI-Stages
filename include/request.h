@@ -1,21 +1,30 @@
 #ifndef __EXAMPI_REQUEST_H
 #define __EXAMPI_REQUEST_H
 
-#include "ExaMPI.h"
-#include "endpoint.h"
+#include <mutex>
+#include <condition_variable>
+
+//#include "ExaMPI.h"
+
+#include "datatype.h"
 
 namespace exampi
 {
 
-class Request
+struct Request
 {
-public:
-	static constexpr size_t HeaderSize = (8 * 4);
+//public:
+//	//static constexpr size_t HeaderSize = (8 * 4);
+//
+//protected:
+//	char hdr[HeaderSize];
 
-protected:
-	char hdr[HeaderSize];
+	std::mutex mutex;
+	std::conditional_variable conditional;	
 
-public:
+	bool complete;
+	bool cancelled;
+
 	Op op;
 	int tag;
 	int source;
@@ -26,7 +35,6 @@ public:
 	int count;
 
 	int stage;
-	
 
 	// FIXME remove iovec, scope violation, socket level things should live in UDPTransport
 	//struct iovec temp;
@@ -36,6 +44,11 @@ public:
 
 	// NOTE could use custom allocator here
 	//std::promise<MPI_Status> completionPromise;
+
+	Request()
+	{
+		//
+	}
 
 	void pack()
 	{
