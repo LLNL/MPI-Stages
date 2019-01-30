@@ -17,6 +17,9 @@ class BlockingProgress: public Progress
 {
 private:
 	std::vector<std::thread> progress_threads;
+
+	ProtocolQueue protocol_queue;
+	Matcher matcher;
 	
 public:
 	BlockingProgress();

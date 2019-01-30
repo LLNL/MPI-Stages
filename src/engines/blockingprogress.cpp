@@ -133,57 +133,14 @@ int BlockingProgress::post_request(Request *request)
 	if(request->op == Op::Receive)
 	{
 		// insert into matching mechanism
+		matcher.match(request)
 	}
 	else
 	{
-		this->protocol_queue.insert(request);
+		protocol_queue.insert(request);
 	}
 }
 
-//std::future<MPI_Status> BlockingProgress::postSend(UserArray array, Endpoint dest,
-//        int tag)
-//{
-//	debugpp("basic::Interface::postSend(...)");
-//
-//	// create request
-//	std::unique_ptr<Request> r = make_unique<Request>();
-//	r->op = Op::Send;
-//	r->source = exampi::rank;
-//	r->stage = exampi::epoch;
-//	r->array = array;
-//	r->endpoint = dest;
-//	r->tag = tag;
-//	r->comm = dest.comm;
-//
-//	//
-//	auto result = r->completionPromise.get_future();
-//
-//	// give to send thread
-//	outbox.put(std::move(r));
-	// protocol queue
-//
-//	return result;
-//}
-//
-//std::future<MPI_Status> BlockingProgress::postRecv(UserArray array,
-//        Endpoint source, int tag)
-//{
-//	debugpp("basic::Interface::postRecv(...)");
-//
-//	// make request
-//	std::unique_ptr<Request> r = make_unique<Request>();
-//	r->op = Op::Receive;
-//	r->source = source.rank;
-//	r->array = array;
-//	r->endpoint = source;
-//	r->tag = tag;
-//	r->comm = source.comm;
-//	r->stage = exampi::epoch;
-//	int s = source.rank;
-//	int c = source.comm;
-//	int e = exampi::epoch;
-//	auto result = r->completionPromise.get_future();
-//
 //	// search unexpected message queue
 //	debugpp("searching unexpected message queue");
 //	unexpectedLock.lock();
