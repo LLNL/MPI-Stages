@@ -128,39 +128,6 @@ void BlockingProgress::cleanUp()
 	 */
 }
 
-void BlockingProgress::barrier()
-{
-	Daemon &daemon = Daemon::get_instance();
-
-	daemon.barrier();
-
-	//// this is the MPI_init barrier release
-
-	//// write process id to file with rank
-	//std::stringstream filename;
-	//filename << "pid." << exampi::rank << ".txt";
-	//std::ofstream t(filename.str());
-	//t << ::getpid();
-	//t.close();
-
-	//// TODO convert to socket communication
-	//sigHandler signal;
-	//signal.setSignalToHandle(SIGUSR1);
-
-	//// send usr1 to parent
-	//// TODO replace with socket comms
-	//int parent_pid = std::stoi((*exampi::config)["ppid"]);
-	//kill(parent_pid, SIGUSR1);
-
-	//// wait for "com" return
-	//// busy wait on signal
-	//while (signal.isSignalSet() != 1)
-	//{
-	//	sleep(1);
-	//}
-	//signal.setSignalToZero();
-}
-
 int BlockingProgress::post_request(Request *request)
 {
 	if(request->op == Op::Receive)

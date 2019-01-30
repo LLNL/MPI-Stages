@@ -19,17 +19,13 @@ public:
 	// delete all communicators, groups, stop threads
 	virtual void finalize() = 0;
 
-	// daemon barrier direct call
-	// TODO remove! this should be handled directly with calling daemon, this is not a "MPI level barrier"
-	virtual void barrier() = 0;
-
 	// send message across wire
-	virtual std::future<MPI_Status> postSend(UserArray array, Endpoint dest,
-	        int tag) = 0;
+	//virtual std::future<MPI_Status> postSend(UserArray array, Endpoint dest,
+	//       int tag) = 0;
 
 	// recv message from wire
-	virtual std::future<MPI_Status> postRecv(UserArray array, Endpoint source,
-	        int tag) = 0;
+	//virtual std::future<MPI_Status> postRecv(UserArray array, Endpoint source,
+	//        int tag) = 0;
 
 	virtual int post_request(MPI_Request *request) = 0;
 

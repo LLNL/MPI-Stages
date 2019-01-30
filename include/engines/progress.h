@@ -74,7 +74,6 @@ public:
 
 	virtual int stop();
 	virtual void cleanUp();
-	virtual void barrier();
 	
 	virtual int handle_request(MPI_Request *request);
 

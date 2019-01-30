@@ -44,8 +44,9 @@ int BasicInterface::MPI_Init(int *argc, char ***argv)
 	if(exampi::epoch == 0)
 	{
 		debugpp("Executing barrier" << exampi::rank);
-		// TODO convert to daemon barrier call
-		exampi::progress->barrier();
+
+		Daemon& daemon = Daemon::get_instance();
+		daemon.barrier();
 	}
 
 	/* Checkpoint/restart
@@ -679,7 +680,8 @@ int BasicInterface::MPIX_Checkpoint_read()
 	debugpp("commit epoch received" << exampi::epoch);
 
 	// wait for restarted process
-	exampi::progress->barrier();
+	Daemon& daemon = Daemon::get_instance();
+	daemon.barrier();
 
 	return MPI_SUCCESS;
 }

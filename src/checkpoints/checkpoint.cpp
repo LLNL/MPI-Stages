@@ -76,7 +76,8 @@ int BasicCheckpoint::load()
 		exampi::progress->load(target);
 		exampi::transport->load(target);
 
-		exampi::progress->barrier();
+		Daemon& daemon = Daemon::get_instance();
+		daemon.barrier();
 
 		//exampi::interface->save(target);
 
