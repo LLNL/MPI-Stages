@@ -17,11 +17,12 @@ enum class Op: int
 };
 
 // 
-extern thread_local std::mutex thr_request_lock;
+//extern thread_local std::mutex thr_request_lock;
 extern thread_local std::condition_variable thr_request_condition;
 
 struct Request
 {
+	std::mutex lock;
 	std::condition_variable *condition;
 
 	volatile bool complete; // if true no longer in protocol queue

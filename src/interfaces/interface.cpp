@@ -322,9 +322,6 @@ int BasicInterface::MPI_Wait(MPI_Request *request, MPI_Status *status)
 		return MPI_SUCCESS;
 	}
 
-	// register condition variable
-	req->condition = &thr_request_condition;
-
 	// NOTE if we want to do some polling execution before blocking
 	// poll for counter_max cycles
 	//size_t counter = 0; counter_max = 100;
@@ -335,10 +332,13 @@ int BasicInterface::MPI_Wait(MPI_Request *request, MPI_Status *status)
 	if(!req->complete)
 	{
 		// wait for completion 
-		std::unique_lock<std::mutex> lock(thr_request_lock);
+		//std::unique_lock<std::mutex> lock(thr_request_lock);
+		std::unique_lock<std::mutex> lock(req->lock);
+
+		// register condition variable
+		req->condition = &thr_request_condition;
 
 		// wait for completion
-		// NOTE eyes on for thread-safe, MR & RM 29/01/2019, someone else should look too
 		thr_request_condition.wait(lock, [req] () -> bool {return req->complete;});
 
 		lock.unlock();
