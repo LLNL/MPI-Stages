@@ -9,7 +9,11 @@ namespace exampi
 class Matcher
 {
 public:
+	virtual int post(Request *request) = 0;
+
 	virtual int match(Request *request) = 0;
+
+	virtual int progress();
 };
 
 }
