@@ -3,12 +3,6 @@
 namespace exampi
 {
 
-}
-#include "engines/progress.h"
-
-namespace exampi
-{
-
 BlockingProgress::BlockingProgress() : shutdown(false)
 {
 	// TODO remove this ASAP in here due to inheritance development
@@ -54,13 +48,17 @@ void BlockingProgress::progress()
 		std::this_thread::yield();
 
 		// phase 1
+		// matcher.progress()
+
+		// phase 2
+		// transport.receive messages
+		
 		// remove from network
 		//exampi::transport->recv
 		// receive from transport, ingest into matching
 		//matcher->insert(msg from transport, in form of request?);
 		
-		// phase 2
-		// send out from protocol queue
+		// phase 3
 		// walk protocol queue, find work do, do it
 	}
 }
@@ -80,6 +78,7 @@ int BlockingProgress::init(std::istream &t)
 // TODO remove ASAP
 void BlockingProgress::finalize()
 {
+	// this should all be in MPI State
 	// delete communicators
 //	for(auto &&com : exampi::communicators)
 //	{
@@ -93,17 +92,12 @@ void BlockingProgress::finalize()
 //		delete group;
 //	}
 //	exampi::groups.clear();
-
-//	matchList.clear();
-//	unexpectedList.clear();
-
-//	matchLock.unlock();
-//	unexpectedLock.unlock();
 }
 
 int BlockingProgress::stop()
 {
 	// TODO what is this doing?
+	// nullifying match list
 //	for (auto &r : matchList)
 //	{
 //		(r)->unpack();
@@ -114,6 +108,8 @@ int BlockingProgress::stop()
 //	matchList.clear();
 //	unexpectedList.clear();
 //	return 0;
+	
+	// this is done when we are cleaning up?
 }
 
 void BlockingProgress::cleanUp()
