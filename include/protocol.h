@@ -11,6 +11,11 @@
 namespace exampi
 {
 
+class ProtocolMessage
+{
+	;
+};
+
 class ProtocolQueue
 {
 private:
