@@ -294,38 +294,67 @@ int BasicInterface::MPI_Wait(MPI_Request *request, MPI_Status *status)
 	CHECK_STATUS(status);
 	CHECK_STAGES_ERROR();
 
-	// TODO this is where we would do a polling execution until going to sleep
-
-	// wait for completion 
-	std::unique_lock<std::mutex> lock(request->mutex);
-
-	if(!request->complete)
+	// MPI_REQUEST_NULL check
+	if(request == MPI_REQUEST_NULL)
 	{
-		// wait for completion
-		// TODO predicate for MPI Stages?
-		request->conditional.wait();
+		return MPI_SUCCESS;
 	}
 
-	lock.unlock()
+	// derefernce MPI_Request -> Request
+	Request *req = reinterpret_cast<Request *>(request);
+
+	// inactive persistent request check
+	if(req->persistent && !req->active)
+	{
+		return MPI_SUCCESS;
+	}
+
+	// register condition variable
+	req->condition = &thr_request_condition;
+
+	// NOTE if we want to do some polling execution before blocking
+	// poll for counter_max cycles
+	//size_t counter = 0; counter_max = 100;
+	//while(!req->complete && (counter < counter_max))
+	//	++counter;
+
+	// if request is not complete
+	if(!req->complete)
+	{
+		// wait for completion 
+		std::unique_lock<std::mutex> lock(thr_request_lock);
+
+		// wait for completion
+		// NOTE eyes on for thread-safe, MR & RM 29/01/2019, someone else should look too
+		thr_request_condition.wait(lock, [req] () bool -> {return req->complete;});
+
+		lock.unlock()
+	}
 	// request is now definitely completed
 
 	// fill status if needed
 	if(status != MPI_STATUS_IGNORE)
 	{
-		status->count = request->count;
-		status->cancelled = static_cast<int>(request->cancelled);
-		status->MPI_SOURCE = request->source;
-		status->MPI_TAG = request->tag;
-		status->MPI_ERROR = MPI_SUCCESS; // TODO check this?
+		*status->count = req->count;
+		*status->cancelled = static_cast<int>(req->cancelled);
+		*status->MPI_SOURCE = req->source;
+		*status->MPI_TAG = req->tag;
+		*status->MPI_ERROR = MPI_SUCCESS; // TODO check this?
 	}
 
-	// remove if not persistent
-	if(!request->persistent)
+	// for persistent requests
+	if(req->persistent)
 	{
-		//TODO free request
+		req->active = false;
+	}
+	// normal requests
+	else
+	{
+		// TODO deallocate
+		*request = MPI_REQUEST_NULL;
 	}
 
-// TODO 
+// TODO also for MPI_Test 
 //	if (st.MPI_ERROR == MPIX_TRY_RELOAD)
 //	{
 //		debugpp("MPIX_TRY_RELOAD FOUND");
@@ -355,7 +384,60 @@ int BasicInterface::MPI_Test(MPI_Request *request, int *flag, MPI_Status *status
 	CHECK_STATUS(status);
 	CHECK_STAGES_ERROR();
 
-	return -1;
+	// MPI_REQUEST_NULL check
+	if(request == MPI_REQUEST_NULL)
+	{
+		*flag = true;
+		
+		return MPI_SUCCESS;
+	}
+
+	// derefernce MPI_Request -> Request
+	Request *req = reinterpret_cast<Request *>(request);
+
+	// inactive persistent request check
+	if(req->persistent && !req->active)
+	{
+		*flag = true;
+		
+		return MPI_SUCCESS;
+	}
+
+	// if request is not complete
+	if(!req->complete)
+	{
+		*flag = 0;
+	}
+	// if request is complete
+	else
+	{
+		*flag = 1;
+
+		// set status if required
+		if(status != MPI_STATUS_IGNORE)
+		{
+			*status->count = request->count;
+			*status->cancelled = static_cast<int>(request->cancelled);
+			*status->MPI_SOURCE = request->source;
+			*status->MPI_TAG = request->tag;
+			*status->MPI_ERROR = MPI_SUCCESS; // TODO check this?
+		}
+
+		// for persistent request
+		if(req->persistent)
+		{
+			req->active = false;
+		}
+		// otherwise deallocate and set to REQUEST_NULL
+		else
+		{
+			// TODO deallocate request
+			*request = MPI_REQUEST_NULL;
+		}
+	}
+
+	// celebrate!
+	return MPI_SUCCESS;
 }
 
 int BasicInterface::MPI_Waitall(int count, MPI_Request array_of_requests[],

@@ -16,44 +16,29 @@ enum class Op: int
 	Receive
 };
 
+// 
+extern thread_local std::mutex thr_request_lock;
+extern thread_local std::condition_variable thr_request_condition;
+
 struct Request
 {
-//public:
-//	//static constexpr size_t HeaderSize = (8 * 4);
-//
-//protected:
-//	char hdr[HeaderSize];
+	std::condition_variable *condition;
 
-	std::mutex mutex;
-	std::condition_variable conditional;	
-
-	bool complete;
+	volatile bool complete; // if true no longer in protocol queue
 	bool cancelled;
+	bool persistent;
+	bool active;
 
 	Op op;
 	int tag;
 	int source;
 	MPI_Comm comm;
-	//UserArray array;
 	void *buffer;
 	Datatype datatype;
 	int count;
-
 	int stage;
 
-	// FIXME remove iovec, scope violation, socket level things should live in UDPTransport
-	//struct iovec temp;
-
-	//Endpoint endpoint;
-	//MPI_Status status; // maybe not needed --sf
-
-	// NOTE could use custom allocator here
-	//std::promise<MPI_Status> completionPromise;
-
-	Request()
-	{
-		//
-	}
+	Request();
 
 	//void pack()
 	//{
@@ -78,46 +63,6 @@ struct Request
 	//	source = dword[4];
 	//	tag = dword[5];
 	//	comm = dword[6];
-	//}
-
-	//struct iovec getHeaderIovec()
-	//{
-	//	pack();
-	//	struct iovec iov = { hdr, HeaderSize };
-	//	return iov;
-	//}
-
-	//std::vector<struct iovec> getHeaderIovecs()
-	//{
-	//	std::vector<struct iovec> iov;
-	//	iov.push_back(getHeaderIovec());
-	//	return iov;
-	//}
-
-	//std::vector<struct iovec> getArrayIovecs()
-	//{
-	//	std::vector<struct iovec> iov;
-	//	iov.push_back(array.getIovec());
-	//	return iov;
-	//}
-
-	//std::vector<struct iovec> getIovecs()
-	//{
-	//	std::vector<struct iovec> iov;
-	//	iov.push_back(getHeaderIovec());
-	//	iov.push_back(array.getIovec());
-	//	return iov;
-	//}
-
-	//std::vector<struct iovec> getTempIovecs()
-	//{
-	//	std::vector<struct iovec> iov;
-	//	iov.push_back(getHeaderIovec());
-	//	char tempBuff[65000];
-	//	temp.iov_base = tempBuff;
-	//	temp.iov_len = sizeof(tempBuff);
-	//	iov.push_back(temp);
-	//	return iov;
 	//}
 };
 
