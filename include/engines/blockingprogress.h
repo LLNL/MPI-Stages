@@ -18,10 +18,14 @@ namespace exampi
 class BlockingProgress: public Progress
 {
 private:
+	volatile bool shutdown;
+
 	std::vector<std::thread> progress_threads;
 
 	ProtocolQueue protocol_queue;
 	Matcher *matcher;
+
+	void progress();
 	
 public:
 	BlockingProgress();

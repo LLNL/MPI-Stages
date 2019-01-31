@@ -9,69 +9,101 @@ namespace exampi
 namespace exampi
 {
 
-int BlockingProgress::init()
+BlockingProgress::BlockingProgress() : shutdown(false)
 {
-//	//alive = true;
-//
-//	sendThread = std::thread { sendThreadProc, &alive, &outbox };
-//
-//	//recvThread = std::thread{recvThreadProc, &alive, &inbox};
-//
-//	matchThread = std::thread { matchThreadProc, &alive, &matchList, &unexpectedList,
-//	                            &matchLock, &unexpectedLock };
-//
-//	exampi::groups.push_back(group);
-//	communicator = new Comm(true, group, group);
-//	communicator->set_rank(exampi::rank);
-//	communicator->set_context(0, 1);
-//	exampi::communicators.push_back(communicator);
-//	return 0;
+	// TODO remove this ASAP in here due to inheritance development
+	// should be in global mpi state
+	// creating MPI_COMM_WORLD and world group
+	exampi::groups.push_back(group);
+	communicator = new Comm(true, group, group);
+	communicator->set_rank(exampi::rank);
+	communicator->set_context(0, 1);
+	exampi::communicators.push_back(communicator);
+	
+	// start progress threads
+	// TODO fetch progress thread count from config
+	//for(size_t tidx = 0; tidx < thread_num; ++tidx)
+	for(size_t tidx = 0; tidx < 1; ++tidx)
+	{
+		// launch thread executing progress function
+		std::thread thr(&BlockingProgress::progress, this);
+		progress_threads.push_back(thr);
+	}
 }
 
-int BlockingProgress::init(std::istream &t)
+BlockingProgress::~BlockingProgress()
 {
-	init();
+	// join all threads
+	shutdown = true;
 
+	for(auto&& thr : this->progress_threads)
+	{	
+		thr.join();
+	}
+
+	// 
+	// ...
+}
+
+void BlockingProgress::progress()
+{
+	// keep progress threads alive
+	while(!this->shutdown)
+	{
+		// TODO remove
+		std::this_thread::yield();
+
+		// phase 1
+		// remove from network
+		//exampi::transport->recv
+		// receive from transport, ingest into matching
+		//matcher->insert(msg from transport, in form of request?);
+		
+		// phase 2
+		// send out from protocol queue
+		// walk protocol queue, find work do, do it
+	}
+}
+
+// TODO remove ASAP
+int BlockingProgress::init()
+{
 	return 0;
 }
 
+// TODO remove ASAP
+int BlockingProgress::init(std::istream &t)
+{
+	return init();
+}
+
+// TODO remove ASAP
 void BlockingProgress::finalize()
 {
+	// delete communicators
 //	for(auto &&com : exampi::communicators)
 //	{
 //		delete com;
 //	}
 //	exampi::communicators.clear();
-//
+	
+	// delete groups
 //	for (auto &&group : exampi::groups)
 //	{
 //		delete group;
 //	}
 //	exampi::groups.clear();
-//
-//	alive = false;
+
 //	matchList.clear();
 //	unexpectedList.clear();
+
 //	matchLock.unlock();
 //	unexpectedLock.unlock();
-//	ThreadMap::const_iterator it = tm_.find("1");
-//	if (it != tm_.end())
-//	{
-//		pthread_cancel(it->second);
-//		tm_.erase("1");
-//		//std::cout << "Thread " << "1" << " killed:" << std::endl;
-//	}
-//	it = tm_.find("2");
-//	if (it != tm_.end())
-//	{
-//		pthread_cancel(it->second);
-//		tm_.erase("2");
-//		//std::cout << "Thread " << "2" << " killed:" << std::endl;
-//	}
 }
 
 int BlockingProgress::stop()
 {
+	// TODO what is this doing?
 //	for (auto &r : matchList)
 //	{
 //		(r)->unpack();
@@ -107,10 +139,11 @@ void BlockingProgress::cleanUp()
 
 int BlockingProgress::post_request(Request *request)
 {
+	// user thread relinquishes control here
 	if(request->op == Op::Receive)
 	{
 		// insert into matching mechanism
-		matcher->match(request);
+		matcher->post(request);
 	}
 	else
 	{
@@ -191,8 +224,8 @@ int BlockingProgress::save(std::ostream &t)
 //		value = c->get_remote_group()->get_group_id();
 //		t.write(reinterpret_cast<char *>(&value), sizeof(int));
 //	}
-//
-//	return MPI_SUCCESS;
+
+	return MPI_SUCCESS;
 }
 
 int BlockingProgress::load(std::istream &t)
@@ -268,7 +301,7 @@ int BlockingProgress::load(std::istream &t)
 //		exampi::communicators.push_back(com);
 //		comm_size--;
 //	}
-//	return MPI_SUCCESS;
+	return MPI_SUCCESS;
 }
 
 } // exampi
