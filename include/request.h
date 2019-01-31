@@ -32,8 +32,9 @@ struct Request
 	Op op;
 	int tag;
 	int source;
-	MPI_Comm comm;
-	void *buffer;
+	int destination;
+	MPI_Comm communicator;
+	const void *buffer;
 	Datatype datatype;
 	int count;
 	int stage;

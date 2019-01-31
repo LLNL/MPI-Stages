@@ -1,6 +1,7 @@
 #include "interfaces/interface.h"
 
 #include "debug.h"
+#include "daemon.h"
 
 namespace exampi
 {
@@ -10,6 +11,16 @@ BasicInterface &BasicInterface::get_instance()
 	static BasicInterface instance;
 
 	return instance;
+}
+
+BasicInterface::BasicInterface() : request_pool(256)
+{
+	;
+}
+
+BasicInterface::~BasicInterface()
+{
+	;
 }
 
 int BasicInterface::MPI_Init(int *argc, char ***argv)
@@ -154,7 +165,7 @@ int BasicInterface::MPI_Send_init(const void* buf, int count, MPI_Datatype datat
 	if(req == nullptr)
 		return MPI_ERR_INTERN;
 
-	*request = static_cast<MPI_Request>(static_cast<void*>(req));
+	*request = reinterpret_cast<MPI_Request>(req);
 
 	Comm *c = exampi::communicators.at(comm);
 	int context = c->get_context_id_pt2pt();
@@ -164,7 +175,7 @@ int BasicInterface::MPI_Send_init(const void* buf, int count, MPI_Datatype datat
 	req->op = Op::Send;
 
 	// 
-	rrq->source = exampi::rank;
+	req->source = exampi::rank;
 
 	// MPI Stages
 	req->stage = exampi::epoch;
@@ -175,7 +186,8 @@ int BasicInterface::MPI_Send_init(const void* buf, int count, MPI_Datatype datat
 	req->destination = dest;
 	
 	// data description
-	req->datatype = datatype;
+	// TODO req->datatype = datatype;
+	req->datatype = exampi::datatypes[datatype];
 	req->count = count;
 	req->buffer = buf;
 
@@ -201,7 +213,7 @@ int BasicInterface::MPI_Recv_init(const void* buf, int count, MPI_Datatype datat
 	if(req == nullptr)
 		return MPI_ERR_INTERN;
 
-	*request = static_cast<MPI_Request>(static_cast<void*>(req));
+	*request = reinterpret_cast<MPI_Request>(req);
 
 	Comm *c = exampi::communicators.at(comm);
 	int context = c->get_context_id_pt2pt();
@@ -219,10 +231,11 @@ int BasicInterface::MPI_Recv_init(const void* buf, int count, MPI_Datatype datat
 	// context tuple
 	req->tag = tag;
 	req->communicator = comm;
-	req->destination;
+	req->destination = exampi::rank;
 	
 	// data description
-	req->datatype = datatype;
+	//TODO req->datatype = datatype;
+	req->datatype = exampi::datatypes[datatype];
 	req->count = count;
 	req->buffer = buf;
 
@@ -278,8 +291,8 @@ int BasicInterface::MPI_Start(MPI_Request *request)
 	//}
 
 	// hand request to progress engine
-	Request *req = static_cast<Request *>(static_cast<void*>(*request));
-	int err = exampi::progress->post_request(request);
+	Request *req = reinterpret_cast<Request *>(*request);
+	int err = exampi::progress->post_request(req);
 	// TODO check error
 
 	// celebrate!
@@ -326,20 +339,20 @@ int BasicInterface::MPI_Wait(MPI_Request *request, MPI_Status *status)
 
 		// wait for completion
 		// NOTE eyes on for thread-safe, MR & RM 29/01/2019, someone else should look too
-		thr_request_condition.wait(lock, [req] () bool -> {return req->complete;});
+		thr_request_condition.wait(lock, [req] () -> bool {return req->complete;});
 
-		lock.unlock()
+		lock.unlock();
 	}
 	// request is now definitely completed
 
 	// fill status if needed
 	if(status != MPI_STATUS_IGNORE)
 	{
-		*status->count = req->count;
-		*status->cancelled = static_cast<int>(req->cancelled);
-		*status->MPI_SOURCE = req->source;
-		*status->MPI_TAG = req->tag;
-		*status->MPI_ERROR = MPI_SUCCESS; // TODO check this?
+		status->count = req->count;
+		status->cancelled = static_cast<int>(req->cancelled);
+		status->MPI_SOURCE = req->source;
+		status->MPI_TAG = req->tag;
+		status->MPI_ERROR = MPI_SUCCESS; // TODO check this?
 	}
 
 	// for persistent requests
@@ -416,11 +429,11 @@ int BasicInterface::MPI_Test(MPI_Request *request, int *flag, MPI_Status *status
 		// set status if required
 		if(status != MPI_STATUS_IGNORE)
 		{
-			*status->count = request->count;
-			*status->cancelled = static_cast<int>(request->cancelled);
-			*status->MPI_SOURCE = request->source;
-			*status->MPI_TAG = request->tag;
-			*status->MPI_ERROR = MPI_SUCCESS; // TODO check this?
+			status->count = req->count;
+			status->cancelled = static_cast<int>(req->cancelled);
+			status->MPI_SOURCE = req->source;
+			status->MPI_TAG = req->tag;
+			status->MPI_ERROR = MPI_SUCCESS; // TODO check this?
 		}
 
 		// for persistent request
@@ -741,23 +754,6 @@ int BasicInterface::MPIX_Checkpoint_read()
 	{
 		exampi::handler->setErrToZero();
 	}
-
-	debugpp("in MPIX_Checkpoint_read");
-
-	//sigHandler signal;
-
-	//while(signal.isSignalSet() != 1)
-	//{
-	//	sleep(1);
-	//}
-
-	// read epoch from file/socket
-	//std::ifstream ef(exampi::epochConfig);
-	//ef >> exampi::epoch;
-	//ef.close();
-
-	Daemon &daemon = Daemon::get_instance();
-	daemon.wait_commit();
 
 	debugpp("commit epoch received" << exampi::epoch);
 

@@ -2,7 +2,8 @@
 #define __EXAMPI_ABSTRACT_PROGRESS_H
 
 #include <mpi.h>
-#include <endpoint.h>
+
+#include "request.h"
 
 namespace exampi
 {
@@ -19,15 +20,7 @@ public:
 	// delete all communicators, groups, stop threads
 	virtual void finalize() = 0;
 
-	// send message across wire
-	//virtual std::future<MPI_Status> postSend(UserArray array, Endpoint dest,
-	//       int tag) = 0;
-
-	// recv message from wire
-	//virtual std::future<MPI_Status> postRecv(UserArray array, Endpoint source,
-	//        int tag) = 0;
-
-	virtual int post_request(MPI_Request *request) = 0;
+	virtual int post_request(Request *request) = 0;
 
 	// save groups and communicators
 	virtual int save(std::ostream &t) = 0;

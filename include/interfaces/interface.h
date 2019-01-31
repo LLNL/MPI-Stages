@@ -12,6 +12,8 @@
 #include "daemon.h"
 #include "config.h"
 #include "errors.h"
+#include "pool.h"
+#include "stages.h"
 
 namespace exampi
 {
@@ -19,14 +21,16 @@ namespace exampi
 class BasicInterface: public Interface
 {
 private:
-	BasicInterface() {};
-	~BasicInterface() {};
+	BasicInterface();
+	~BasicInterface();
 
 	static BasicInterface *instance;
 
 	std::vector<MPIX_Serialize_handler> serialize_handlers;
 	std::vector<MPIX_Deserialize_handler> deserialize_handlers;
 	int recovery_code;
+
+	MemoryPool<Request> request_pool;
 
 public:
 	//BasicInterface();
@@ -66,6 +70,8 @@ public:
 
 	int MPI_Waitall(int count, MPI_Request array_of_requests[],
 	                MPI_Status array_of_statuses[]);
+
+	int MPI_Request_free(MPI_Request *request);
 
 	int MPI_Bcast(void *buf, int count, MPI_Datatype datatype, int root,
 	              MPI_Comm comm);

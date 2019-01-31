@@ -8,7 +8,9 @@
 #include <iostream>
 
 #include "abstract/progress.h"
+#include "matchers/simplematcher.h"
 #include "request.h"
+#include "protocolqueue.h"
 
 namespace exampi
 {
@@ -19,7 +21,7 @@ private:
 	std::vector<std::thread> progress_threads;
 
 	ProtocolQueue protocol_queue;
-	Matcher matcher;
+	Matcher *matcher;
 	
 public:
 	BlockingProgress();
@@ -34,6 +36,9 @@ public:
 
 	int stop();
 	void cleanUp();
+
+	int load(std::istream&);
+	int save(std::ostream&);
 };
 
 }

@@ -3,26 +3,26 @@
 namespace exampi
 {
 
-ProtocolQueue::ProtocolQueue()
+ProtocolQueue::ProtocolQueue() : slots(256)
 {
-	slots.reserve(128);
+	;
 }
 
 ProtocolQueue::~ProtocolQueue()
 {
-
+	;
 }
 
-ProtocolQueue::insert(Request* request)
+void ProtocolQueue::insert(Request* request)
 {
-	std::lock_guard(queue_lock);
+	std::lock_guard<std::mutex> lock(queue_lock);
 	
 	slots.push_back(request);
 }
 
-ProtocolQueue::remove(Request *request)
+void ProtocolQueue::remove(Request *request)
 {
-	std::lock_guard(queue_lock);
+	std::lock_guard<std::mutex> lock(queue_lock);
 	
 	slots.remove(request);
 }

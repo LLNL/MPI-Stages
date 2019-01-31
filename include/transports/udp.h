@@ -9,6 +9,17 @@
 namespace exampi
 {
 
+class Buf
+{
+private:
+	struct iovec v;
+	
+public:
+	Buf(void* p, size_t sz) {v.iov_base= p; v.iov_len = sz;}
+
+	virtual struct iovec iov() {return v;}
+};
+
 class Socket
 {
 private:

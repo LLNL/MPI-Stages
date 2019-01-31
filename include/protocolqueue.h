@@ -19,8 +19,8 @@ private:
 	std::list<Request *> slots;
 	
 public:
-	ProgressQueue();
-	~ProgressQueue();
+	ProtocolQueue();
+	~ProtocolQueue();
 	
 	void insert(Request *request);
 	void remove(Request *request);
