@@ -172,18 +172,14 @@ int BasicInterface::MPI_Send_init(const void* buf, int count, MPI_Datatype datat
 	size_t szcount = count;
 
 	// operation descriptor
-	req->op = Op::Send;
+	req->operation = Operation::Send;
 
-	// 
-	req->source = exampi::rank;
-
-	// MPI Stages
+	// envelope
 	req->stage = exampi::epoch;
-
-	// context tuple
 	req->tag = tag;
 	req->communicator = comm;
 	req->destination = dest;
+	req->source = exampi::rank;
 	
 	// data description
 	// TODO req->datatype = datatype;
@@ -292,10 +288,35 @@ int BasicInterface::MPI_Start(MPI_Request *request)
 
 	// hand request to progress engine
 	Request *req = reinterpret_cast<Request *>(*request);
-	int err = exampi::progress->post_request(req);
-	// TODO check error
+	return exampi::progress->post_request(req);
+}
 
-	// celebrate!
+int BasicInterface::finalize_request(MPI_Request *request, Request *req, MPI_Status *status)
+{
+	// set status if required
+	if(status != MPI_STATUS_IGNORE)
+	{
+		status->count = req->count;
+		status->cancelled = static_cast<int>(req->cancelled);
+		status->MPI_SOURCE = req->source;
+		status->MPI_TAG = req->tag;
+		status->MPI_ERROR = MPI_SUCCESS; // TODO check this?
+	}
+
+	// for persistent request
+	if(req->persistent)
+	{
+		req->active = false;
+	}
+	// otherwise deallocate and set to REQUEST_NULL
+	else
+	{
+		// TODO deallocate request
+
+		// invalidate user MPI_Request handle
+		*request = MPI_REQUEST_NULL;
+	}
+
 	return MPI_SUCCESS;
 }
 
@@ -313,7 +334,7 @@ int BasicInterface::MPI_Wait(MPI_Request *request, MPI_Status *status)
 		return MPI_SUCCESS;
 	}
 
-	// derefernce MPI_Request -> Request
+	// dereference MPI_Request -> Request
 	Request *req = reinterpret_cast<Request *>(request);
 
 	// inactive persistent request check
@@ -332,7 +353,6 @@ int BasicInterface::MPI_Wait(MPI_Request *request, MPI_Status *status)
 	if(!req->complete)
 	{
 		// wait for completion 
-		//std::unique_lock<std::mutex> lock(thr_request_lock);
 		std::unique_lock<std::mutex> lock(req->lock);
 
 		// register condition variable
@@ -345,27 +365,7 @@ int BasicInterface::MPI_Wait(MPI_Request *request, MPI_Status *status)
 	}
 	// request is now definitely completed
 
-	// fill status if needed
-	if(status != MPI_STATUS_IGNORE)
-	{
-		status->count = req->count;
-		status->cancelled = static_cast<int>(req->cancelled);
-		status->MPI_SOURCE = req->source;
-		status->MPI_TAG = req->tag;
-		status->MPI_ERROR = MPI_SUCCESS; // TODO check this?
-	}
-
-	// for persistent requests
-	if(req->persistent)
-	{
-		req->active = false;
-	}
-	// normal requests
-	else
-	{
-		// TODO deallocate
-		*request = MPI_REQUEST_NULL;
-	}
+	return finalize_request(request, req, status);
 
 // TODO also for MPI_Test 
 //	if (st.MPI_ERROR == MPIX_TRY_RELOAD)
@@ -384,9 +384,6 @@ int BasicInterface::MPI_Wait(MPI_Request *request, MPI_Status *status)
 //
 //		return 0;
 //	}
-
-	// celebrate!
-	return MPI_SUCCESS;
 }
 
 int BasicInterface::MPI_Test(MPI_Request *request, int *flag, MPI_Status *status)
@@ -405,7 +402,7 @@ int BasicInterface::MPI_Test(MPI_Request *request, int *flag, MPI_Status *status
 		return MPI_SUCCESS;
 	}
 
-	// derefernce MPI_Request -> Request
+	// dereference MPI_Request -> Request
 	Request *req = reinterpret_cast<Request *>(request);
 
 	// inactive persistent request check
@@ -420,37 +417,16 @@ int BasicInterface::MPI_Test(MPI_Request *request, int *flag, MPI_Status *status
 	if(!req->complete)
 	{
 		*flag = 0;
+
+		return MPI_SUCCESS;
 	}
 	// if request is complete
 	else
 	{
 		*flag = 1;
 
-		// set status if required
-		if(status != MPI_STATUS_IGNORE)
-		{
-			status->count = req->count;
-			status->cancelled = static_cast<int>(req->cancelled);
-			status->MPI_SOURCE = req->source;
-			status->MPI_TAG = req->tag;
-			status->MPI_ERROR = MPI_SUCCESS; // TODO check this?
-		}
-
-		// for persistent request
-		if(req->persistent)
-		{
-			req->active = false;
-		}
-		// otherwise deallocate and set to REQUEST_NULL
-		else
-		{
-			// TODO deallocate request
-			*request = MPI_REQUEST_NULL;
-		}
+		return finalize_request(request, req, status);
 	}
-
-	// celebrate!
-	return MPI_SUCCESS;
 }
 
 int BasicInterface::MPI_Waitall(int count, MPI_Request array_of_requests[],

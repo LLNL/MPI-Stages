@@ -30,7 +30,7 @@ private:
 	std::vector<MPIX_Deserialize_handler> deserialize_handlers;
 	int recovery_code;
 
-	MemoryPool<Request> request_pool;
+	int finalize_request(MPI_Request* request, Request* req, MPI_Status *status);
 
 public:
 	//BasicInterface();
