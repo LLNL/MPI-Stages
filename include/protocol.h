@@ -6,14 +6,24 @@
 
 #include "debug.h"
 #include "request.h"
-#include "pool.h"
+#include "envelope.h"
 
 namespace exampi
 {
 
+enum class Protocol: int
+{
+	Eager,
+	Rendevouz
+};
+
 class ProtocolMessage
 {
-	;
+	// every protocol message has an envelope
+	Envelope envelope;
+	Protocol protocol;
+
+	// payload / protocol data
 };
 
 class ProtocolQueue
@@ -21,14 +31,14 @@ class ProtocolQueue
 private:
 	std::mutex queue_lock;
 
-	std::list<Request *> slots;
+	std::list<ProtocolMessage> slots;
 	
 public:
 	ProtocolQueue();
 	~ProtocolQueue();
 	
-	void insert(Request *request);
-	void remove(Request *request);
+	int insert(Request *request);
+	int remove(Request *request);
 };
 
 }
