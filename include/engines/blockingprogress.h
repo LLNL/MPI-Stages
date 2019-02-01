@@ -1,16 +1,16 @@
-#ifndef __EXAMPI_BLOCKING_PROGRESS_H
+ifndef __EXAMPI_BLOCKING_PROGRESS_H
 #define __EXAMPI_BLOCKING_PROGRESS_H
 
 #include <thread>
-#include <vector>
-
-// TODO remove these
-#include <iostream>
+#include <unordered_map>
 
 #include "abstract/progress.h"
 #include "matchers/simplematcher.h"
+
+#include "daemon.h"
 #include "request.h"
-#include "protocolqueue.h"
+#include "protocol.h"
+#include "sigHandler.h"
 
 namespace exampi
 {
@@ -18,29 +18,31 @@ namespace exampi
 class BlockingProgress: public Progress
 {
 private:
-	volatile bool shutdown;
+	bool shutdown;
 
 	std::vector<std::thread> progress_threads;
 
-	ProtocolQueue protocol_queue;
-	Matcher *matcher;
+	//std::unordered_map<std::string, std::function<ProtocolItem&>> protocol_lookup;
+
+	std::mutex outbox_guard;
+	std::queue<Request *> outbox;
+
+	std::shared_ptr<Matcher> matcher;
+	std::shared_ptr<Transport> transporter;
 
 	void progress();
+
+	int handle_message(std::unique_ptr<ProtocolMessage> message);
+	int emit_message();
 	
 public:
-	BlockingProgress();
-	~BlockingProgress();	
-
-	// TODO remove these
-	int init();
-	int init(std::istream &t);
-	void finalize();
+	BlockingProgress(std::shared_ptr<Matcher> matcher, std::shared_ptr<Transport> transporter);
+	~BlockingProgress();
 
 	int post_request(Request *request);
 
-	int stop();
+	// mpi stages, figure out how to do this, separate into another progress inheriting?
 	void cleanUp();
-
 	int load(std::istream&);
 	int save(std::ostream&);
 };

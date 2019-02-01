@@ -3,25 +3,18 @@
 namespace exampi
 {
 
-BlockingProgress::BlockingProgress() : shutdown(false)
+BlockingProgress::BlockingProgress(std::shared_ptr<Matcher> matcher, std::shared_ptr<Transport> transporter) : 
+	shutdown(false),
+	matcher(matcher),
+	transporter(transporter)
 {
-	// TODO remove this ASAP in here due to inheritance development
-	// should be in global mpi state
-	// creating MPI_COMM_WORLD and world group
-	exampi::groups.push_back(group);
-	communicator = new Comm(true, group, group);
-	communicator->set_rank(exampi::rank);
-	communicator->set_context(0, 1);
-	exampi::communicators.push_back(communicator);
-	
-	// start progress threads
 	// TODO fetch progress thread count from config
 	//for(size_t tidx = 0; tidx < thread_num; ++tidx)
 	for(size_t tidx = 0; tidx < 1; ++tidx)
 	{
 		// launch thread executing progress function
 		std::thread thr(&BlockingProgress::progress, this);
-		progress_threads.push_back(thr);
+		progress_threads.push_back(std::move(thr));
 	}
 }
 
@@ -34,9 +27,28 @@ BlockingProgress::~BlockingProgress()
 	{	
 		thr.join();
 	}
+}
 
-	// 
-	// ...
+int BlockingProgress::post_request(Request *request)
+{
+	// user threads relinquishes control here
+	if(request->operation == Operation::Receive)
+	{
+		// insert into matching mechanism
+		int err = matcher->post(request);
+		// TODO check err
+	}
+	else // Send
+	{
+		std::lock_guard<std::mutex> lock(outbox_guard);
+	
+		outbox.push();
+	}
+	
+	// NOTE later on there will be others here
+
+	// TODO not meaningful
+	return MPI_SUCCESS;
 }
 
 void BlockingProgress::progress()
@@ -44,73 +56,88 @@ void BlockingProgress::progress()
 	// keep progress threads alive
 	while(!this->shutdown)
 	{
-		// TODO remove
-		std::this_thread::yield();
-
-		// phase 1
-		// matcher.progress()
-
-		// phase 2
-		// transport.receive messages
-		
-		// remove from network
-		//exampi::transport->recv
-		// receive from transport, ingest into matching
-		//matcher->insert(msg from transport, in form of request?);
-		
-		// phase 3
-		// walk protocol queue, find work do, do it
+		// absorb message if any
+		// TODO should we use virtual dispatch
+		if(std::unique_ptr<ProtocolMessage> message_in = transporter.absorb())
+		{
+			int err = handle_message(std::move(message_in));
+			// TODO handle error
+		}
+		// match message if any
+		else if(matcher.has_work())
+		{
+			int err = matcher.progress()
+			// TODO handle error
+		}
+		// emit message if any
+		else if(outbox.size() > 0)
+		{
+			int err = emit_message();
+			// TODO handle error
+		}
+		// otherwise go to sleep
+		else
+		{
+			std::this_thread::yield();
+		}	
 	}
 }
 
-// TODO remove ASAP
-int BlockingProgress::init()
+int BlockingProgress::handle_message(std::unique_ptr<ProtocolMessage> message)
 {
-	return 0;
+	// act on protocol message
+	// continue protocol, match, ...
+	// TODO
+	// rendevouz protocol?
+	// RTA, RAT, TA
+
+	// THIS IS THE BIG SWTICH OR MAP
 }
 
-// TODO remove ASAP
-int BlockingProgress::init(std::istream &t)
+int BlockingProgress::emit_message()
 {
-	return init();
+	std::unique_lock<std::mutex> lock(outbox_guard);
+
+	// check again that there is work
+	if(outbox.size() == 0)
+	{
+		return MPI_SUCCESS;
+	}
+	// emit message
+	else
+	{
+		// fetch request
+		Request *request = outbox.front();
+		outbox.pop();
+		// TODO what about rendevouz?
+
+		lock.unlock();
+
+		// request -> protocol message
+		//std::unique_ptr<ProtocolMessage> message_out(request->envelope);
+		// TODO
+
+		// send protocol message
+		if(int err = transporter.send(message_out))
+		{
+			// TODO handle possible error, signal via request
+		}
+	}
 }
 
-// TODO remove ASAP
-void BlockingProgress::finalize()
-{
-	// this should all be in MPI State
-	// delete communicators
-//	for(auto &&com : exampi::communicators)
-//	{
-//		delete com;
-//	}
-//	exampi::communicators.clear();
-	
-	// delete groups
-//	for (auto &&group : exampi::groups)
-//	{
-//		delete group;
-//	}
-//	exampi::groups.clear();
-}
-
-int BlockingProgress::stop()
-{
-	// TODO what is this doing?
-	// nullifying match list
-//	for (auto &r : matchList)
-//	{
-//		(r)->unpack();
-//		(r)->completionPromise.set_value( { .count = 0, .cancelled = 0,
-//		                                    .MPI_SOURCE = (r)->source, .MPI_TAG = (r)->tag, .MPI_ERROR =
-//		                                        MPIX_TRY_RELOAD });
-//	}
-//	matchList.clear();
-//	unexpectedList.clear();
-//	return 0;
-	
-	// this is done when we are cleaning up?
-}
+//	// this is done when we are cleaning up?
+//	// nullifying match list
+////	for (auto &r : matchList)
+////	{
+////		(r)->unpack();
+////		(r)->completionPromise.set_value( { .count = 0, .cancelled = 0,
+////		                                    .MPI_SOURCE = (r)->source, .MPI_TAG = (r)->tag, .MPI_ERROR =
+////		                                        MPIX_TRY_RELOAD });
+////	}
+////	matchList.clear();
+////	unexpectedList.clear();
+////	return 0;
+//	
 
 void BlockingProgress::cleanUp()
 {
@@ -132,58 +159,6 @@ void BlockingProgress::cleanUp()
 //		exampi::handler->setErrToOne();
 //	}
 }
-
-int BlockingProgress::post_request(Request *request)
-{
-	// user thread relinquishes control here
-	if(request->op == Op::Receive)
-	{
-		// insert into matching mechanism
-		matcher->post(request);
-	}
-	else
-	{
-		protocol_queue.insert(request);
-	}
-}
-
-//	// search unexpected message queue
-//	debugpp("searching unexpected message queue");
-//	unexpectedLock.lock();
-//	matchLock.lock();
-//	auto res = std::find_if(unexpectedList.begin(), unexpectedList.end(),
-//	                        [tag,s, c, e](const std::unique_ptr<Request> &i) -> bool {i->unpack(); return i->tag == tag && i->source == s && i->stage == e && i->comm == c;});
-//
-//	//
-//	if (res == unexpectedList.end())
-//	{
-//		debugpp("NO match in unexpectedList, push");
-//
-//		// put request into match list for later matching
-//		unexpectedLock.unlock();
-//		matchList.push_back(std::move(r));
-//		matchLock.unlock();
-//	}
-//	else
-//	{
-//		// found in UMQ
-//		matchLock.unlock();
-//
-//		debugpp("Found match in unexpectedList");
-//
-//		(*res)->unpack();
-//		//memcpy(array.ptr, )
-//		memcpy(array.getIovec().iov_base, (*res)->temp.iov_base,
-//		       array.getIovec().iov_len);
-//		(r)->completionPromise.set_value( { .count = (*res)->status.count, .cancelled = 0,
-//		                                    .MPI_SOURCE = (*res)->source, .MPI_TAG = (*res)->tag, .MPI_ERROR = MPI_SUCCESS});
-//		unexpectedList.erase(res);
-//		unexpectedLock.unlock();
-//
-//	}
-//
-//	return result;
-//}
 
 int BlockingProgress::save(std::ostream &t)
 {
