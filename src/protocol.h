@@ -13,18 +13,22 @@ ProtocolQueue::~ProtocolQueue()
 	;
 }
 
-void ProtocolQueue::insert(Request* request)
+int ProtocolQueue::insert(Request* request)
 {
 	std::lock_guard<std::mutex> lock(queue_lock);
 	
 	slots.push_back(request);
+
+	return 0;
 }
 
-void ProtocolQueue::remove(Request *request)
+int ProtocolQueue::remove(Request *request)
 {
 	std::lock_guard<std::mutex> lock(queue_lock);
 	
 	slots.remove(request);
+
+	return 0;
 }
 
 }
