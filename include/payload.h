@@ -1,7 +1,7 @@
 #ifndef __EXAMPI_PAYLOAD_H
 #define __EXAMPI_PAYLOAD_H
 
-#define "datatype.h"
+#include "datatype.h"
 
 namespace exampi
 {
@@ -9,7 +9,7 @@ namespace exampi
 struct Payload
 {
 	const void *buffer;
-	Datatype datatype;
+	MPI_Datatype datatype;
 	int count;
 
 	//void pack()

@@ -3,65 +3,71 @@
 namespace exampi
 {
 
-int SimpleMatcher::post(Request *request)
+SimpleMatcher::SimpleMatcher() : new_receives(0)
 {
-	return -1;
-	// simple insert into queue
-	// user threads have better things to do than do matching
+	;
+}
+
+void SimpleMatcher::post_request(Request_ptr request)
+{
+	std::lock_guard<std::mutex> lock(guard);
+
+	posted_receive_queue.push_back(request);
+	++new_receives;
+}
+
+bool match(ProtocolMessage_uptr message, Match &match)
+{
+	std::lock_guard<std::mutex> lock(guard);
+
+	// do search
+	auto iterator = std::find_if(posted_request_queue.begin(),
+	                             posted_request_queue.end(),
+	                             [message](const Request_ptr request) -> bool
+	                             {
+									// TODO support WILD CARD TAG AND SOURCE
+	                                return (message->envelope.epoch        == request->envelope.epoch) &&
+	                                       (message->envelope.communicator == request->envelope.communicator) &&
+	                                       (message->envelope.source       == request->envelope.source) &&
+	                                       (message->envelope.destination  == request->envelope.destination) &&
+	                                       (message->envelope.tag          == request->envelope.tag);
+	                             });
+
+	// found match
+	if(bool matched = (iterator != posted_request_queue.end()))
+	{
+		// return corresponding request
+		Request_ptr request = *iterator;
+		
+		// remove request from prq
+		posted_request_queue.remove(request);
+
+		match.request = request;
+		match.message = std::move(message);
+	}
 	
-	// increment
+	return matched;
 }
 
-int SimpleMatcher::match(Request *request)
+bool SimpleMatcher::progress(Match &match)
 {
-	return -1;
-	// search for a match, if non found, unexpected message
+	std::lock_guard<std::mutex> lock(guard);
+	
+	// check if work is actually available
+	if(has_work())
+		// TODO spread work over threads accessing
+		//		not always front
+		ProtocolMessage_uptr message = unexpected_message_queue.front();
+
+		return match(message, match);
+	}
+	else
+		return false;
 }
 
-int SimpleMatcher::progress()
+bool SimpleMatcher::has_work()
 {
-	// need quick check if something has changed
-	return -1;
-	// do a generic matching run
+	return (new_receives > 0);
 }
 
 }
-
-//	// search unexpected message queue
-//	debugpp("searching unexpected message queue");
-//	unexpectedlock.lock();
-//	matchlock.lock();
-//	auto res = std::find_if(unexpectedlist.begin(), unexpectedlist.end(),
-//	                        [tag,s, c, e](const std::unique_ptr<request> &i) -> bool {i->unpack(); return i->tag == tag && i->source == s && i->stage == e && i->comm == c;});
-//
-//	//
-//	if (res == unexpectedlist.end())
-//	{
-//		debugpp("no match in unexpectedlist, push");
-//
-//		// put request into match list for later matching
-//		unexpectedlock.unlock();
-//		matchlist.push_back(std::move(r));
-//		matchlock.unlock();
-//	}
-//	else
-//	{
-//		// found in umq
-//		matchlock.unlock();
-//
-//		debugpp("found match in unexpectedlist");
-//
-//		(*res)->unpack();
-//		//memcpy(array.ptr, )
-//		memcpy(array.getiovec().iov_base, (*res)->temp.iov_base,
-//		       array.getiovec().iov_len);
-//		(r)->completionpromise.set_value( { .count = (*res)->status.count, .cancelled = 0,
-//		                                    .mpi_source = (*res)->source, .mpi_tag = (*res)->tag, .mpi_error = mpi_success});
-//		unexpectedlist.erase(res);
-//		unexpectedlock.unlock();
-//
-//	}
-//
-//	return result;
-//}
-

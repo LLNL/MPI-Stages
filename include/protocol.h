@@ -7,24 +7,30 @@
 #include "debug.h"
 #include "request.h"
 #include "envelope.h"
+#include "pool.h"
 
 namespace exampi
 {
 
-enum class Protocol: int
-{
-	Eager,
-	Rendevouz
-};
-
-class ProtocolMessage
+struct ProtocolMessage
 {
 	// every protocol message has an envelope
 	Envelope envelope;
-	Protocol protocol;
 
 	// payload / protocol data
+	union data
+	{
+		// nothing should exceed this
+		int pad[11];
+
+		// buffer, datatype, count
+		Payload payload;
+		
+		
+	};
 };
+
+typedef MemoryPool<ProtocolMessage>::unique_ptr ProtocolMessage_uptr;
 
 class ProtocolQueue
 {

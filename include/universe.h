@@ -27,6 +27,7 @@ private:
 
 
 public:
+	// THIS IS A FACTORY FOR INTERFACE, PROGRESS ...
 
 	static Universe &get_root_universe()
 	{

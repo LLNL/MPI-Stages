@@ -3,8 +3,14 @@
 namespace exampi
 {
 
+BlockingProgress::BlockingProgress() :
+	BlockingProgress(std::shared_ptr<Matcher>(new SimpleMatcher()), transporter(std::shared_ptr<Transport>(nullptr)))
+{
+	;
+}
+
 BlockingProgress::BlockingProgress(std::shared_ptr<Matcher> matcher, std::shared_ptr<Transport> transporter) : 
-	shutdown(false),
+	shutdown(false)
 	matcher(matcher),
 	transporter(transporter)
 {
@@ -35,20 +41,22 @@ int BlockingProgress::post_request(Request *request)
 	if(request->operation == Operation::Receive)
 	{
 		// insert into matching mechanism
-		int err = matcher->post(request);
-		// TODO check err
+		matcher->post_request(request);
 	}
-	else // Send
+	else // *sends
 	{
+		// acquire safety
 		std::lock_guard<std::mutex> lock(outbox_guard);
 	
-		outbox.push();
+		// queue for send
+		outbox.push(request);
 	}
+
+	return MPI_SUCCESS;
 	
 	// NOTE later on there will be others here
-
-	// TODO not meaningful
-	return MPI_SUCCESS;
+	// collectives, rma
+	// allreduce, reduce, scan, exscan, broadcast, ...
 }
 
 void BlockingProgress::progress()
@@ -56,37 +64,51 @@ void BlockingProgress::progress()
 	// keep progress threads alive
 	while(!this->shutdown)
 	{
+		// NOTE this is actually just a slow poll
+		// 		blocking would be woken up by post_request, transporter absorb()
+		
 		// absorb message if any
-		// TODO should we use virtual dispatch
-		if(std::unique_ptr<ProtocolMessage> message_in = transporter.absorb())
+		if(ProtocolMessage_uptr message = transporter->absorb())
 		{
-			int err = handle_message(std::move(message_in));
-			// TODO handle error
+			// look for match
+			if(Request *request = matcher.match(message->envelope))
+			{
+				int err = handle_match(std::move(message), request);
+			}
+			// no match found
+			else
+				// give message to matcher as unexpected message
+				matcher.post_message(std::move(message));
 		}
 		// match message if any
-		else if(matcher.has_work())
+		else if(matcher->has_work())
 		{
-			int err = matcher.progress()
+			// TODO only do this when there are new receives posted
+			int err = matcher->progress();
 			// TODO handle error
 		}
 		// emit message if any
 		else if(outbox.size() > 0)
 		{
-			int err = emit_message();
+			int err = handle_request();
 			// TODO handle error
 		}
 		// otherwise go to sleep
 		else
 		{
 			std::this_thread::yield();
+			// go to sleep, block on something not just deschedule
 		}	
 	}
 }
 
-int BlockingProgress::handle_message(std::unique_ptr<ProtocolMessage> message)
+int BlockingProgress::handle_match(Match match)
 {
-	// act on protocol message
-	// continue protocol, match, ...
+	// act on protocol
+	// unpack protocol message, extract protocol
+	
+
+
 	// TODO
 	// rendevouz protocol?
 	// RTA, RAT, TA
@@ -94,7 +116,7 @@ int BlockingProgress::handle_message(std::unique_ptr<ProtocolMessage> message)
 	// THIS IS THE BIG SWTICH OR MAP
 }
 
-int BlockingProgress::emit_message()
+int BlockingProgress::handle_request()
 {
 	std::unique_lock<std::mutex> lock(outbox_guard);
 
@@ -109,16 +131,23 @@ int BlockingProgress::emit_message()
 		// fetch request
 		Request *request = outbox.front();
 		outbox.pop();
-		// TODO what about rendevouz?
 
 		lock.unlock();
 
+		// decide protocol to use
+		// handle_send
+		// handle_bsend
+		// handle_rsend
+		// handle_ssend
+
 		// request -> protocol message
-		//std::unique_ptr<ProtocolMessage> message_out(request->envelope);
-		// TODO
+		ProtocolMessage_uptr message = transporter->allocate_protocol_message();
+
+		// pack message
+		message->envelope = request->envelope;
 
 		// send protocol message
-		if(int err = transporter.send(message_out))
+		if(int err = transporter->reliable_send(std::move(message)))
 		{
 			// TODO handle possible error, signal via request
 		}

@@ -2,18 +2,25 @@
 #define __EXAMPI_ABSTRACT_MATCHING_H
 
 #include "request.h"
+#include "protocol.h"
 
 namespace exampi
 {
 
+struct Match
+{
+	Request_ptr request;
+	ProtocolMessage_uptr message;
+};
+
 class Matcher
 {
 public:
-	virtual int post(Request *request) = 0;
+	virtual void post_request(Request_ptr request) = 0;
 
-	virtual int match(Request *request) = 0;
-
-	virtual int progress();
+	virtual bool match(ProtocolMessage_uptr message, Match &match) = 0;
+	virtual bool progress(Match& match) = 0;
+	virtual bool has_work() = 0;
 };
 
 }

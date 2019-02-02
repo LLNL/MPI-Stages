@@ -5,7 +5,6 @@
 
 #include "mpi.h"
 #include "protocol.h"
-#include "pool.h"
 
 namespace exampi
 {
@@ -14,17 +13,18 @@ class Transport
 {
 private:
 	// transport owns all protocol messages
-	MemoryPool<ProtocolMessage> protocol_message_pool;
+	ProtocolMessage_uptr protocol_message_pool;
 
 public:
 	// TODO find solution for settable pool size
-	Transport() : protocol_message_pool(128);
+	Transport() : protocol_message_pool(128)
 	{
 		;
 	}
 
-	std::unique_ptr<ProtocolMessage> allocate_protocol_message()
+	ProtocolMessage_uptr allocate_protocol_message()
 	{
+		// for request -> protocol messsage -> reliable_send()
 		return protocol_message_pool.allocate();
 	}
 
@@ -33,19 +33,9 @@ public:
 	virtual int load(std::istream &r) = 0;
 	virtual int cleanUp(MPI_Comm comm) = 0;
 
-	virtual std::unique_ptr<ProtocolMessage> absorb() = 0;
-	//{
-	//	std::lock_guard<std::mutex> lock(guard);
-	//	if(protocol_queue.size() == 0)
-	//		return std::unique_ptr<ProtocolMessage>(nullptr);
-	//	
-	//	std::unique_ptr<ProtocolMessage> msg = protocol_queue.front()
-	//	protocol_queue.pop();
+	virtual ProtocolMessage_uptr absorb() = 0;
 
-	//	return msg;
-	//}
-
-	virtual int reliable_send(std::unique_ptr<ProtocolMessage> message) = 0;
+	virtual int reliable_send(ProtocolMessage_uptr message) = 0;
 };
 
 } // ::exampi

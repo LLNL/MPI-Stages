@@ -2,8 +2,11 @@
 #define __EXAMPI_SIMPLE_MATCHER_H
 
 #include <list>
+#include <queue>
+#include <mutex>
 
 #include "abstract/matcher.h"
+#include "protocol.h"
 
 namespace exampi
 {
@@ -11,15 +14,21 @@ namespace exampi
 class SimpleMatcher final: public Matcher
 {
 private:
-	std::list<Request> posted_receive_queue;
-	std::list<Request> unexpected_message_queue;
+	std::mutex guard;
 
+	std::queue<ProtocolMessage_uptr> unexpected_message_queue;
+	std::list<Request_ptr> posted_receive_queue;
+
+	unsigned int new_receives;
+	
 public:
-	int	post(Request *request);
+	SimpleMatcher();
 
-	int match(Request *request);
+	void post_request(Request_ptr request);
 
-	int progress();
+	bool match(ProtocolMessage_uptr message, Match &match);
+	bool progress(Match &match);
+	bool has_work();
 };
 
 }

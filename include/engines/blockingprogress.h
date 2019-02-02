@@ -1,10 +1,14 @@
-ifndef __EXAMPI_BLOCKING_PROGRESS_H
+#ifndef __EXAMPI_BLOCKING_PROGRESS_H
 #define __EXAMPI_BLOCKING_PROGRESS_H
 
 #include <thread>
 #include <unordered_map>
+#include <queue>
 
 #include "abstract/progress.h"
+#include "abstract/transport.h"
+#include "abstract/matcher.h"
+
 #include "matchers/simplematcher.h"
 
 #include "daemon.h"
@@ -32,10 +36,13 @@ private:
 
 	void progress();
 
-	int handle_message(std::unique_ptr<ProtocolMessage> message);
-	int emit_message();
-	
+	int handle_match(Match match);
+	int handle_request();
+
+	int handle_send(Request *request);
+
 public:
+	BlockingProgress();
 	BlockingProgress(std::shared_ptr<Matcher> matcher, std::shared_ptr<Transport> transporter);
 	~BlockingProgress();
 

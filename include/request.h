@@ -42,11 +42,16 @@ struct Request
 
 	// MPI data
 	Operation operation;
+
+	// protocol message
 	Envelope envelope;
 	Payload payload;
 
+	Request();
 	Request(Operation operation, Payload payload, Envelope envelope);
 };
+
+typedef Request* Request_ptr;
 
 }
 
