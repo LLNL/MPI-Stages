@@ -2,6 +2,7 @@
 
 #include "debug.h"
 #include "daemon.h"
+#include "universe.h"
 
 namespace exampi
 {
@@ -27,6 +28,9 @@ int BasicInterface::MPI_Init(int *argc, char ***argv)
 {
 	debugpp("MPI_Init entered. argc=" << *argc);
 
+	// XXX
+	Universe& universe = Universe::get_root_universe();
+
 	// check that exampi-mpiexec was used to launch the application
 	if(std::getenv("EXAMPI_MONITORED") == NULL)
 	{
@@ -37,22 +41,31 @@ int BasicInterface::MPI_Init(int *argc, char ***argv)
 	debugpp("MPI_Init passed EXAMPI_LAUNCHED check.");
 
 	debugpp("Taking rank to be arg " << std::string(std::getenv("EXAMPI_RANK")));
-	exampi::rank = std::stoi(std::string(std::getenv("EXAMPI_RANK")));
+	
+	//exampi::rank = std::stoi(std::string(std::getenv("EXAMPI_RANK")));
+
+	universe.rank = std::stoi(std::string(std::getenv("EXAMPI_RANK")));
 
 	//debugpp("Taking epoch config to be " << **argv);
-	exampi::epochConfig = std::string(std::getenv("EXAMPI_EPOCH_FILE"));
+	//exampi::epochConfig = std::string(std::getenv("EXAMPI_EPOCH_FILE"));
+
+	universe.epoch_config = std::string(std::getenv("EXAMPI_EPOCH_FILE"));
 
 	debugpp("Taking epoch to be " << std::string(std::getenv("EXAMPI_EPOCH")));
-	exampi::epoch = std::stoi(std::string(std::getenv("EXAMPI_EPOCH")));
 
-	exampi::worldSize = std::stoi(std::string(std::getenv("EXAMPI_WORLD_SIZE")));	
+	//exampi::epoch = std::stoi(std::string(std::getenv("EXAMPI_EPOCH")));
+	universe.epoch = std::stoi(std::string(std::getenv("EXAMPI_EPOCH")));
+
+	//exampi::worldSize = std::stoi(std::string(std::getenv("EXAMPI_WORLD_SIZE")));	
+	universe.world_size = std::stoi(std::string(std::getenv("EXAMPI_WORLD_SIZE")));	
 
 	// TODO this initializes progress and transport
 	recovery_code = exampi::checkpoint->load();
 
 	// execute global barrier
 	// this is so that P1 doesn't init and send before P0 is ready to recv
-	if(exampi::epoch == 0)
+	//if(exampi::epoch == 0)
+	if(universe.epoch == 0)
 	{
 		debugpp("Executing barrier" << exampi::rank);
 
@@ -74,10 +87,10 @@ int BasicInterface::MPI_Finalize()
 	serialize_handlers.clear();
 	deserialize_handlers.clear();
 
-	exampi::transport->finalize();
-	exampi::progress->finalize();
+	//exampi::transport->finalize();
+	//exampi::progress->finalize();
 
-	return 0;
+	return MPI_SUCCESS;
 }
 
 int BasicInterface::MPI_Request_free(MPI_Request *request)
@@ -189,7 +202,11 @@ int BasicInterface::construct_request(const void *buf, int count, MPI_Datatype d
 	// request generation
 	debugpp("generating request object");
 	// TODO allocate from Universe::request_pool
-	Request *req = request_pool.allocate();
+	
+	Universe& universe = Universe::get_root_universe();
+
+	Request_ptr req = universe.allocate_request();
+
 	if(req == nullptr)
 		return MPI_ERR_INTERN;
 

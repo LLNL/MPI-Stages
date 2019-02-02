@@ -191,7 +191,7 @@ void BlockingProgress::cleanUp()
 
 int BlockingProgress::save(std::ostream &t)
 {
-//	//save group
+//	// save all groups
 //	int group_size = exampi::groups.size();
 //	t.write(reinterpret_cast<char *>(&group_size), sizeof(int));
 //	for (auto &g : exampi::groups)
@@ -205,8 +205,8 @@ int BlockingProgress::save(std::ostream &t)
 //			t.write(reinterpret_cast<char *>(&p), sizeof(int));
 //		}
 //	}
-//
-//	//save communicator
+
+//	// save all communicators
 //	int comm_size = exampi::communicators.size();
 //	t.write(reinterpret_cast<char *>(&comm_size), sizeof(int));
 //	for(auto &c : exampi::communicators)

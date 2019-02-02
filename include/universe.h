@@ -1,6 +1,9 @@
 #ifndef __EXAMPI_UNIVERSE_H
 #define __EXAMPI_UNIVERSE_H
 
+#include <vector>
+#include <unordered_map>
+
 #include "pool.h"
 #include "request.h"
 
@@ -13,7 +16,8 @@ class Universe
 private:
 	// MPI universe owns all request objects
 	MemoryPool<Request> request_pool;
-
+	
+	
 	Universe()
 	{
 		exampi::groups.push_back(group);
@@ -25,43 +29,49 @@ private:
 		exampi::communicators.push_back(communicator);
 	}
 
-
 public:
-	// THIS IS A FACTORY FOR INTERFACE, PROGRESS ...
-
 	static Universe &get_root_universe()
 	{
 		static Universe root;
 		
 		return root;
 	}
+
+	std::vector<Comm *> communicators;
+	std::vector<Group *> groups;
+	std::unordered_map<MPI_Datatype, Datatype> datatypes;
+
+	int rank;
+	int world_size;
+	int epoch;
+	std::string epoch_config;
+
+	Progress *progress;
+	Transport *transport;
+	Checkpoint *checkpoint;
+	errHandler *errhandler;
 	
 	// prevent Universe from being copied
 	Universe(const Universe &u)				= delete;
 	Universe &operator=(const Universe &u)	= delete;
 
-	// hold communicators
-	// hold groups
-	// ...
-
-
 	~Universe()
 	{
-		for(auto &&com : exampi::communicators)
+		for(auto &&com : communicators)
 	  	{
         	delete com;
 	    }
-        exampi::communicators.clear();
+        communicators.clear();
        
         // delete groups
-		for (auto &&group : exampi::groups)
+		for (auto &&group : groups)
         {
         	delete group;
         }
-        exampi::groups.clear();
+        groups.clear();
 	}
 
-	std::unique_ptr<Request> allocate_request()
+	Request_ptr allocate_request()
 	{
 		return request_pool.allocate();
 	}

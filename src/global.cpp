@@ -1,6 +1,5 @@
 #include <global.h>
 
-//#include <engines/progress.h>
 #include "engines/blockingprogress.h"
 #include "transports/transport.h"
 #include "checkpoints/checkpoint.h"
@@ -15,24 +14,25 @@
 namespace exampi
 {
 
-int rank = -1;
-int worldSize = -1;
-int epoch = -1;
-std::string epochConfig;
+//int rank = -1;
+//int worldSize = -1;
+//int epoch = -1;
+//std::string epochConfig;
 
 // NOTE:  I construct the objects here to give them the chance
 // to do preinit at startup -- init calls will be required anyway
 // to avoid OoI problems, so might as well take advantage of them.
 
-Progress *progress = new BlockingProgress();
+//Progress *progress = new BlockingProgress();
 
-Transport *transport = new BasicTransport();
+//Transport *transport = new BasicTransport();
 
-Checkpoint *checkpoint = new BasicCheckpoint();
+//Checkpoint *checkpoint = new BasicCheckpoint();
 
-std::vector<exampi::Comm *> communicators;
-std::vector<exampi::Group *> groups;
-errHandler *handler = new errHandler();
+//std::vector<exampi::Comm *> communicators;
+//std::vector<exampi::Group *> groups;
+
+//errHandler *handler = new errHandler();
 
 std::unordered_map<MPI_Datatype, exampi::Datatype> datatypes =
 {

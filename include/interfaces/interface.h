@@ -28,6 +28,7 @@ private:
 
 	std::vector<MPIX_Serialize_handler> serialize_handlers;
 	std::vector<MPIX_Deserialize_handler> deserialize_handlers;
+
 	int recovery_code;
 
 	int construct_request(const void *buf, int count, MPI_Datatype datatype, int source, int dest, int tag, MPI_Comm comm, MPI_Request *request, Operation operation);
