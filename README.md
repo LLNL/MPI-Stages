@@ -1,4 +1,4 @@
-###### ExaMPI
+##### ExaMPI
 
 #### Build Instructions
 1. make
