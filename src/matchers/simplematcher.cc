@@ -65,10 +65,8 @@ bool SimpleMatcher::progress(Match &match)
 	
 	// check if work is actually available
 	if(bool work = has_work())
-		// TODO spread work over threads accessing
-		//		not always front
+		// with multiple threads need to keep in mind FIFO, single lock works
 		ProtocolMessage_uptr message = unexpected_message_queue.front();
-		// is it possible to pop the front and still have FIFO? I don't think so
 
 		return match(message, match);
 	}

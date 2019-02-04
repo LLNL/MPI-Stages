@@ -6,10 +6,11 @@
 #include <queue>
 
 #include "abstract/progress.h"
-#include "abstract/transport.h"
 #include "abstract/matcher.h"
+#include "abstract/transport.h"
 
 #include "matchers/simplematcher.h"
+#include "matchers/udptransport.h"
 
 #include "daemon.h"
 #include "request.h"

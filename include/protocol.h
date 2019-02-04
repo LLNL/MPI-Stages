@@ -12,8 +12,18 @@
 namespace exampi
 {
 
+enum class ProtocolType: int
+{
+	EAGER,
+	EAGER_ACK,
+	RENDEVOUZ
+};
+
 struct ProtocolMessage
 {
+	// protocol message type
+	ProtocolType type;
+
 	// every protocol message has an envelope
 	Envelope envelope;
 
@@ -32,20 +42,20 @@ struct ProtocolMessage
 
 typedef MemoryPool<ProtocolMessage>::unique_ptr ProtocolMessage_uptr;
 
-class ProtocolQueue
-{
-private:
-	std::mutex queue_lock;
-
-	std::list<ProtocolMessage> slots;
-	
-public:
-	ProtocolQueue();
-	~ProtocolQueue();
-	
-	int insert(Request *request);
-	int remove(Request *request);
-};
+//class ProtocolQueue
+//{
+//private:
+//	std::mutex queue_lock;
+//
+//	std::list<ProtocolMessage> slots;
+//	
+//public:
+//	ProtocolQueue();
+//	~ProtocolQueue();
+//	
+//	int insert(Request *request);
+//	int remove(Request *request);
+//};
 
 }
 

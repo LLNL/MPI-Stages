@@ -1,5 +1,5 @@
-#ifndef __EXAMPI_I_TRANSPORT_H
-#define __EXAMPI_I_TRANSPORT_H
+#ifndef __EXAMPI_INTERFACE_TRANSPORT_H
+#define __EXAMPI_INTERFACE_TRANSPORT_H
 
 #include <mutex>
 
@@ -29,12 +29,11 @@ public:
 	}
 
 	// stages
-	virtual int save(std::ostream &r) = 0;
-	virtual int load(std::istream &r) = 0;
-	virtual int cleanUp(MPI_Comm comm) = 0;
+	//virtual int save(std::ostream &r) = 0;
+	//virtual int load(std::istream &r) = 0;
+	//virtual int cleanUp(MPI_Comm comm) = 0;
 
 	virtual ProtocolMessage_uptr absorb() = 0;
-
 	virtual int reliable_send(ProtocolMessage_uptr message) = 0;
 };
 
