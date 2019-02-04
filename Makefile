@@ -32,10 +32,10 @@ docdir = docs
 
 # detect files
 headers = $(wildcard $(incdir)/*.h) $(wildcard $(incdir)/*/*.h)
-sources = $(wildcard $(srcdir)/*.cpp) $(wildcard $(srcdir)/*/*.cpp)
+sources = $(wildcard $(srcdir)/*.cc) $(wildcard $(srcdir)/*/*.cc)
 
 # determine files
-objects = $(patsubst %.cpp, %.o, $(subst $(srcdir), $(blddir), $(sources)))
+objects = $(patsubst %.cc, %.o, $(subst $(srcdir), $(blddir), $(sources)))
 
 ### rules
 default: static
@@ -56,10 +56,10 @@ $(shlib): $(objects)
 	@echo "SHARED LIBRARY NOT IMPLEMENTED"
 
 # object building rules
-$(blddir)/%.o: $(srcdir)/%.cpp $(headers) | directories
+$(blddir)/%.o: $(srcdir)/%.cc $(headers) | directories
 	$(CXX) -I$(incdir) -c $(CXXFLAGS) $< -o $@
 
-$(blddir)/*/%.o: $(srcdir)/*/%.cpp $(headers) | directories
+$(blddir)/*/%.o: $(srcdir)/*/%.cc $(headers) | directories
 	$(CXX) -I$(incdir) -c $(CXXFLAGS) $< -o $@
 
 ### directory rules
