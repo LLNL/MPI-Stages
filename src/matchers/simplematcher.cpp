@@ -18,6 +18,7 @@ void SimpleMatcher::post_request(Request_ptr request)
 
 bool match(ProtocolMessage_uptr message, Match &match)
 {
+	// TODO split lock into smaller chunks
 	std::lock_guard<std::mutex> lock(guard);
 
 	// do search
@@ -42,8 +43,17 @@ bool match(ProtocolMessage_uptr message, Match &match)
 		// remove request from prq
 		posted_request_queue.remove(request);
 
+		// TODO unlock
+
+		// return match
 		match.request = request;
 		match.message = std::move(message);
+	}
+	
+	// no match, then store message in UMQ
+	else
+	{
+		unexpected_message_queue.push_back(std::move(message));
 	}
 	
 	return matched;
@@ -54,15 +64,16 @@ bool SimpleMatcher::progress(Match &match)
 	std::lock_guard<std::mutex> lock(guard);
 	
 	// check if work is actually available
-	if(has_work())
+	if(bool work = has_work())
 		// TODO spread work over threads accessing
 		//		not always front
 		ProtocolMessage_uptr message = unexpected_message_queue.front();
+		// is it possible to pop the front and still have FIFO? I don't think so
 
 		return match(message, match);
 	}
-	else
-		return false;
+	
+	return work;
 }
 
 bool SimpleMatcher::has_work()

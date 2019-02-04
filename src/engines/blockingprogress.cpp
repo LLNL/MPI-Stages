@@ -67,27 +67,28 @@ void BlockingProgress::progress()
 		// NOTE this is actually just a slow poll
 		// 		blocking would be woken up by post_request, transporter absorb()
 		
-		// absorb message if any
+		// absorb message if any, this is inflow
 		if(ProtocolMessage_uptr message = transporter->absorb())
 		{
 			// look for match
-			if(Request *request = matcher.match(message->envelope))
+			Match match;
+			if(matcher.match(message, match))
 			{
-				int err = handle_match(std::move(message), request);
+				int err = handle_match(match);
+				// TODO handle error
 			}
-			// no match found
-			else
-				// give message to matcher as unexpected message
-				matcher.post_message(std::move(message));
 		}
-		// match message if any
+		// match message if any, this is inflow
 		else if(matcher->has_work())
 		{
-			// TODO only do this when there are new receives posted
-			int err = matcher->progress();
-			// TODO handle error
+			Match match;
+			if(matcher->progress(match))
+			{
+				int err = handle_match(match);
+				// TODO handle error
+			}
 		}
-		// emit message if any
+		// emit message if any, this is outflow
 		else if(outbox.size() > 0)
 		{
 			int err = handle_request();
@@ -97,7 +98,6 @@ void BlockingProgress::progress()
 		else
 		{
 			std::this_thread::yield();
-			// go to sleep, block on something not just deschedule
 		}	
 	}
 }
