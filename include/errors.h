@@ -1,12 +1,14 @@
 #ifndef __EXAMPI_ERRORS_H
 #define __EXAMPI_ERRORS_H
 
+#include "mpi.h"
+
 namespace exampi
 {
 
 //enum mpi_error
 //{
-//	MPI_SUCCESS = 0,
+//	MPI_SUCCESS = MPI_SUCCESS,
 //	MPI_ERR_COMM,
 //	MPI_ERR_COUNT,
 //	MPI_ERR_TYPE,
@@ -16,17 +18,25 @@ namespace exampi
 
 #ifdef RUNTIME_ARGUMENT_CHECK
 
-// TODO debugpp("santizing buffer"); if...
+int check_buffer(void *buf);
+int check_comm(MPI_comm comm);
+int check_count(int count);
+int check_tag(int tag);
+int check_datatype(MPI_Datatype datatype);
+int check_rank(int rank);
 
-#define CHECK_BUFFER(buffer)			if(check_buffer(buffer) != 0)		return MPI_ERR_BUF; 
-#define CHECK_COMM(communicator)		if(check_comm(communicator) != 0) 	return MPI_ERR_COMM; 
-#define CHECK_COUNT(count)				if(check_count(count) != 0) 		return MPI_ERR_COUNT; 
-#define CHECK_TAG(tag) 					if(check_tag(tag) != 0) 			return MPI_ERR_TAG;
-#define CHECK_DATATYPE(datatype)		if(check_datatype(datatype) != 0) 	return MPI_ERR_TYPE; 
-#define CHECK_RANK(rank)				if(check_rank(rank) != 0) 			return MPI_ERR_RANK;
+int check_request(MPI_Request *request);
+int check_status(MPI_Status *status);
 
-#define CHECK_REQUEST(request) 
-#define CHECK_STATUS(status) 
+#define CHECK_BUFFER(buffer)		return check_buffer(buffer);
+#define CHECK_COMM(communicator)	return check_comm(communicator);
+#define CHECK_COUNT(count)			return check_count(count);
+#define CHECK_TAG(tag) 				return check_tag(tag);		
+#define CHECK_DATATYPE(datatype)	return check_datatype(datatype);
+#define CHECK_RANK(rank)			return check_rank(rank);
+
+#define CHECK_REQUEST(request)		return check_request(request);
+#define CHECK_STATUS(status) 		return check_status(status);	
 
 #else
 
