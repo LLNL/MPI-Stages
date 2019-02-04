@@ -205,9 +205,7 @@ int BasicInterface::construct_request(const void *buf, int count, MPI_Datatype d
 	
 	Universe& universe = Universe::get_root_universe();
 
-	Request_ptr req = universe.allocate_request();
-
-	if(req == nullptr)
+	if(Request_ptr req = universe.allocate_request())
 		return MPI_ERR_INTERN;
 
 	*request = reinterpret_cast<MPI_Request>(req);
@@ -326,8 +324,9 @@ int BasicInterface::MPI_Start(MPI_Request *request)
 
 	// hand request to progress engine
 	Request *req = reinterpret_cast<Request *>(*request);
-	// TODO replace global progress through Universe::progress
-	return exampi::progress->post_request(req);
+
+	Universe& universe = Universe::get_root_universe();
+	return universe::progress->post_request(req);
 }
 
 //int BasicInterface::MPI_Startall()
@@ -345,7 +344,8 @@ int BasicInterface::finalize_request(MPI_Request *request, Request *req, MPI_Sta
 		status->cancelled = static_cast<int>(req->cancelled);
 		status->MPI_SOURCE = req->envelope.source;
 		status->MPI_TAG = req->envelope.tag;
-		status->MPI_ERROR = MPI_SUCCESS; // TODO check this?
+		// TODO the request has a MPI_ERROR? It can't always succeed
+		status->MPI_ERROR = MPI_SUCCESS; 
 	}
 
 	// for persistent request
@@ -356,7 +356,8 @@ int BasicInterface::finalize_request(MPI_Request *request, Request *req, MPI_Sta
 	// otherwise deallocate and set to REQUEST_NULL
 	else
 	{
-		// TODO deallocate request
+		Universe& universe = Universe::get_root_universe();
+		universe.deallocate(req);
 
 		// invalidate user MPI_Request handle
 		*request = MPI_REQUEST_NULL;
@@ -528,37 +529,7 @@ int BasicInterface::MPI_Test(MPI_Request *request, int *flag, MPI_Status *status
 
 //#############################################################################
 
-int BasicInterface::MPI_Bcast(void *buf, int count, MPI_Datatype datatype,
-                              int root,
-                              MPI_Comm comm)
-{
-	if (exampi::handler->isErrSet())
-	{
-		return MPIX_TRY_RELOAD;
-	}
 
-	// todo this is an implementation, and therefore should be in progress engine
-	int rc;
-	if (exampi::rank == root)
-	{
-		for (int i = 0; i < exampi::worldSize; i++)
-			if (i != root)
-			{
-				rc = MPI_Send(buf, count, datatype, i, 0, comm);
-				if (rc != MPI_SUCCESS)
-					return MPIX_TRY_RELOAD;
-			}
-	}
-	else
-	{
-		MPI_Status st;
-		rc = MPI_Recv(buf, count, datatype, root, 0, comm, &st);
-		if (rc != MPI_SUCCESS)
-			return MPIX_TRY_RELOAD;
-	}
-
-	return MPI_SUCCESS;
-}
 
 int BasicInterface::MPI_Comm_rank(MPI_Comm comm, int *r)
 {
@@ -624,6 +595,17 @@ int BasicInterface::MPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm)
 	}
 	return MPI_SUCCESS;
 }
+
+int BasicInterface::MPI_Comm_set_errhandler(MPI_Comm comm, MPI_Errhandler err)
+{
+	debugpp("entered comm error set");
+	// This sets the signal handler for SIGUSR2
+	// will call cleanup
+	exampi::handler->setErrToHandle(SIGUSR2);
+	return MPI_SUCCESS;
+}
+
+//#############################################################################
 
 int BasicInterface::MPIX_Serialize_handles()
 {
@@ -814,6 +796,8 @@ int BasicInterface::MPIX_Get_fault_epoch(int *epoch)
 	return MPI_SUCCESS;
 }
 
+//#############################################################################
+
 int BasicInterface::MPI_Barrier(MPI_Comm comm)
 {
 	if (exampi::handler->isErrSet())
@@ -880,30 +864,9 @@ int BasicInterface::MPI_Barrier(MPI_Comm comm)
 	return MPI_SUCCESS;
 }
 
-double BasicInterface::MPI_Wtime()
-{
-	// TODO move this into a macro
-	double wtime;
 
-	struct timespec t;
-	t.tv_sec = 0;
-	t.tv_nsec = 0;
 
-	clock_gettime(CLOCK_REALTIME, &t);
-	wtime = t.tv_sec;
-	wtime += t.tv_nsec/1.0e+9;
 
-	return wtime;
-}
-
-int BasicInterface::MPI_Comm_set_errhandler(MPI_Comm comm, MPI_Errhandler err)
-{
-	debugpp("entered comm error set");
-	// This sets the signal handler for SIGUSR2
-	// will call cleanup
-	exampi::handler->setErrToHandle(SIGUSR2);
-	return MPI_SUCCESS;
-}
 
 int BasicInterface::MPI_Reduce(const void *s_buf, void *r_buf, int count,
                                MPI_Datatype type, MPI_Op op, int root, MPI_Comm comm)
@@ -984,6 +947,40 @@ int BasicInterface::MPI_Allreduce(const void *s_buf, void *r_buf, int count,
 	return rc;
 }
 
+int BasicInterface::MPI_Bcast(void *buf, int count, MPI_Datatype datatype,
+                              int root,
+                              MPI_Comm comm)
+{
+	if (exampi::handler->isErrSet())
+	{
+		return MPIX_TRY_RELOAD;
+	}
+
+	// todo this is an implementation, and therefore should be in progress engine
+	int rc;
+	if (exampi::rank == root)
+	{
+		for (int i = 0; i < exampi::worldSize; i++)
+			if (i != root)
+			{
+				rc = MPI_Send(buf, count, datatype, i, 0, comm);
+				if (rc != MPI_SUCCESS)
+					return MPIX_TRY_RELOAD;
+			}
+	}
+	else
+	{
+		MPI_Status st;
+		rc = MPI_Recv(buf, count, datatype, root, 0, comm, &st);
+		if (rc != MPI_SUCCESS)
+			return MPIX_TRY_RELOAD;
+	}
+
+	return MPI_SUCCESS;
+}
+
+//#############################################################################
+
 int BasicInterface::MPI_Get_count(MPI_Status *status, MPI_Datatype datatype,
                                   int *count)
 {
@@ -1019,6 +1016,22 @@ int BasicInterface::MPI_Abort(MPI_Comm comm, int errorcode)
 
 	exit(-1);
 	return errorcode;
+}
+
+double BasicInterface::MPI_Wtime()
+{
+	// TODO move this into a macro
+	double wtime;
+
+	struct timespec t;
+	t.tv_sec = 0;
+	t.tv_nsec = 0;
+
+	clock_gettime(CLOCK_REALTIME, &t);
+	wtime = t.tv_sec;
+	wtime += t.tv_nsec/1.0e+9;
+
+	return wtime;
 }
 
 }

@@ -17,7 +17,6 @@ private:
 	// MPI universe owns all request objects
 	MemoryPool<Request> request_pool;
 	
-	
 	Universe()
 	{
 		exampi::groups.push_back(group);
@@ -74,6 +73,11 @@ public:
 	Request_ptr allocate_request()
 	{
 		return request_pool.allocate();
+	}
+
+	void deallocate_request(Request_ptr request)
+	{
+		request_pool.deallocate(request);
 	}
 };
 #endif
