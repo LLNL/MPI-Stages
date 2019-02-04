@@ -1,17 +1,13 @@
-# AUMPI
-Auburn Next-Generation MPI Implementation
+# ExaMPI
 
-**Warning:  master is not yet stable**
+## Build Instructions
+1. make
 
-Compile instruction - 
-1. cd AUMPI
-2. make
+(will change later with cmake)
 
-Run instruction - 
-1. cd AUMPI/run
-2. Edit MPIHOSTS to add node's IP.
-3. Copy the binary hello from AUMPI/examples/hello to AUMPI/run
-4. Run mpisrv.pl on each node
-   -> ./mpisrv.pl
-5. Run mpirun.pl on the launch node with the binary
-   -> ./mpirun.pl hello
+## Usage
+1. source ./runtime/environment
+2. mpicc main.c -o main
+3. mpiexec -n N ./main
+
+mpiexec has many options, access via mpiexec --help
