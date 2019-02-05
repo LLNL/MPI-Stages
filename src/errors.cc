@@ -9,7 +9,7 @@ int check_buffer(void *buf)
 	return MPI_SUCCESS;
 }
 
-int check_comm(MPI_comm comm)
+int check_comm(MPI_Comm comm)
 {
 	//return MPI_ERR_COMM
 	return MPI_SUCCESS;

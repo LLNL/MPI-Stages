@@ -19,7 +19,7 @@ namespace exampi
 #ifdef RUNTIME_ARGUMENT_CHECK
 
 int check_buffer(void *buf);
-int check_comm(MPI_comm comm);
+int check_comm(MPI_Comm comm);
 int check_count(int count);
 int check_tag(int tag);
 int check_datatype(MPI_Datatype datatype);

@@ -11,6 +11,7 @@ namespace exampi
 class Progress
 {
 public:
+	// handle user request object
 	virtual int post_request(Request *request) = 0;
 
 	// save groups and communicators
