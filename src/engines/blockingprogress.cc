@@ -4,7 +4,10 @@ namespace exampi
 {
 
 BlockingProgress::BlockingProgress() :
-	BlockingProgress(std::shared_ptr<Matcher>(new SimpleMatcher()), transporter(std::shared_ptr<Transport>(new UDPTransport)))
+	BlockingProgress(
+		std::shared_ptr<Matcher>(new SimpleMatcher()),
+		transporter(std::shared_ptr<Transport>(new UDPTransport))
+	)
 {
 	;
 }
@@ -82,27 +85,20 @@ void BlockingProgress::progress()
 		// NOTE this is actually just a slow poll
 		// 		blocking would be woken up by post_request, transporter absorb()
 		
+		Match match;
+
 		// absorb message if any, this is inflow
-		if(ProtocolMessage_uptr message = transporter->absorb())
+		if(ProtocolMessage_uptr msg = transporter->peek())
 		{
-			// look for match
-			Match match;
-			if(matcher.match(message, match))
-			{
-				int err = handle_match(match);
-				// TODO handle error
-			}
+			int err = handle_protocol_message(std::move(msg));
+			// TODO handle error
 		}
 
 		// match message if any, this is inflow
-		else if(matcher->has_work())
+		else if(matcher->has_work() && matcher->progress(match))
 		{
-			Match match;
-			if(matcher->progress(match))
-			{
-				int err = handle_match(match);
-				// TODO handle error
-			}
+			int err = handle_match(match);
+			// TODO handle error
 		}
 
 		// emit message if any, this is outflow
@@ -120,12 +116,28 @@ void BlockingProgress::progress()
 	}
 }
 
+int BlockingProgress::handle_protocol_message(ProtocolMessage_uptr message)
+{
+	Match match;
+
+	// look for match
+	if(matcher->match(std::move(message), match))
+	{
+		// TODO would need to fill the ProtocolMessage here
+		// not good, we only want to fill once we need to with the request
+		// in handle_match
+
+		int err = handle_match(match);
+		// TODO handle error
+	}
+}
+
 int BlockingProgress::handle_match(Match match)
 {
 	// act on protocol
 	// unpack protocol message, extract protocol
 	
-	
+	// we might still own a lock on transport here!
 
 	// TODO
 	// rendevouz protocol?
@@ -161,8 +173,11 @@ int BlockingProgress::handle_send(Request *request)
 	// request -> ProtocolMessage
 	ProtocolMessage_uptr message = transporter->allocate_protocol_message();
 
+	// ASSUMPTION TODO whole request fits into a single protocolmessage
+
 	// pack message
-	message->envelope = request->envelope;
+	message->envelope.stage = ProtocolStage::EAGER;
+	message->envelope.envelope_mpi = request->envelope;
 	// TODO pack data
 	// eager, all in ProtocolMessage
 	// eager_ack, all in ProtocolMessage, requires acknowledgement

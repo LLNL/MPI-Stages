@@ -4,6 +4,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <unistd.h>
+#include <mutex>
 
 #include "abstract/transport.h"
 #include "universe.h"
@@ -17,11 +18,16 @@ class UDPTransport: public Transport
 private:
 	int socket_recv;
 
+	std::mutex guard;
+
+	msghdr hdr;
+
 public:
 	UDPTransport();
 	~UDPTransport();
 
-	ProtocolMessage_uptr absorb();
+	ProtocolMessage_uptr peek();
+
 	int reliable_send(ProtocolMessage_uptr message);
 };
 

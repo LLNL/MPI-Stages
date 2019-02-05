@@ -12,31 +12,37 @@
 namespace exampi
 {
 
-enum class ProtocolType: int
+enum class ProtocolStage: int
 {
-	EAGER,
-	EAGER_ACK,
-	RENDEVOUZ
+	ACK				// no data, ack in response, finalizing any protocol
+
+	EAGER,			// pack data, no ack
+	
+	EAGER_SEQ,		// pack data, multiple messages
+
+	EAGER_ACK,		// data is packed, ack required
+	
+	EAGER_SEQ_ACK,	// packed data, multiple messages, ack required
+
+	RENDEVOUZ_PUT,	// send buffer is packed, requesting buffer on receiver
+	RENDEVOUZ_ACK,	// recv buffer is packed, requesting putting into receiver, follow by ack
+
+	RENDEVOUZ_GET,	// send buffer is packed, requesting get from buffer and ack
 };
 
 struct ProtocolMessage
 {
-	// protocol message type
-	ProtocolType type;
-
-	// every protocol message has an envelope
+	ProtocolStage stage; 
 	Envelope envelope;
 
 	// payload / protocol data
-	union data
+	union
 	{
 		// nothing should exceed this
-		int pad[11];
+		int data[10];
 
 		// buffer, datatype, count
 		Payload payload;
-		
-		
 	};
 };
 
