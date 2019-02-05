@@ -62,10 +62,14 @@ bool SimpleMatcher::progress(Match &match)
 	// check if work is actually available
 	if(has_work() && (unexpected_message_queue.size() > 0))
 		// with multiple threads need to keep in mind FIFO, single lock works
-		ProtocolMessage_uptr message = unexpected_message_queue.front();
+		ProtocolMessage_uptr message = std::move(unexpected_message_queue.front());
+		unexpected_message_queue.pop();
+
 		// TODO this needs improving
 
-		return match(message, match);
+		bool matched = match(message, match);
+		if(!matched)
+			unexpected_message_queue.push_front(std::move(message));
 	}
 	
 	return false;

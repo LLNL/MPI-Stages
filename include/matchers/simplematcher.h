@@ -2,7 +2,7 @@
 #define __EXAMPI_SIMPLE_MATCHER_H
 
 #include <list>
-#include <queue>
+#include <deque>
 #include <mutex>
 
 #include "abstract/matcher.h"
@@ -16,7 +16,7 @@ class SimpleMatcher final: public Matcher
 private:
 	std::recursive_mutex guard;
 
-	std::queue<ProtocolMessage_uptr> unexpected_message_queue;
+	std::deque<ProtocolMessage_uptr> unexpected_message_queue;
 	std::list<Request_ptr> posted_request_queue;
 
 public:
