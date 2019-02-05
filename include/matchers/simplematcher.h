@@ -17,10 +17,8 @@ private:
 	std::recursive_mutex guard;
 
 	std::queue<ProtocolMessage_uptr> unexpected_message_queue;
-	std::list<Request_ptr> posted_receive_queue;
+	std::list<Request_ptr> posted_request_queue;
 
-	unsigned int unchecked_receives;
-	
 public:
 	SimpleMatcher();
 

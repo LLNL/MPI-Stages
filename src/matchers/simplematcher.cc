@@ -12,10 +12,7 @@ void SimpleMatcher::post_request(Request_ptr request)
 {
 	std::lock_guard<std::recursive_mutex> lock(guard);
 
-	posted_receive_queue.push_back(request);
-
-	// increment new work
-	unchecked_receives += 1;
+	posted_request_queue.push_back(request);
 }
 
 bool match(ProtocolMessage_uptr message, Match &match)
@@ -76,7 +73,7 @@ bool SimpleMatcher::progress(Match &match)
 
 bool SimpleMatcher::has_work()
 {
-	return (unchecked_receives > 0);
+	return (posted_request_queue.size() > 0);
 }
 
 }
