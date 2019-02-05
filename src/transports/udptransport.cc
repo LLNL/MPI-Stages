@@ -19,6 +19,7 @@ UDPTransport::UDPTransport() : Transport()
 	// bind
 	Universe& universe = Universe::get_root_universe();
 
+	// garuntees no local collision
 	int port = std::stoi(std::string(std::getenv("EXAMPI_UDP_TRANSPORT_BASE"))) + universe.rank;
 	
 	struct sockaddr_in address_local;
@@ -31,10 +32,11 @@ UDPTransport::UDPTransport() : Transport()
 		// TODO handle error
 	}
 
-	// prepare hdr
+	// prepare msg header
 	hdr.msg_name = NULL;
 	hdr.msg_namelen = 0;
 
+	hdr.msg_control = NULL;
 	hdr.msg_controllen = 0;
 	hdr.msg_flags = NULL;
 }
@@ -44,22 +46,41 @@ UDPTransport::~UDPTransport()
 	close(socket_recv);
 }
 
-ProtocolMessage_uptr peek()
+bool peek(ProtocolMessage_uptr &message)
 {
+	// early exit test
+	char test;
+	ssize_t size = recv(socket_recv, &test, sizeof(test), MSG_PEEK | MSG_DONTWAIT);
+	if(size <= 0)
+		return false;
+
 	std::lock_guard lock(guard);
 
-	ProtocolMessage_uptr message = allocate_protocol_message();
+	// check again, that the data has not been taken by another thread
+	ssize_t size = recv(socket_recv, &test, sizeof(test), MSG_PEEK | MSG_DONTWAIT);
+	if(size <= 0)
+		return false;
+
+	ProtocolMessage_uptr msg = allocate_protocol_message();
 
 	// fill iov
 	iovec msg_iov;
-	msg_iov.iov_base = message.get();
+	msg_iov.iov_base = msg.get();
 	msg_iov.iov_len = sizeof(ProtocolMessage);
 
-	int err = recvmsg(socket_recv, &hdr, MSG_PEEK | MSG_DONTWAIT);
+	hdr.msg_iov = &msg_iov;
+	hdr.msg_iovlen = 1;
 
-	if(err <= 0)
-		message.reset(nullptr);
-	return message;
+	// clear source
+	hdr.msg_name = NULL;
+	hdr.msg_namelen = 0;
+
+	int err = recvmsg(socket_recv, &hdr, NULL);
+	// TODO handle error
+
+	message = std::move(msg);
+
+	return true;
 }
 
 //ProtocolMessage_uptr UDPTransport::fetch(ProtocolEnvelope &envelope)
@@ -102,9 +123,22 @@ int UDPTransport::reliable_send(ProtocolMessage_uptr message)
 {
 	std::lock_guard lock(guard);
 
-	// output message via udp
-	// TODO
-	ssize_t err = sendmsg(socket_recv, );
+	// fill iov
+	iovec msg_iov;
+	msg_iov.iov_base = message.get();
+	msg_iov.iov_len = sizeof(ProtocolMessage);
+	
+	hdr.msg_iov = &msg_iov;
+	hdr.msg_iovlen = 1;
+
+	// fill destination
+	hdr.msg_name = "";
+	hdr.msg_namelen = 0;
+
+	int err = sendmsg(socket_recv, &hdr, NULL);
+	// TODO handle error
+	
+	return MPI_SUCCESS;
 }
 
 }
