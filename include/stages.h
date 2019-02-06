@@ -9,7 +9,9 @@ namespace exampi
 
 #ifdef MPI_STAGES
 
-#define CHECK_STAGES_ERROR() debugpp("checking mpi stages error state"); if(exampi::handler->isErrSet()) {return MPIX_TRY_RELOAD;}
+#define CHECK_STAGES_ERROR() 	debugpp("checking mpi stages error state"); \
+								Universe& universe = Universe::get_root_universe(); \
+								if(universe.handler->isErrSet()) {return MPIX_TRY_RELOAD;}
 
 #else
 

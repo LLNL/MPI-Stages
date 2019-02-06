@@ -1,28 +1,35 @@
-#include "errHandler.h"
-#include "global.h"
+#include <iostream>
+
+#include "errhandler.h"
+#include "universe.h"
 
 namespace exampi
 {
 
 volatile std::sig_atomic_t errHandler::is_errSet = 0;
 
-errHandler::errHandler() {}
+errHandler::errHandler()
+{
+	;
+}
 
-errHandler::~errHandler() {}
+errHandler::~errHandler()
+{
+	;
+}
 
 bool errHandler::setErrToHandle(int sig)
 {
-	if(std::signal(sig, errHandler::setErr) == SIG_ERR)
-	{
-		return false;
-	}
-	return true;
+	return (std::signal(sig, setErr) != SIG_ERR);
 }
 
 void errHandler::setErr(int unused)
 {
+	Universe& universe = Universe::get_root_universe();
+
 	is_errSet = 1;
-	exampi::progress->cleanUp();
+
+	universe.progress->cleanUp();
 }
 
 void errHandler::setErrToZero()

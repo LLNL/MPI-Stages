@@ -14,7 +14,7 @@ namespace exampi
 
 enum class ProtocolStage: int
 {
-	ACK				// no data, ack in response, finalizing any protocol
+	ACK,			// no data, ack in response, finalizing any protocol
 
 	EAGER,			// pack data, no ack
 	

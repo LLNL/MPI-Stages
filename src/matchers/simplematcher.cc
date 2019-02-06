@@ -1,9 +1,11 @@
+#include <algorithm>
+
 #include "matchers/simplematcher.h"
 
 namespace exampi
 {
 
-SimpleMatcher::SimpleMatcher() : new_receives(0)
+SimpleMatcher::SimpleMatcher()
 {
 	;
 }
@@ -15,25 +17,29 @@ void SimpleMatcher::post_request(Request_ptr request)
 	posted_request_queue.push_back(request);
 }
 
-bool match(ProtocolMessage_uptr message, Match &match)
+bool SimpleMatcher::match(ProtocolMessage_uptr message, Match &match)
 {
 	std::lock_guard<std::recursive_mutex> lock(guard);
 
 	// do search
+	ProtocolMessage *msg = message.get();
+	
 	auto iterator = std::find_if(posted_request_queue.begin(),
 	                             posted_request_queue.end(),
-	                             [message](const Request_ptr request) -> bool
+	                             [msg](const Request_ptr request) -> bool
 	                             {
 									// TODO support WILD CARD ANY_TAG AND ANY_SOURCE
-	                                return (message->envelope.epoch        == request->envelope.epoch) &&
-	                                       (message->envelope.communicator == request->envelope.communicator) &&
-	                                       (message->envelope.source       == request->envelope.source) &&
-	                                       (message->envelope.destination  == request->envelope.destination) &&
-	                                       (message->envelope.tag          == request->envelope.tag);
+	                                return (msg->envelope.epoch        == request->envelope.epoch) &&
+	                                       (msg->envelope.communicator == request->envelope.communicator) &&
+	                                       (msg->envelope.source       == request->envelope.source) &&
+	                                       (msg->envelope.destination  == request->envelope.destination) &&
+	                                       (msg->envelope.tag          == request->envelope.tag);
 	                             });
 
 	// found match
-	if(bool matched = (iterator != posted_request_queue.end()))
+	bool matched = (iterator != posted_request_queue.end());
+
+	if(matched)
 	{
 		// return corresponding request
 		Request_ptr request = *iterator;
@@ -46,9 +52,10 @@ bool match(ProtocolMessage_uptr message, Match &match)
 		match.message = std::move(message);
 	}
 	
-	// no match, then store message in UMQ
+	// no match, then absorb message in UMQ
 	else
 	{
+		// TODO no allowed for progress call
 		unexpected_message_queue.push_back(std::move(message));
 	}
 	
@@ -61,15 +68,18 @@ bool SimpleMatcher::progress(Match &match)
 	
 	// check if work is actually available
 	if(has_work() && (unexpected_message_queue.size() > 0))
+	{
 		// with multiple threads need to keep in mind FIFO, single lock works
 		ProtocolMessage_uptr message = std::move(unexpected_message_queue.front());
-		unexpected_message_queue.pop();
 
-		// TODO this needs improving
-
-		bool matched = match(message, match);
-		if(!matched)
+		bool matched = match(std::move(message), match);
+		if(matched)	{
+			unexpected_message_queue.pop_front();
+		}
+		else
+		{
 			unexpected_message_queue.push_front(std::move(message));
+		}
 	}
 	
 	return false;

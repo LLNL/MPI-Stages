@@ -27,10 +27,9 @@
 
 #include <comm.h>
 #include <group.h>
-#include <errHandler.h>
+#include <errhandler.h>
 
 #include <map>
-#include <array.h>
 
 #include <abstract/progress.h>
 #include <abstract/transport.h>

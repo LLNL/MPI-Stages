@@ -2,15 +2,18 @@
 
 #include <basic.h>
 #include "engines/progress.h"
+#include "universe.h"
 
 namespace exampi
 {
 
 void BasicCheckpoint::save()
 {
+	Universe& universe = Universe::get_root_universe();
+	
 	// get a file.  this is actually nontrivial b/c of shared filesystems; we'll salt for now
 	std::stringstream filename;
-	filename << exampi::epoch << "." << exampi::rank << ".cp";
+	filename << universe.epoch << "." << universe.rank << ".cp";
 	std::ofstream target(filename.str(), std::ofstream::out);
 
 	long long int size = 0;
@@ -18,16 +21,18 @@ void BasicCheckpoint::save()
 	target.write(reinterpret_cast<char *>(&size), sizeof(long long int));
 
 	// save the global datatype map
-	//uint32_t typecount = exampi::datatypes.size();
+	//uint32_t typecount = universe.datatypes.size();
 	//target.write(reinterpret_cast<char *>(&typecount), sizeof(uint32_t));
-	for(auto i : exampi::datatypes)
+	for(auto i : universe.datatypes)
 	{
 		//i.save(target);
 	}
 
-	exampi::progress->save(target);
-	exampi::transport->save(target);
-	//exampi::interface->save(target);
+	// TODO
+	//universe.progress->save(target);
+	//universe.transport->save(target);
+	//universe.interface->save(target);
+
 	long long int end = target.tellp();
 	size = end - begin;
 	target.clear();
@@ -36,24 +41,27 @@ void BasicCheckpoint::save()
 	target.write(reinterpret_cast<char *>(&size), sizeof(long long int));
 	target.close();
 
-	if (exampi::handler->isErrSet() != 1)
+	if (universe.errhandler->isErrSet() != 1)
 	{
 		// needed in case process dies
 		// XXX could also send to daemon
 		// write out epoch number
-		exampi::epoch++;
-		std::ofstream ef(exampi::epochConfig);
-		ef << exampi::epoch;
+		universe.epoch++;
+		std::ofstream ef(universe.epoch_config);
+		ef << universe.epoch;
 		ef.close();
 	}
 }
 
 int BasicCheckpoint::load()
 {
-	if(exampi::epoch == 0) // first init
+	Universe& universe = Universe::get_root_universe();
+
+	if(universe.epoch == 0) // first init
 	{
-		exampi::transport->init();
-		exampi::progress->init();
+		// TODO we are getting rid of init
+		//universe.transport->init();
+		//universe.progress->init();
 
 		return MPI_SUCCESS;
 	}
@@ -61,7 +69,7 @@ int BasicCheckpoint::load()
 	{
 		// get a file.  this is actually nontrivial b/c of shared filesystems; we'll salt for now
 		std::stringstream filename;
-		filename << exampi::epoch - 1 << "." << exampi::rank << ".cp";
+		filename << universe.epoch - 1 << "." << universe.rank << ".cp";
 		std::ifstream target(filename.str(), std::ifstream::in);
 
 		long long int pos;
@@ -69,22 +77,23 @@ int BasicCheckpoint::load()
 
 		// save the global datatype map
 		//target.write(&typecount, sizeof(uint32_t));
-		for(auto i : exampi::datatypes)
+		for(auto i : universe.datatypes)
 		{
 			// i.save(target);
 		}
-		exampi::progress->load(target);
-		exampi::transport->load(target);
+
+		//universe.progress->load(target);
+		//universe.transport->load(target);
 
 		Daemon& daemon = Daemon::get_instance();
 		daemon.barrier();
 
-		//exampi::interface->save(target);
+		//universe.interface->save(target);
 
 		// read in epoch number
 		target.close();
-		std::ifstream ef(exampi::epochConfig);
-		ef >> exampi::epoch;
+		std::ifstream ef(universe.epoch_config);
+		ef >> universe.epoch;
 		ef.close();
 	}
 	return MPIX_SUCCESS_RESTART;

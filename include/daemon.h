@@ -4,8 +4,6 @@
 #include <string>
 #include <netinet/in.h>
 
-#include "debug.h"
-
 namespace exampi
 {
 
@@ -29,7 +27,6 @@ private:
 	sockaddr_in daemon;
 
 	Daemon();
-
 	~Daemon();
 
 	int send(std::string);

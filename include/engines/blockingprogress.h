@@ -24,6 +24,7 @@ class BlockingProgress: public Progress
 {
 private:
 	bool shutdown;
+	int maximum_progress_cycles;
 
 	std::vector<std::thread> progress_threads;
 
@@ -37,6 +38,7 @@ private:
 
 	void progress();
 
+	int handle_protocol_message(ProtocolMessage_uptr msg);
 	int handle_match(Match match);
 	int handle_request();
 

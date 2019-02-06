@@ -1,12 +1,12 @@
 #ifndef __EXAMPI_INTERFACE_H
 #define __EXAMPI_INTERFACE_H
 
-#include <basic.h>
 #include <time.h>
-#include <errHandler.h>
-#include <funcType.h>
 #include <cstdlib>
 
+#include "basic.h"
+#include "funcType.h"
+#include "errhandler.h"
 #include "engines/progress.h"
 #include "abstract/interface.h"
 #include "daemon.h"

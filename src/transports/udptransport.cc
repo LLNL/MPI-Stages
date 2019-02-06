@@ -1,4 +1,6 @@
 #include "transports/udptransport.h"
+#include "universe.h"
+#include "config.h"
 
 namespace exampi
 {
@@ -13,8 +15,8 @@ UDPTransport::UDPTransport() : Transport()
 	}
 
 	// setsockopt to reuse address
-	int opt = 1;
-	if (setsockopt(server_recv, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt))) 
+	//int opt = 1;
+	//if(setsockopt(server_recv, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt))) 
 
 	// bind
 	Universe& universe = Universe::get_root_universe();
@@ -27,7 +29,7 @@ UDPTransport::UDPTransport() : Transport()
 	address_local.sin_addr.s_addr = INADDR_ANY;
 	address_local.sin_port = htons(port);
 
-	if(bind(server_recv, address_local, sizeof(address_local)) < 0)
+	if(bind(socket_recv, (sockaddr*)&address_local, sizeof(address_local)) < 0)
 	{
 		// TODO handle error
 	}
@@ -38,7 +40,25 @@ UDPTransport::UDPTransport() : Transport()
 
 	hdr.msg_control = NULL;
 	hdr.msg_controllen = 0;
-	hdr.msg_flags = NULL;
+	hdr.msg_flags = 0;
+
+	// cache remote addresses
+	Config& config = Config::get_instance();
+
+	for(long int rank = 0; rank < universe.world_size; ++rank)
+	{
+		std::string descriptor = config[std::to_string(rank)];
+		size_t delimiter = descriptor.find_first_of(":");
+		std::string ip = descriptor.substr(0, delimiter);
+		int port = std::stoi(descriptor.substr(delimiter+1));
+
+		struct sockaddr_in addr;
+		addr.sin_family = AF_INET;
+		addr.sin_addr.s_addr = inet_addr(ip.c_str()); 
+		addr.sin_port = htons(port);
+
+		cache.insert({rank, addr});
+	}
 }
 
 UDPTransport::~UDPTransport()
@@ -46,7 +66,7 @@ UDPTransport::~UDPTransport()
 	close(socket_recv);
 }
 
-bool peek(ProtocolMessage_uptr &message)
+bool UDPTransport::peek(ProtocolMessage_uptr &message)
 {
 	// early exit test
 	char test;
@@ -54,10 +74,10 @@ bool peek(ProtocolMessage_uptr &message)
 	if(size <= 0)
 		return false;
 
-	std::lock_guard lock(guard);
+	std::lock_guard<std::mutex> lock(guard);
 
 	// check again, that the data has not been taken by another thread
-	ssize_t size = recv(socket_recv, &test, sizeof(test), MSG_PEEK | MSG_DONTWAIT);
+	size = recv(socket_recv, &test, sizeof(test), MSG_PEEK | MSG_DONTWAIT);
 	if(size <= 0)
 		return false;
 
@@ -75,7 +95,7 @@ bool peek(ProtocolMessage_uptr &message)
 	hdr.msg_name = NULL;
 	hdr.msg_namelen = 0;
 
-	int err = recvmsg(socket_recv, &hdr, NULL);
+	int err = recvmsg(socket_recv, &hdr, 0);
 	// TODO handle error
 
 	message = std::move(msg);
@@ -83,45 +103,9 @@ bool peek(ProtocolMessage_uptr &message)
 	return true;
 }
 
-//ProtocolMessage_uptr UDPTransport::fetch(ProtocolEnvelope &envelope)
-//{
-//	// lock is already owned, will unlock at the end of function
-//	std::lock_guard<std::mutex> lock(guard, std::adopt_lock);
-//
-//	// create ProtocolMessage instance
-//	ProtocolMessage_uptr ptr = allocate_protocol_message();
-//
-//	// fill iov
-//	iovec protocol_message_iov;
-//	protocol_message_iov.iov_base = ptr.get();
-//	protocol_message_iov.iov_len = sizeof(ProtocolMessage);
-//	
-//	hdr.msg_iov = &protocol_message_iov;
-//	hdr.msg_iovlen = 1;
-//	
-//	// recv message via udp
-//	ssize_t err = recvmsg(socket_recv, &hdr, MSG_WAITALL);
-//
-//	if(err <= 0)
-//	{
-//		// TODO handle error
-//	}
-//
-//	return ptr;
-//}
-//
-//bool UDPTransport::fill(ProtocolEnvelope &envelope, Payload &payload)
-//{
-//	// lock is already owned
-//	std::lock_guard<std::mutex> lock(guard, std::adopt_lock);
-//
-//	// TODO copy what ever the message is into the 
-//	
-//}
-
 int UDPTransport::reliable_send(ProtocolMessage_uptr message)
 {
-	std::lock_guard lock(guard);
+	std::lock_guard<std::mutex> lock(guard);
 
 	// fill iov
 	iovec msg_iov;
@@ -132,10 +116,11 @@ int UDPTransport::reliable_send(ProtocolMessage_uptr message)
 	hdr.msg_iovlen = 1;
 
 	// fill destination
-	hdr.msg_name = "";
-	hdr.msg_namelen = 0;
+	sockaddr_in &addr = cache[message->envelope.destination];
+	hdr.msg_name = &addr;
+	hdr.msg_namelen = sizeof(sockaddr_in);
 
-	int err = sendmsg(socket_recv, &hdr, NULL);
+	int err = sendmsg(socket_recv, &hdr, 0);
 	// TODO handle error
 	
 	return MPI_SUCCESS;

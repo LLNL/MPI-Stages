@@ -14,7 +14,7 @@ BasicInterface &BasicInterface::get_instance()
 	return instance;
 }
 
-BasicInterface::BasicInterface() : request_pool(256)
+BasicInterface::BasicInterface()
 {
 	;
 }
@@ -42,32 +42,32 @@ int BasicInterface::MPI_Init(int *argc, char ***argv)
 
 	debugpp("Taking rank to be arg " << std::string(std::getenv("EXAMPI_RANK")));
 	
-	//exampi::rank = std::stoi(std::string(std::getenv("EXAMPI_RANK")));
+	//universe.rank = std::stoi(std::string(std::getenv("EXAMPI_RANK")));
 
 	universe.rank = std::stoi(std::string(std::getenv("EXAMPI_RANK")));
 
 	//debugpp("Taking epoch config to be " << **argv);
-	//exampi::epochConfig = std::string(std::getenv("EXAMPI_EPOCH_FILE"));
+	//universe.epochConfig = std::string(std::getenv("EXAMPI_EPOCH_FILE"));
 
 	universe.epoch_config = std::string(std::getenv("EXAMPI_EPOCH_FILE"));
 
 	debugpp("Taking epoch to be " << std::string(std::getenv("EXAMPI_EPOCH")));
 
-	//exampi::epoch = std::stoi(std::string(std::getenv("EXAMPI_EPOCH")));
+	//universe.epoch = std::stoi(std::string(std::getenv("EXAMPI_EPOCH")));
 	universe.epoch = std::stoi(std::string(std::getenv("EXAMPI_EPOCH")));
 
-	//exampi::worldSize = std::stoi(std::string(std::getenv("EXAMPI_WORLD_SIZE")));	
+	//universe.worldSize = std::stoi(std::string(std::getenv("EXAMPI_WORLD_SIZE")));	
 	universe.world_size = std::stoi(std::string(std::getenv("EXAMPI_WORLD_SIZE")));	
 
 	// TODO this initializes progress and transport
-	recovery_code = exampi::checkpoint->load();
+	recovery_code = universe.checkpoint->load();
 
 	// execute global barrier
 	// this is so that P1 doesn't init and send before P0 is ready to recv
-	//if(exampi::epoch == 0)
+	//if(universe.epoch == 0)
 	if(universe.epoch == 0)
 	{
-		debugpp("Executing barrier" << exampi::rank);
+		debugpp("Executing barrier" << universe.rank);
 
 		Daemon& daemon = Daemon::get_instance();
 		daemon.barrier();
@@ -87,8 +87,8 @@ int BasicInterface::MPI_Finalize()
 	serialize_handlers.clear();
 	deserialize_handlers.clear();
 
-	//exampi::transport->finalize();
-	//exampi::progress->finalize();
+	//universe.transport->finalize();
+	//universe.progress->finalize();
 
 	return MPI_SUCCESS;
 }
@@ -168,7 +168,7 @@ int BasicInterface::MPI_Sendrecv(const void *sendbuf, int sendcount,
 {
 	// sanitize user input
 	
-//	if (exampi::handler->isErrSet())
+//	if (universe.errhandler->isErrSet())
 //	{
 //		return MPIX_TRY_RELOAD;
 //	}
@@ -205,12 +205,13 @@ int BasicInterface::construct_request(const void *buf, int count, MPI_Datatype d
 	
 	Universe& universe = Universe::get_root_universe();
 
-	if(Request_ptr req = universe.allocate_request())
+	Request_ptr req = universe.allocate_request();
+	if(req == nullptr)
 		return MPI_ERR_INTERN;
 
 	*request = reinterpret_cast<MPI_Request>(req);
 	
-	Comm *c = exampi::communicators.at(comm);
+	Comm *c = universe.communicators.at(comm);
 	int context = c->get_context_id_pt2pt();
 	size_t szcount = count;
 
@@ -218,15 +219,14 @@ int BasicInterface::construct_request(const void *buf, int count, MPI_Datatype d
 	req->operation = operation;
 
 	// envelope
-	req->envelope.epoch = exampi::epoch;
+	req->envelope.epoch = universe.epoch;
 	req->envelope.communicator = comm;
-	req->envelope.source = exampi::rank;
+	req->envelope.source = universe.rank;
 	req->envelope.destination = dest;
 	req->envelope.tag = tag;
 	
 	// data description
-	// TODO req->datatype = datatype;
-	req->payload.datatype = exampi::datatypes[datatype];
+	req->payload.datatype = datatype;
 	req->payload.count = count;
 	req->payload.buffer = buf;
 
@@ -244,7 +244,9 @@ int BasicInterface::MPI_Bsend_init(const void* buf, int count, MPI_Datatype data
 	CHECK_COMM(comm);
 	CHECK_STAGES_ERROR();
 
-	return construct_request(buf, count, datatype, exampi::rank, dest, tag, comm, request, Operation::Bsend);
+	Universe& universe = Universe::get_root_universe();
+
+	return construct_request(buf, count, datatype, universe.rank, dest, tag, comm, request, Operation::Bsend);
 }
 
 int BasicInterface::MPI_Rsend_init(const void* buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm, MPI_Request *request)
@@ -258,7 +260,9 @@ int BasicInterface::MPI_Rsend_init(const void* buf, int count, MPI_Datatype data
 	CHECK_COMM(comm);
 	CHECK_STAGES_ERROR();
 
-	return construct_request(buf, count, datatype, exampi::rank, dest, tag, comm, request, Operation::Bsend);
+	Universe& universe = Universe::get_root_universe();
+
+	return construct_request(buf, count, datatype, universe.rank, dest, tag, comm, request, Operation::Bsend);
 }
 
 int BasicInterface::MPI_Ssend_init(const void* buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm, MPI_Request *request)
@@ -272,7 +276,9 @@ int BasicInterface::MPI_Ssend_init(const void* buf, int count, MPI_Datatype data
 	CHECK_COMM(comm);
 	CHECK_STAGES_ERROR();
 
-	return construct_request(buf, count, datatype, exampi::rank, dest, tag, comm, request, Operation::Ssend);
+	Universe& universe = Universe::get_root_universe();
+
+	return construct_request(buf, count, datatype, universe.rank, dest, tag, comm, request, Operation::Ssend);
 }
 
 int BasicInterface::MPI_Send_init(const void* buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm, MPI_Request *request)
@@ -286,7 +292,9 @@ int BasicInterface::MPI_Send_init(const void* buf, int count, MPI_Datatype datat
 	CHECK_COMM(comm);
 	CHECK_STAGES_ERROR();
 
-	return construct_request(buf, count, datatype, exampi::rank, dest, tag, comm, request, Operation::Send);
+	Universe& universe = Universe::get_root_universe();
+
+	return construct_request(buf, count, datatype, universe.rank, dest, tag, comm, request, Operation::Send);
 }
 
 int BasicInterface::MPI_Recv_init(const void* buf, int count, MPI_Datatype datatype, int source, int tag, MPI_Comm comm, MPI_Request *request) 
@@ -301,7 +309,9 @@ int BasicInterface::MPI_Recv_init(const void* buf, int count, MPI_Datatype datat
 	CHECK_COMM(comm);
 	CHECK_STAGES_ERROR();
 
-	return construct_request(buf, count, datatype, source, exampi::rank, tag, comm, request, Operation::Receive);
+	Universe& universe = Universe::get_root_universe();
+
+	return construct_request(buf, count, datatype, source, universe.rank, tag, comm, request, Operation::Receive);
 }
 
 //#############################################################################
@@ -326,7 +336,7 @@ int BasicInterface::MPI_Start(MPI_Request *request)
 	Request *req = reinterpret_cast<Request *>(*request);
 
 	Universe& universe = Universe::get_root_universe();
-	return universe::progress->post_request(req);
+	return universe.progress->post_request(req);
 }
 
 //int BasicInterface::MPI_Startall()
@@ -357,7 +367,7 @@ int BasicInterface::finalize_request(MPI_Request *request, Request *req, MPI_Sta
 	else
 	{
 		Universe& universe = Universe::get_root_universe();
-		universe.deallocate(req);
+		universe.deallocate_request(req);
 
 		// invalidate user MPI_Request handle
 		*request = MPI_REQUEST_NULL;
@@ -441,7 +451,7 @@ int BasicInterface::MPI_Waitall(int count, MPI_Request array_of_requests[],
 //
 //	// mpi stages error check
 //	// TODO CHECK_STAGES_ERROR();
-//	if (exampi::handler->isErrSet())
+//	if (universe.errhandler->isErrSet())
 //	{
 //		return MPIX_TRY_RELOAD;
 //	}
@@ -534,11 +544,15 @@ int BasicInterface::MPI_Test(MPI_Request *request, int *flag, MPI_Status *status
 int BasicInterface::MPI_Comm_rank(MPI_Comm comm, int *r)
 {
 	debugpp("entered MPI_Comm_rank");
-	if (exampi::handler->isErrSet())
+	
+	Universe& universe = Universe::get_root_universe();
+
+	if(universe.errhandler->isErrSet())
 	{
 		return MPIX_TRY_RELOAD;
 	}
-	Comm *c = exampi::communicators.at(comm);
+
+	Comm *c = universe.communicators.at(comm);
 
 	*r = (c)->get_rank();
 	return 0;
@@ -548,12 +562,14 @@ int BasicInterface::MPI_Comm_size(MPI_Comm comm, int *r)
 {
 	debugpp("entered MPI_Comm_size");
 
-	if (exampi::handler->isErrSet())
+	Universe& universe = Universe::get_root_universe();
+
+	if (universe.errhandler->isErrSet())
 	{
 		return MPIX_TRY_RELOAD;
 	}
 
-	Comm *c = exampi::communicators.at(comm);
+	Comm *c = universe.communicators.at(comm);
 
 	*r = (c)->get_local_group()->get_process_list().size();
 
@@ -562,12 +578,15 @@ int BasicInterface::MPI_Comm_size(MPI_Comm comm, int *r)
 
 int BasicInterface::MPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm)
 {
-	if (exampi::handler->isErrSet())
+
+	Universe& universe = Universe::get_root_universe();
+	if (universe.errhandler->isErrSet())
 	{
 		return MPIX_TRY_RELOAD;
 	}
+
 	int rc;
-	Comm *c = exampi::communicators.at(comm);
+	Comm *c = universe.communicators.at(comm);
 
 	int coll_context;
 	int p2p_context;
@@ -581,17 +600,17 @@ int BasicInterface::MPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm)
 	communicator = new Comm(true, (c)->get_local_group(), (c)->get_remote_group());
 	communicator->set_rank((c)->get_rank());
 	communicator->set_context(p2p_context, coll_context);
-	exampi::communicators.push_back(communicator);
-	auto it = std::find_if(exampi::communicators.begin(),
-	                       exampi::communicators.end(),
+	universe.communicators.push_back(communicator);
+	auto it = std::find_if(universe.communicators.begin(),
+	                       universe.communicators.end(),
 	                       [communicator](const Comm *i) -> bool {return i->get_context_id_pt2pt() == communicator->get_context_id_pt2pt();});
-	if (it == exampi::communicators.end())
+	if (it == universe.communicators.end())
 	{
 		return MPIX_TRY_RELOAD;
 	}
 	else
 	{
-		*newcomm = std::distance(exampi::communicators.begin(), it);
+		*newcomm = std::distance(universe.communicators.begin(), it);
 	}
 	return MPI_SUCCESS;
 }
@@ -599,9 +618,10 @@ int BasicInterface::MPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm)
 int BasicInterface::MPI_Comm_set_errhandler(MPI_Comm comm, MPI_Errhandler err)
 {
 	debugpp("entered comm error set");
+	Universe& universe = Universe::get_root_universe();
 	// This sets the signal handler for SIGUSR2
 	// will call cleanup
-	exampi::handler->setErrToHandle(SIGUSR2);
+	universe.errhandler->setErrToHandle(SIGUSR2);
 	return MPI_SUCCESS;
 }
 
@@ -609,13 +629,15 @@ int BasicInterface::MPI_Comm_set_errhandler(MPI_Comm comm, MPI_Errhandler err)
 
 int BasicInterface::MPIX_Serialize_handles()
 {
-	if (exampi::handler->isErrSet())
+	Universe& universe = Universe::get_root_universe();
+
+	if (universe.errhandler->isErrSet())
 	{
 		return MPIX_TRY_RELOAD;
 	}
 
 	std::stringstream filename;
-	filename << exampi::epoch - 1 << "." << exampi::rank << ".cp";
+	filename << universe.epoch - 1 << "." << universe.rank << ".cp";
 	std::ofstream t(filename.str(), std::ofstream::out | std::ofstream::app);
 
 	if (!serialize_handlers.empty())
@@ -627,7 +649,7 @@ int BasicInterface::MPIX_Serialize_handles()
 			t.write(reinterpret_cast<char *>(&handles.comm_size), sizeof(int));
 			for (int i = 0; i < handles.comm_size; i++)
 			{
-				Comm *c = exampi::communicators.at(handles.comms[i]);
+				Comm *c = universe.communicators.at(handles.comms[i]);
 				int id = c->get_context_id_pt2pt();
 				t.write(reinterpret_cast<char *>(&id), sizeof(int));
 			}
@@ -635,7 +657,7 @@ int BasicInterface::MPIX_Serialize_handles()
 			t.write(reinterpret_cast<char *>(&handles.group_size), sizeof(int));
 			for (int i = 0; i < handles.group_size; i++)
 			{
-				Group *g = exampi::groups.at(handles.grps[i]);
+				Group *g = universe.groups.at(handles.grps[i]);
 				int id = g->get_group_id();
 				t.write(reinterpret_cast<char *>(&id), sizeof(int));
 			}
@@ -648,12 +670,13 @@ int BasicInterface::MPIX_Serialize_handles()
 
 int BasicInterface::MPIX_Deserialize_handles()
 {
-	if (exampi::handler->isErrSet())
+	Universe& universe = Universe::get_root_universe();
+	if (universe.errhandler->isErrSet())
 	{
 		return MPIX_TRY_RELOAD;
 	}
 	std::stringstream filename;
-	filename << exampi::epoch - 1 << "." << exampi::rank << ".cp";
+	filename << universe.epoch - 1 << "." << universe.rank << ".cp";
 	std::ifstream t(filename.str(), std::ifstream::in);
 
 	long long int pos;
@@ -675,16 +698,16 @@ int BasicInterface::MPIX_Deserialize_handles()
 				for (int i = 0; i < size; i++)
 				{
 					t.read(reinterpret_cast<char *>(&id), sizeof(int));
-					auto it = std::find_if(exampi::communicators.begin(),
-					                       exampi::communicators.end(),
+					auto it = std::find_if(universe.communicators.begin(),
+					                       universe.communicators.end(),
 					                       [id](const Comm *i) -> bool {return i->get_context_id_pt2pt() == id;});
-					if (it == exampi::communicators.end())
+					if (it == universe.communicators.end())
 					{
 						return MPIX_TRY_RELOAD;
 					}
 					else
 					{
-						handles.comms[i] = std::distance(exampi::communicators.begin(), it);
+						handles.comms[i] = std::distance(universe.communicators.begin(), it);
 					}
 				}
 			}
@@ -696,16 +719,16 @@ int BasicInterface::MPIX_Deserialize_handles()
 				for (int i = 0; i < size; i++)
 				{
 					t.read(reinterpret_cast<char *>(&id), sizeof(int));
-					auto it = std::find_if(exampi::groups.begin(),
-					                       exampi::groups.end(),
+					auto it = std::find_if(universe.groups.begin(),
+					                       universe.groups.end(),
 					                       [id](const Group *i) -> bool {return i->get_group_id() == id;});
-					if (it == exampi::groups.end())
+					if (it == universe.groups.end())
 					{
 						return MPIX_TRY_RELOAD;
 					}
 					else
 					{
-						handles.grps[i] = std::distance(exampi::groups.begin(), it);
+						handles.grps[i] = std::distance(universe.groups.begin(), it);
 					}
 				}
 			}
@@ -720,15 +743,16 @@ int BasicInterface::MPIX_Deserialize_handles()
 int BasicInterface::MPIX_Serialize_handler_register(const MPIX_Serialize_handler
         handler)
 {
-	if (exampi::handler->isErrSet())
+	Universe& universe = Universe::get_root_universe();
+	if (universe.errhandler->isErrSet())
 	{
 		return MPIX_TRY_RELOAD;
 	}
-	if (exampi::epoch == 0 && recovery_code == MPI_SUCCESS)
+	if (universe.epoch == 0 && recovery_code == MPI_SUCCESS)
 	{
 		serialize_handlers.push_back(handler);
 	}
-	else if (exampi::epoch > 0 && recovery_code == MPIX_SUCCESS_RESTART)
+	else if (universe.epoch > 0 && recovery_code == MPIX_SUCCESS_RESTART)
 	{
 		serialize_handlers.push_back(handler);
 	}
@@ -740,15 +764,16 @@ int BasicInterface::MPIX_Deserialize_handler_register(const
         MPIX_Deserialize_handler
         handler)
 {
-	if (exampi::handler->isErrSet())
+	Universe& universe = Universe::get_root_universe();
+	if (universe.errhandler->isErrSet())
 	{
 		return MPIX_TRY_RELOAD;
 	}
-	if (exampi::epoch == 0 && recovery_code == MPI_SUCCESS)
+	if (universe.epoch == 0 && recovery_code == MPI_SUCCESS)
 	{
 		deserialize_handlers.push_back(handler);
 	}
-	else if (exampi::epoch > 0 && recovery_code == MPIX_SUCCESS_RESTART)
+	else if (universe.epoch > 0 && recovery_code == MPIX_SUCCESS_RESTART)
 	{
 		deserialize_handlers.push_back(handler);
 	}
@@ -758,23 +783,25 @@ int BasicInterface::MPIX_Deserialize_handler_register(const
 
 int BasicInterface::MPIX_Checkpoint_write()
 {
-	if (exampi::handler->isErrSet())
+	Universe& universe = Universe::get_root_universe();
+	if (universe.errhandler->isErrSet())
 	{
 		return MPIX_TRY_RELOAD;
 	}
 
-	exampi::checkpoint->save();
+	universe.checkpoint->save();
 	return MPI_SUCCESS;
 }
 
 int BasicInterface::MPIX_Checkpoint_read()
 {
-	if (exampi::handler->isErrSet())
+	Universe& universe = Universe::get_root_universe();
+	if (universe.errhandler->isErrSet())
 	{
-		exampi::handler->setErrToZero();
+		universe.errhandler->setErrToZero();
 	}
 
-	debugpp("commit epoch received" << exampi::epoch);
+	debugpp("commit epoch received" << universe.epoch);
 
 	// wait for restarted process
 	Daemon& daemon = Daemon::get_instance();
@@ -787,12 +814,13 @@ int BasicInterface::MPIX_Get_fault_epoch(int *epoch)
 {
 	debugpp("entered MPIX_Get_fault_epoch");
 
-	if (exampi::handler->isErrSet())
+	Universe& universe = Universe::get_root_universe();
+	if (universe.errhandler->isErrSet())
 	{
 		return MPIX_TRY_RELOAD;
 	}
 
-	*epoch = exampi::epoch;
+	*epoch = universe.epoch;
 	return MPI_SUCCESS;
 }
 
@@ -800,7 +828,8 @@ int BasicInterface::MPIX_Get_fault_epoch(int *epoch)
 
 int BasicInterface::MPI_Barrier(MPI_Comm comm)
 {
-	if (exampi::handler->isErrSet())
+	Universe& universe = Universe::get_root_universe();
+	if (universe.errhandler->isErrSet())
 	{
 		return MPIX_TRY_RELOAD;
 	}
@@ -871,7 +900,9 @@ int BasicInterface::MPI_Barrier(MPI_Comm comm)
 int BasicInterface::MPI_Reduce(const void *s_buf, void *r_buf, int count,
                                MPI_Datatype type, MPI_Op op, int root, MPI_Comm comm)
 {
-	if (exampi::handler->isErrSet())
+
+	Universe& universe = Universe::get_root_universe();
+	if (universe.errhandler->isErrSet())
 	{
 		return MPIX_TRY_RELOAD;
 	}
@@ -886,7 +917,7 @@ int BasicInterface::MPI_Reduce(const void *s_buf, void *r_buf, int count,
 	if (count == 0) return MPI_SUCCESS;
 
 	size_t szcount = count;
-	datatype = &(exampi::datatypes[type]);
+	datatype = &(universe.datatypes[type]);
 	bufsize = datatype->getExtent() * szcount;
 	memcpy(r_buf, s_buf, bufsize);
 
@@ -894,8 +925,8 @@ int BasicInterface::MPI_Reduce(const void *s_buf, void *r_buf, int count,
 
 	funcType::const_iterator iter = functions.find(op);
 
-	rank = exampi::rank;
-	comm_size = exampi::worldSize;
+	rank = universe.rank;
+	comm_size = universe.world_size;
 	if (comm_size == 1) return MPI_SUCCESS;
 
 	rel_rank = (rank - root + comm_size) % comm_size;
@@ -933,7 +964,8 @@ int BasicInterface::MPI_Reduce(const void *s_buf, void *r_buf, int count,
 int BasicInterface::MPI_Allreduce(const void *s_buf, void *r_buf, int count,
                                   MPI_Datatype type, MPI_Op op, MPI_Comm comm)
 {
-	if (exampi::handler->isErrSet())
+	Universe& universe = Universe::get_root_universe();
+	if (universe.errhandler->isErrSet())
 	{
 		return MPIX_TRY_RELOAD;
 	}
@@ -951,16 +983,17 @@ int BasicInterface::MPI_Bcast(void *buf, int count, MPI_Datatype datatype,
                               int root,
                               MPI_Comm comm)
 {
-	if (exampi::handler->isErrSet())
+	Universe& universe = Universe::get_root_universe();
+	if (universe.errhandler->isErrSet())
 	{
 		return MPIX_TRY_RELOAD;
 	}
 
 	// todo this is an implementation, and therefore should be in progress engine
 	int rc;
-	if (exampi::rank == root)
+	if (universe.rank == root)
 	{
-		for (int i = 0; i < exampi::worldSize; i++)
+		for (int i = 0; i < universe.world_size; i++)
 			if (i != root)
 			{
 				rc = MPI_Send(buf, count, datatype, i, 0, comm);
@@ -984,11 +1017,12 @@ int BasicInterface::MPI_Bcast(void *buf, int count, MPI_Datatype datatype,
 int BasicInterface::MPI_Get_count(MPI_Status *status, MPI_Datatype datatype,
                                   int *count)
 {
-	if (exampi::handler->isErrSet())
+	Universe& universe = Universe::get_root_universe();
+	if (universe.errhandler->isErrSet())
 	{
 		return MPIX_TRY_RELOAD;
 	}
-	exampi::Datatype type = exampi::datatypes[datatype];
+	Datatype type = universe.datatypes[datatype];
 	if (type.getExtent())
 	{
 		*count = status->count / type.getExtent();

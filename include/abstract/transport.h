@@ -13,7 +13,7 @@ class Transport
 {
 private:
 	// transport owns all protocol messages
-	ProtocolMessage_uptr protocol_message_pool;
+	MemoryPool<ProtocolMessage> protocol_message_pool;
 
 public:
 	// TODO find solution for settable pool size
@@ -25,7 +25,7 @@ public:
 	ProtocolMessage_uptr allocate_protocol_message()
 	{
 		// for request -> protocol messsage -> reliable_send()
-		return protocol_message_pool.allocate();
+		return protocol_message_pool.allocate_unique();
 	}
 
 	// stages

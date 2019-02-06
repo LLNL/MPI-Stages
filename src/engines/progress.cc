@@ -1,8 +1,5 @@
 #include "engines/progress.h"
 
-namespace exampi
-{
-
 //BasicProgress::BasicProgress() : request_pool(256)
 //{
 //}
@@ -610,5 +607,3 @@ namespace exampi
 //
 //	return MPI_SUCCESS;
 //}
-
-} // exampi

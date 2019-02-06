@@ -8,16 +8,13 @@
 
 */
 
-#include <global.h>
-#include <UDPSocket.h>
-#include <config.h>
-#include <fstream>
-#include <iostream>
-#include <cstdint>
-#include <sys/uio.h>
-
-namespace exampi
-{
+//#include <global.h>
+//#include <UDPSocket.h>
+//#include <config.h>
+//#include <fstream>
+//#include <iostream>
+//#include <cstdint>
+//#include <sys/uio.h>
 
 //const std::string runtimeConfig("mpihosts.stdin.tmp");
 
@@ -38,8 +35,5 @@ namespace exampi
 //		return v;
 //	}
 //};
-
-
-} // namespace exampi
 
 #endif //guard

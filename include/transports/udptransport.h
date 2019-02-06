@@ -5,9 +5,9 @@
 #include <netinet/in.h>
 #include <unistd.h>
 #include <mutex>
+#include <unordered_map>
 
 #include "abstract/transport.h"
-#include "universe.h"
 #include "protocol.h"
 
 namespace exampi
@@ -21,6 +21,8 @@ private:
 	std::mutex guard;
 
 	msghdr hdr;
+
+	std::unordered_map<long int, sockaddr_in> cache;	
 
 public:
 	UDPTransport();

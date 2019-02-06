@@ -1,13 +1,12 @@
-#include "daemon.h"
-#include "global.h"
-
 #include <sstream>
-#include <iostream>
 #include <cstdlib>
-
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+
+#include "daemon.h"
+#include "debug.h"
+#include "universe.h"
 
 namespace exampi
 {
@@ -22,11 +21,13 @@ Daemon &Daemon::get_instance()
 
 Daemon::Daemon()
 {
+	Universe& universe = Universe::get_root_universe();
+
 	// initiate socket
 	this->sock = socket(AF_INET, SOCK_STREAM, 0);
 	if(this->sock < 0)
 	{
-		debugpp("rank " << exampi::rank << " daemon socket failed.");
+		debugpp("rank " << universe.rank << " daemon socket failed.");
 		return;
 	}
 
@@ -92,9 +93,11 @@ int Daemon::barrier()
 
 int Daemon::send_barrier_ready()
 {
+	Universe& universe = Universe::get_root_universe();
+
 	std::stringstream packet;
 	packet << "barrier ";
-	packet << exampi::rank << " ";
+	packet << universe.rank << " ";
 	packet << getpid();
 
 	// add padding
@@ -110,19 +113,21 @@ int Daemon::send_barrier_ready()
 
 int Daemon::recv_barrier_release()
 {
-	debugpp("in recv_barrier_release " << exampi::rank);
+	Universe& universe = Universe::get_root_universe();
+
+	debugpp("in recv_barrier_release " << universe.rank);
 
 	char msg[64];
 	int err = ::recv(this->sock, msg, 64, 0);
 	debugpp("rank recv barrier release " << err << " msg " << msg);
 	if(err != 64)
 	{
-		debugpp("rank " << exampi::rank << " msg failed, retrying barrier");
+		debugpp("rank " << universe.rank << " msg failed, retrying barrier");
 		return 1;
 	}
 
-	debugpp("rank " << exampi::rank << " recv barrier " << std::string(msg));
-	debugpp("rank " << exampi::rank << " " << std::string(msg));
+	debugpp("rank " << universe.rank << " recv barrier " << std::string(msg));
+	debugpp("rank " << universe.rank << " " << std::string(msg));
 
 	if(std::string(msg).compare(std::string("release")) == 0)
 		return 0;
@@ -136,11 +141,13 @@ int Daemon::recv_barrier_release()
 
 int Daemon::send_clean_up()
 {
+	Universe& universe = Universe::get_root_universe();
+
 	std::stringstream packet;
 	packet << "cleanup ";
-	packet << exampi::rank << " ";
+	packet << universe.rank << " ";
 	packet << getpid() << " ";
-	packet << exampi::epoch;
+	packet << universe.epoch;
 
 	// add padding
 	while(packet.str().length() < 64)
@@ -155,22 +162,24 @@ int Daemon::send_clean_up()
 
 int Daemon::wait_commit()
 {
-	debugpp("in wait_commit " << exampi::rank);
+	Universe& universe = Universe::get_root_universe();
+
+	debugpp("in wait_commit " << universe.rank);
 
 	char msg[64];
 	int err = ::recv(this->sock, msg, 64, 0);
 	debugpp("rank recv commit " << err << " msg " << msg);
 	if(err != 64)
 	{
-		debugpp("rank " << exampi::rank << " msg failed");
+		debugpp("rank " << universe.rank << " msg failed");
 		return 1;
 	}
 
-	debugpp("rank " << exampi::rank << " recv commit " << std::string(msg));
+	debugpp("rank " << universe.rank << " recv commit " << std::string(msg));
 
 	// assign epoch number
 	std::string msgstr(msg);
-	exampi::epoch = std::stoi(msgstr.substr(7));
+	universe.epoch = std::stoi(msgstr.substr(7));
 
 	// TODO might need to load mpi checkpoint data
 

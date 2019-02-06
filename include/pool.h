@@ -97,8 +97,7 @@ public:
 	{;}
 
 	template <typename... Args>
-	//T* allocate(Args &&... args)
-	MemoryPool::unique_ptr allocate(Args &&... args)
+	T* allocate(Args &&... args)
 	{
 		debugpp("allocating " << typeid(T).name() << " from " << this->allocated_arenas
 		        << " arenas");
@@ -133,11 +132,18 @@ public:
 		this->allocated_items++;
 		debugpp("item is number " << this->allocated_items);
 
-		return MemoryPool::unique_ptr(result, [this](T* t) -> void { this->free(t); });
-		//return result;
+		return result;
 	}
 
-	void free(T *t)
+	template <typename... Args>
+	MemoryPool::unique_ptr allocate_unique(Args &&... args)
+	{
+		T* result = allocate(std::forward<Args>(args)...);
+
+		return MemoryPool::unique_ptr(result, [this](T* t) -> void { this->deallocate(t); });
+	}
+
+	void deallocate(T *t)
 	{
 		// TODO make this smarter
 		// use a free list to point to non reset ones, avoid doing mutex if we are not low of items.

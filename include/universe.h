@@ -4,8 +4,13 @@
 #include <vector>
 #include <unordered_map>
 
+#include "abstract/progress.h"
+#include "abstract/transport.h"
+#include "abstract/checkpoint.h"
 #include "pool.h"
 #include "request.h"
+#include "comm.h"
+#include "errhandler.h"
 
 namespace exampi
 {
@@ -17,15 +22,17 @@ private:
 	// MPI universe owns all request objects
 	MemoryPool<Request> request_pool;
 	
-	Universe()
+	Universe() : request_pool(128)
 	{
-		exampi::groups.push_back(group);
+		// TODO MPI WORLD GROUP
+		//groups.push_back(group);
 
-		communicator = new Comm(true, group, group);
-		communicator->set_rank(exampi::rank);
-		communicator->set_context(0, 1);
+		// TODO MPI_COMM_WORLD
+		//communicator = new Comm(true, group, group);
+		//communicator->set_rank(exampi::rank);
+		//communicator->set_context(0, 1);
 
-		exampi::communicators.push_back(communicator);
+		//communicators.push_back(communicator);
 	}
 
 public:
@@ -80,4 +87,7 @@ public:
 		request_pool.deallocate(request);
 	}
 };
+
+}
+
 #endif

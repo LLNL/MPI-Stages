@@ -10,6 +10,7 @@ CXXFLAGS += -Wno-unused-parameter -Wno-unused-function -Wno-unused-variable -Wno
 CXXFLAGS += -std=c++11 -g -pthread -O2
 
 CXXFLAGS += -DDEBUG 
+#CXXFLAGS += -Wfatal-errors
 
 LDFLAGS = 
 

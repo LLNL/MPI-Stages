@@ -6,14 +6,15 @@ namespace exampi
 BlockingProgress::BlockingProgress() :
 	BlockingProgress(
 		std::shared_ptr<Matcher>(new SimpleMatcher()),
-		transporter(std::shared_ptr<Transport>(new UDPTransport))
+		std::shared_ptr<Transport>(new UDPTransport())
 	)
 {
 	;
 }
 
 BlockingProgress::BlockingProgress(std::shared_ptr<Matcher> matcher, std::shared_ptr<Transport> transporter) : 
-	shutdown(false)
+	shutdown(false),
+	maximum_progress_cycles(10),
 	matcher(matcher),
 	transporter(transporter)
 {
@@ -79,6 +80,8 @@ int BlockingProgress::post_request(Request *request)
 
 void BlockingProgress::progress()
 {
+	int cycles = 0;
+
 	// keep progress threads alive
 	while(!this->shutdown)
 	{
@@ -86,9 +89,10 @@ void BlockingProgress::progress()
 		// 		blocking would be woken up by post_request, transporter absorb()
 		
 		Match match;
+		ProtocolMessage_uptr msg(nullptr);
 
 		// absorb message if any, this is inflow
-		if(ProtocolMessage_uptr msg = transporter->peek())
+		if(transporter->peek(msg))
 		{
 			int err = handle_protocol_message(std::move(msg));
 			// TODO handle error
@@ -97,7 +101,7 @@ void BlockingProgress::progress()
 		// match message if any, this is inflow
 		else if(matcher->has_work() && matcher->progress(match))
 		{
-			int err = handle_match(match);
+			int err = handle_match(std::move(match));
 			// TODO handle error
 		}
 
@@ -111,8 +115,17 @@ void BlockingProgress::progress()
 		// otherwise go to sleep
 		else
 		{
+			cycles = 0;	
 			std::this_thread::yield();
-		}	
+		}
+		
+		// if we are doing work, check work amount
+		cycles += 1;
+		if(cycles >= maximum_progress_cycles)
+		{
+			cycles = 0;
+			std::this_thread::yield();
+		}
 	}
 }
 
@@ -127,9 +140,12 @@ int BlockingProgress::handle_protocol_message(ProtocolMessage_uptr message)
 		// not good, we only want to fill once we need to with the request
 		// in handle_match
 
-		int err = handle_match(match);
+		int err = handle_match(std::move(match));
 		// TODO handle error
+		return err;
 	}
+	
+	return MPI_SUCCESS;
 }
 
 int BlockingProgress::handle_match(Match match)
@@ -152,6 +168,7 @@ int BlockingProgress::handle_request()
 
 	// emit message if there is a request
 	if(outbox.size() > 0)
+	{
 		// fetch request
 		Request *request = outbox.front();
 		outbox.pop();
@@ -176,8 +193,8 @@ int BlockingProgress::handle_send(Request *request)
 	// ASSUMPTION TODO whole request fits into a single protocolmessage
 
 	// pack message
-	message->envelope.stage = ProtocolStage::EAGER;
-	message->envelope.envelope_mpi = request->envelope;
+	message->stage = ProtocolStage::EAGER;
+	message->envelope = request->envelope;
 	// TODO pack data
 	// eager, all in ProtocolMessage
 	// eager_ack, all in ProtocolMessage, requires acknowledgement

@@ -1,11 +1,11 @@
 #ifndef __EXAMPI_ERRHANDLER_H
 #define __EXAMPI_ERRHANDLER_H
 
-#include <iostream>
 #include <csignal>
 
 namespace exampi
 {
+
 class errHandler
 {
 public:
@@ -21,5 +21,7 @@ public:
 private:
 	volatile static std::sig_atomic_t is_errSet;
 };
+
 }
+
 #endif
