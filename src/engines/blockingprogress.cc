@@ -89,10 +89,9 @@ void BlockingProgress::progress()
 		// 		blocking would be woken up by post_request, transporter absorb()
 		
 		Match match;
-		ProtocolMessage_uptr msg(nullptr);
 
 		// absorb message if any, this is inflow
-		if(transporter->peek(msg))
+		if(ProtocolMessage_uptr msg = transporter->peek())
 		{
 			int err = handle_protocol_message(std::move(msg));
 			// TODO handle error

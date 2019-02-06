@@ -66,20 +66,20 @@ UDPTransport::~UDPTransport()
 	close(socket_recv);
 }
 
-bool UDPTransport::peek(ProtocolMessage_uptr &message)
+ProtocolMessage_uptr UDPTransport::peek()
 {
 	// early exit test
 	char test;
 	ssize_t size = recv(socket_recv, &test, sizeof(test), MSG_PEEK | MSG_DONTWAIT);
 	if(size <= 0)
-		return false;
+		return ProtocolMessage_uptr(nullptr);
 
 	std::lock_guard<std::mutex> lock(guard);
 
 	// check again, that the data has not been taken by another thread
 	size = recv(socket_recv, &test, sizeof(test), MSG_PEEK | MSG_DONTWAIT);
 	if(size <= 0)
-		return false;
+		return ProtocolMessage_uptr(nullptr);
 
 	ProtocolMessage_uptr msg = allocate_protocol_message();
 
@@ -98,9 +98,7 @@ bool UDPTransport::peek(ProtocolMessage_uptr &message)
 	int err = recvmsg(socket_recv, &hdr, 0);
 	// TODO handle error
 
-	message = std::move(msg);
-
-	return true;
+	return std::move(msg);
 }
 
 int UDPTransport::reliable_send(ProtocolMessage_uptr message)

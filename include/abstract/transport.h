@@ -33,7 +33,7 @@ public:
 	//virtual int load(std::istream &r) = 0;
 	//virtual int cleanUp(MPI_Comm comm) = 0;
 
-	virtual bool peek(ProtocolMessage_uptr &message) = 0;
+	virtual ProtocolMessage_uptr peek() = 0;
 	virtual int reliable_send(ProtocolMessage_uptr message) = 0;
 };
 
