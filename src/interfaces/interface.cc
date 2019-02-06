@@ -201,14 +201,16 @@ int BasicInterface::construct_request(const void *buf, int count, MPI_Datatype d
 {
 	// request generation
 	debugpp("generating request object");
-	// TODO allocate from Universe::request_pool
 	
 	Universe& universe = Universe::get_root_universe();
 
+	// TODO store in a unique_ptr pool?
+	// allows ownership to be internal, handle/alias to outside, we need to have C space
 	Request_ptr req = universe.allocate_request();
 	if(req == nullptr)
 		return MPI_ERR_INTERN;
 
+	// assign user handle
 	*request = reinterpret_cast<MPI_Request>(req);
 	
 	Comm *c = universe.communicators.at(comm);
@@ -333,6 +335,8 @@ int BasicInterface::MPI_Start(MPI_Request *request)
 	// swap out buffer, so it is free to be reused
 
 	// hand request to progress engine
+	// TODO this is dereferencing already anyways, might as well dereference to unique pointer?
+	// then hand ownership to progress? but progress doesn't own it
 	Request *req = reinterpret_cast<Request *>(*request);
 
 	Universe& universe = Universe::get_root_universe();
