@@ -67,7 +67,7 @@ bool SimpleMatcher::progress(Match &match)
 	std::lock_guard<std::recursive_mutex> lock(guard);
 	
 	// check if work is actually available
-	if(has_work() && (unexpected_message_queue.size() > 0))
+	if((posted_request_queue.size() > 0) && (unexpected_message_queue.size() > 0))
 	{
 		// with multiple threads need to keep in mind FIFO, single lock works
 		ProtocolMessage_uptr message = std::move(unexpected_message_queue.front());
@@ -83,11 +83,6 @@ bool SimpleMatcher::progress(Match &match)
 	}
 	
 	return false;
-}
-
-bool SimpleMatcher::has_work()
-{
-	return (posted_request_queue.size() > 0);
 }
 
 }

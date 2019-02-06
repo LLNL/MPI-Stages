@@ -18,9 +18,8 @@ class Matcher
 public:
 	virtual void post_request(Request_ptr request) = 0;
 
-	virtual bool has_work() = 0;
-
 	virtual bool match(ProtocolMessage_uptr message, Match &match) = 0;
+
 	virtual bool progress(Match& match) = 0;
 };
 

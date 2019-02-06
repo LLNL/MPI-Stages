@@ -98,7 +98,7 @@ void BlockingProgress::progress()
 		}
 
 		// match message if any, this is inflow
-		else if(matcher->has_work() && matcher->progress(match))
+		else if(matcher->progress(match))
 		{
 			int err = handle_match(std::move(match));
 			// TODO handle error

@@ -24,9 +24,8 @@ public:
 
 	void post_request(Request_ptr request);
 
-	bool has_work();
-
 	bool match(ProtocolMessage_uptr message, Match &match);
+
 	bool progress(Match &match);
 };
 
