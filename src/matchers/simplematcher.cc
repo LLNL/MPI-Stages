@@ -5,7 +5,7 @@
 namespace exampi
 {
 
-SimpleMatcher::SimpleMatcher()
+SimpleMatcher::SimpleMatcher() : change(false)
 {
 	;
 }
@@ -15,6 +15,7 @@ void SimpleMatcher::post_request(Request_ptr request)
 	std::lock_guard<std::mutex> lock(guard);
 
 	posted_request_queue.push_back(request);
+	change = true;
 }
 
 void SimpleMatcher::post_message(ProtocolMessage_uptr message)
@@ -22,49 +23,7 @@ void SimpleMatcher::post_message(ProtocolMessage_uptr message)
 	std::lock_guard<std::mutex> lock(guard);
 
 	received_message_queue.push_back(std::move(message));
-}
-
-bool SimpleMatcher::match(ProtocolMessage_uptr message, Match &match)
-{
-	// do search
-	ProtocolMessage *msg = message.get();
-	
-	auto iterator = std::find_if(posted_request_queue.begin(),
-	                             posted_request_queue.end(),
-	                             [msg](const Request_ptr request) -> bool
-	                             {
-									// TODO support WILD CARD ANY_TAG AND ANY_SOURCE
-	                                return (msg->envelope.epoch        == request->envelope.epoch) &&
-	                                       (msg->envelope.communicator == request->envelope.communicator) &&
-	                                       (msg->envelope.source       == request->envelope.source) &&
-	                                       (msg->envelope.destination  == request->envelope.destination) &&
-	                                       (msg->envelope.tag          == request->envelope.tag);
-	                             });
-
-	// found match
-	bool matched = (iterator != posted_request_queue.end());
-
-	if(matched)
-	{
-		// return corresponding request
-		Request_ptr request = *iterator;
-		
-		// remove request from prq
-		posted_request_queue.remove(request);
-
-		// return match
-		match.request = request;
-		match.message = std::move(message);
-	}
-	
-	// no match, then absorb message in UMQ
-	else
-	{
-		// TODO no allowed for progress call
-		unexpected_message_queue.push_back(std::move(message));
-	}
-	
-	return matched;
+	change = true;
 }
 
 bool SimpleMatcher::progress(Match &match)
@@ -72,21 +31,49 @@ bool SimpleMatcher::progress(Match &match)
 	std::lock_guard<std::mutex> lock(guard);
 	
 	// check if work is actually available
-	if((posted_request_queue.size() > 0) && (unexpected_message_queue.size() > 0))
+	if(change && (posted_request_queue.size() > 0) && (received_message_queue.size() > 0))
 	{
-		// with multiple threads need to keep in mind FIFO, single lock works
-		ProtocolMessage_uptr message = std::move(unexpected_message_queue.front());
+		// TODO this is an inefficient implementation, O(n^2)
+		// but atleast logically separated receive and match
 
-		bool matched = match(std::move(message), match);
-		if(matched)	{
-			unexpected_message_queue.pop_front();
-		}
-		else
+		typedef std::list<ProtocolMessage_uptr>::iterator msg_iter;
+
+		// iterate all posted receives
+		for(auto riter = posted_request_queue.begin(); riter != posted_request_queue.end(); ++riter)
 		{
-			unexpected_message_queue.push_front(std::move(message));
+			Request_ptr req = *riter;
+
+			// find match in messages
+			auto iterator = std::find_if(received_message_queue.begin(),
+	                             	 	 received_message_queue.end(),
+	                             	 	 [&](const ProtocolMessage_uptr &msg) -> bool
+	                             	 	 {
+											// TODO support WILD CARD ANY_TAG AND ANY_SOURCE
+	                                		return (req->envelope.epoch        == msg->envelope.epoch) &&
+	                                       	   	   (req->envelope.communicator == msg->envelope.communicator) &&
+	                                       	   	   (req->envelope.source       == msg->envelope.source) &&
+	                                       	   	   (req->envelope.destination  == msg->envelope.destination) &&
+	                                       	   	   (req->envelope.tag          == msg->envelope.tag);
+	                             	 	 });
+
+			// if matched
+			if(iterator != received_message_queue.end())
+			{
+				// fill match object
+				match.request = req;
+				match.message = std::move(*std::move_iterator<msg_iter>(iterator));
+
+				// remove from respective lists
+				posted_request_queue.erase(riter);
+				received_message_queue.erase(iterator);
+
+				return true;
+			}
+			// else go to next request
 		}
+					
 	}
-	
+
 	return false;
 }
 

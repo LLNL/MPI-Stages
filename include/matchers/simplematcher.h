@@ -17,9 +17,10 @@ class SimpleMatcher final: public Matcher
 private:
 	std::mutex guard;
 
-	std::deque<ProtocolMessage_uptr> unexpected_message_queue;
 	std::list<Request_ptr> posted_request_queue;
-	std::list<ProtocolMessage_uptr> received_messages_queue;
+	std::list<ProtocolMessage_uptr> received_message_queue;
+
+	bool change;
 
 public:
 	SimpleMatcher();
