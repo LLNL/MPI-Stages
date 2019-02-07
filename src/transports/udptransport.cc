@@ -66,7 +66,7 @@ UDPTransport::~UDPTransport()
 	close(socket_recv);
 }
 
-ProtocolMessage_uptr UDPTransport::peek()
+ProtocolMessage_uptr UDPTransport::ordered_recv()
 {
 	// early exit test
 	char test;

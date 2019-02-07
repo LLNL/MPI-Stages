@@ -12,15 +12,20 @@ SimpleMatcher::SimpleMatcher()
 
 void SimpleMatcher::post_request(Request_ptr request)
 {
-	std::lock_guard<std::recursive_mutex> lock(guard);
+	std::lock_guard<std::mutex> lock(guard);
 
 	posted_request_queue.push_back(request);
 }
 
+void SimpleMatcher::post_message(ProtocolMessage_uptr message)
+{
+	std::lock_guard<std::mutex> lock(guard);
+
+	received_message_queue.push_back(std::move(message));
+}
+
 bool SimpleMatcher::match(ProtocolMessage_uptr message, Match &match)
 {
-	std::lock_guard<std::recursive_mutex> lock(guard);
-
 	// do search
 	ProtocolMessage *msg = message.get();
 	
@@ -64,7 +69,7 @@ bool SimpleMatcher::match(ProtocolMessage_uptr message, Match &match)
 
 bool SimpleMatcher::progress(Match &match)
 {
-	std::lock_guard<std::recursive_mutex> lock(guard);
+	std::lock_guard<std::mutex> lock(guard);
 	
 	// check if work is actually available
 	if((posted_request_queue.size() > 0) && (unexpected_message_queue.size() > 0))

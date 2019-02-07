@@ -6,6 +6,7 @@
 #include <mutex>
 
 #include "abstract/matcher.h"
+#include "request.h"
 #include "protocol.h"
 
 namespace exampi
@@ -14,17 +15,19 @@ namespace exampi
 class SimpleMatcher final: public Matcher
 {
 private:
-	std::recursive_mutex guard;
+	std::mutex guard;
 
 	std::deque<ProtocolMessage_uptr> unexpected_message_queue;
 	std::list<Request_ptr> posted_request_queue;
+	std::list<ProtocolMessage_uptr> received_messages_queue;
 
 public:
 	SimpleMatcher();
 
 	void post_request(Request_ptr request);
+	void post_message(ProtocolMessage_uptr message);
 
-	bool match(ProtocolMessage_uptr message, Match &match);
+	//bool match(ProtocolMessage_uptr message, Match &match);
 
 	bool progress(Match &match);
 };

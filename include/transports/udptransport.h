@@ -28,7 +28,7 @@ public:
 	UDPTransport();
 	~UDPTransport();
 
-	ProtocolMessage_uptr peek();
+	ProtocolMessage_uptr ordered_recv();
 	int reliable_send(ProtocolMessage_uptr message);
 };
 

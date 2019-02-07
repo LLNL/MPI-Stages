@@ -91,9 +91,11 @@ void BlockingProgress::progress()
 		Match match;
 
 		// absorb message if any, this is inflow
-		if(ProtocolMessage_uptr msg = transporter->peek())
+		if(ProtocolMessage_uptr msg = transporter->ordered_recv())
 		{
-			int err = handle_protocol_message(std::move(msg));
+			matcher->post_message(std::move(msg));
+
+			//int err = handle_protocol_message(std::move(msg));
 			// TODO handle error
 		}
 
@@ -128,24 +130,24 @@ void BlockingProgress::progress()
 	}
 }
 
-int BlockingProgress::handle_protocol_message(ProtocolMessage_uptr message)
-{
-	Match match;
-
-	// look for match
-	if(matcher->match(std::move(message), match))
-	{
-		// TODO would need to fill the ProtocolMessage here
-		// not good, we only want to fill once we need to with the request
-		// in handle_match
-
-		int err = handle_match(std::move(match));
-		// TODO handle error
-		return err;
-	}
-	
-	return MPI_SUCCESS;
-}
+//int BlockingProgress::handle_protocol_message(ProtocolMessage_uptr message)
+//{
+//	Match match;
+//
+//	// look for match
+//	if(matcher->match(std::move(message), match))
+//	{
+//		// TODO would need to fill the ProtocolMessage here
+//		// not good, we only want to fill once we need to with the request
+//		// in handle_match
+//
+//		int err = handle_match(std::move(match));
+//		// TODO handle error
+//		return err;
+//	}
+//	
+//	return MPI_SUCCESS;
+//}
 
 int BlockingProgress::handle_match(Match match)
 {
