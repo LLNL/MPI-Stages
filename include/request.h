@@ -7,6 +7,7 @@
 #include "mpi.h"
 #include "envelope.h"
 #include "payload.h"
+#include "protocol.h"
 
 namespace exampi
 {
@@ -42,13 +43,21 @@ struct Request
 
 	// MPI data
 	Operation operation;
+	Protocol protocol;
 
 	// protocol message
 	Envelope envelope;
+
+	// note will need extending once we do more complex things
 	Payload payload;
 
 	Request();
+	// p2p constructor
 	Request(Operation operation, Payload payload, Envelope envelope);
+	// collective constructor
+	// rma constructor
+
+	void release();
 };
 
 typedef Request* Request_ptr;

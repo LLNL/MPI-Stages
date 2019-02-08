@@ -13,23 +13,37 @@
 namespace exampi
 {
 
+struct UDPProtocolMessage: public ProtocolMessage
+{
+	int pack(const Request_ptr request);
+	int unpack(const Request_ptr request) const;
+};
+
 class UDPTransport: public Transport
 {
 private:
+	std::mutex guard;
+
 	int socket_recv;
 
-	std::mutex guard;
+	MemoryPool<UDPProtocolMessage> message_pool;
 
 	msghdr hdr;
 
-	std::unordered_map<long int, sockaddr_in> cache;	
+	// TODO caching per rank does not work, needs per communicator...
+	std::unordered_map<long int, sockaddr_in> cache;
 
 public:
 	UDPTransport();
 	~UDPTransport();
 
-	ProtocolMessage_uptr ordered_recv();
-	int reliable_send(ProtocolMessage_uptr message);
+	ProtocolMessage_uptr allocate_protocol_message();
+
+	const ProtocolMessage_uptr ordered_recv();
+
+	int reliable_send(const ProtocolMessage_uptr message);
+
+	const std::map<Protocol, size_t> &provided_protocols() const;
 };
 
 }

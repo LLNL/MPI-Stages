@@ -28,6 +28,9 @@ private:
 public:
 	static Universe &get_root_universe();
 
+	Group world_group;
+	Comm world_comm;
+
 	std::vector<Comm *> communicators;
 	std::vector<Group *> groups;
 	std::unordered_map<MPI_Datatype, Datatype> datatypes;

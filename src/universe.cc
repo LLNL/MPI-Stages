@@ -12,8 +12,12 @@ Universe &Universe::get_root_universe()
 
 Universe::Universe() : request_pool(128)
 {
-	// TODO MPI WORLD GROUP
-	//groups.push_back(group);
+	// MPI WORLD GROUP
+	std::list<int> rankList;
+	for(int idx = 0; idx < exampi::worldSize; ++idx)
+		rankList.push_back(idx);
+	world_group.set_process_list(rankList);
+	groups.push_back(&world_group);
 
 	// TODO MPI_COMM_WORLD
 	//communicator = new Comm(true, group, group);
@@ -53,6 +57,11 @@ Universe::Universe() : request_pool(128)
 
 Universe::~Universe()
 {
+	universe.rank = std::stoi(std::string(std::getenv("EXAMPI_RANK")));
+	universe.epoch_config = std::string(std::getenv("EXAMPI_EPOCH_FILE"));
+	universe.epoch = std::stoi(std::string(std::getenv("EXAMPI_EPOCH")));
+	universe.world_size = std::stoi(std::string(std::getenv("EXAMPI_WORLD_SIZE")));	
+
 	for(auto &&com : communicators)
 	{
         delete com;

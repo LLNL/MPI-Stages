@@ -13,8 +13,7 @@ int check_buffer(void *buf)
 
 int check_comm(MPI_Comm comm)
 {
-	//return MPI_ERR_COMM
-	// TODO 
+	// TODO return MPI_ERR_COMM
 	return MPI_SUCCESS;
 }
 
@@ -36,8 +35,7 @@ int check_tag(int tag)
 
 int check_datatype(MPI_Datatype datatype)
 {
-	//return MPI_ERR_DATATYPE
-	// TODO 
+	// TODO return MPI_ERR_DATATYPE
 	return MPI_SUCCESS;
 }
 

@@ -64,6 +64,7 @@ typedef void (*MPIX_Deserialize_handler) (MPIX_Handles handle);
 #define MPI_ERR_MPIEXEC 104
 #define MPI_ERR_ABORT 255
 #define MPI_ERR_BSEND 254
+#define MPI_ERR_RELIABLE_SEND_FAILED 253
 
 #define MPI_ERR_COMM	10
 #define MPI_ERR_COUNT	11

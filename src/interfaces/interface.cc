@@ -36,16 +36,9 @@ int BasicInterface::MPI_Init(int *argc, char ***argv)
 		debug("Application was not launched with mpiexec.");
 		return MPI_ERR_MPIEXEC;
 	}
-
-	Universe& universe = Universe::get_root_universe();
-
 	debug("MPI_Init passed EXAMPI_LAUNCHED check.");
 
-	// TODO move these to universe creation
-	universe.rank = std::stoi(std::string(std::getenv("EXAMPI_RANK")));
-	universe.epoch_config = std::string(std::getenv("EXAMPI_EPOCH_FILE"));
-	universe.epoch = std::stoi(std::string(std::getenv("EXAMPI_EPOCH")));
-	universe.world_size = std::stoi(std::string(std::getenv("EXAMPI_WORLD_SIZE")));	
+	Universe& universe = Universe::get_root_universe();
 
 	// note this initializes progress and transport
 	// note either loads a previous checkpoint or initializes everything

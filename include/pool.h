@@ -92,7 +92,7 @@ public:
 
 public:
 	// shortcut unique ptr type for simplicity
-	typedef typename std::unique_ptr<T, std::function<void(T *)>> unique_ptr;
+	//typedef typename std::unique_ptr<T, std::function<void(T *)>> unique_ptr;
 
 	MemoryPool(size_t arena_size)
 		: arena_size(arena_size),
@@ -139,13 +139,13 @@ public:
 		return result;
 	}
 
-	template <typename... Args>
-	MemoryPool::unique_ptr allocate_unique(Args &&... args)
-	{
-		T* result = allocate(std::forward<Args>(args)...);
+	//template <typename... Args>
+	//MemoryPool::unique_ptr allocate_unique(Args &&... args)
+	//{
+	//	T* result = allocate(std::forward<Args>(args)...);
 
-		return MemoryPool::unique_ptr(result, [this](T* t) -> void { this->deallocate(t); });
-	}
+	//	return MemoryPool::unique_ptr(result, [this](T* t) -> void { this->deallocate(t); });
+	//}
 
 	void deallocate(T *t)
 	{

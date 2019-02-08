@@ -9,14 +9,12 @@
 namespace exampi
 {
 
-UDPTransport::UDPTransport() : Transport()
+UDPTransport::UDPTransport() : message_pool(128)
 {
 	// create
 	socket_recv = socket(AF_INET, SOCK_DGRAM, 0);
 	if(socket_recv == 0)
-	{
-		// TODO handle error
-	}
+		debug("socket creation failed");
 
 	// setsockopt to reuse address
 	//int opt = 1;
@@ -35,7 +33,7 @@ UDPTransport::UDPTransport() : Transport()
 
 	if(bind(socket_recv, (sockaddr*)&address_local, sizeof(address_local)) < 0)
 	{
-		// TODO handle error
+		debug("socket binding failed");
 	}
 
 	// prepare msg header
@@ -70,7 +68,19 @@ UDPTransport::~UDPTransport()
 	close(socket_recv);
 }
 
-ProtocolMessage_uptr UDPTransport::ordered_recv()
+ProtocolMessage_uptr UDPTransport::allocate_protocol_message()
+{
+	std::lock_guard lock(guard);
+
+	UDPProtocolMessage* ptr = message_pool.allocate();
+
+	return std::unique_ptr<ProtocolMessage, std::function<void(ProtocolMessage*)>>(ptr, [this](ProtocolMessage* ptr)
+	{
+		this->message_pool.deallocate(dynamic_cast<UDPProtocolMessage*>(ptr));
+	}); 
+}
+
+const ProtocolMessage_uptr UDPTransport::ordered_recv()
 {
 	// early exit test
 	char test;
@@ -78,6 +88,7 @@ ProtocolMessage_uptr UDPTransport::ordered_recv()
 	if(size <= 0)
 		return ProtocolMessage_uptr(nullptr);
 
+	// then commit
 	std::lock_guard<std::mutex> lock(guard);
 
 	// check again, that the data has not been taken by another thread
@@ -119,14 +130,23 @@ int UDPTransport::reliable_send(ProtocolMessage_uptr message)
 	hdr.msg_iovlen = 1;
 
 	// fill destination
+	// TODO caching not correct
 	sockaddr_in &addr = cache[message->envelope.destination];
 	hdr.msg_name = &addr;
 	hdr.msg_namelen = sizeof(sockaddr_in);
 
 	int err = sendmsg(socket_recv, &hdr, 0);
-	// TODO handle error
+	if(err <= 0)
+		return MPI_ERR_RELIABLE_SEND_FAILED;
 	
 	return MPI_SUCCESS;
+}
+
+
+const std::map<Protocol, size_t> &UDPTransport::provided_protocols() const
+{
+	// TODO actually give protocols/sizes 
+	return std::map<Protocol, size_t>();
 }
 
 }

@@ -26,7 +26,7 @@ public:
 	SimpleMatcher();
 
 	void post_request(Request_ptr request);
-	void post_message(ProtocolMessage_uptr message);
+	void post_message(const ProtocolMessage_uptr message);
 
 	//bool match(ProtocolMessage_uptr message, Match &match);
 
