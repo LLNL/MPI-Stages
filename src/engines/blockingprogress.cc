@@ -94,9 +94,6 @@ void BlockingProgress::progress()
 		if(ProtocolMessage_uptr msg = transporter->ordered_recv())
 		{
 			matcher->post_message(std::move(msg));
-
-			//int err = handle_protocol_message(std::move(msg));
-			// TODO handle error
 		}
 
 		// match message if any, this is inflow
@@ -130,25 +127,6 @@ void BlockingProgress::progress()
 	}
 }
 
-//int BlockingProgress::handle_protocol_message(ProtocolMessage_uptr message)
-//{
-//	Match match;
-//
-//	// look for match
-//	if(matcher->match(std::move(message), match))
-//	{
-//		// TODO would need to fill the ProtocolMessage here
-//		// not good, we only want to fill once we need to with the request
-//		// in handle_match
-//
-//		int err = handle_match(std::move(match));
-//		// TODO handle error
-//		return err;
-//	}
-//	
-//	return MPI_SUCCESS;
-//}
-
 int BlockingProgress::handle_match(Match match)
 {
 	// act on protocol
@@ -161,6 +139,7 @@ int BlockingProgress::handle_match(Match match)
 	// RTA, RAT, TA
 
 	// THIS IS THE BIG SWTICH OR MAP
+	// TODO is it? Isnot that inside transport, eager_ack, ack
 }
 
 int BlockingProgress::handle_request()
@@ -176,7 +155,7 @@ int BlockingProgress::handle_request()
 
 		lock.unlock();
 
-		// decide protocol to use
+		// TODO decide protocol to use
 		// handle_send
 		// handle_bsend
 		// handle_rsend
@@ -202,12 +181,8 @@ int BlockingProgress::handle_send(Request *request)
 	// rendevouz, announce size, request buffer
 
 	// send protocol message
-	if(int err = transporter->reliable_send(std::move(message)))
-	{
-		// TODO handle possible error, signal via request
-	}
+	return transporter->reliable_send(std::move(message));
 }
-
 
 //void BlockingProgress::cleanUp()
 //{
