@@ -59,7 +59,8 @@ int BasicInterface::MPI_Init(int *argc, char ***argv)
 	//universe.worldSize = std::stoi(std::string(std::getenv("EXAMPI_WORLD_SIZE")));	
 	universe.world_size = std::stoi(std::string(std::getenv("EXAMPI_WORLD_SIZE")));	
 
-	// TODO this initializes progress and transport
+	// note this initializes progress and transport
+	// note either loads a previous checkpoint or initializes everything
 	recovery_code = universe.checkpoint->load();
 
 	// execute global barrier
@@ -95,7 +96,7 @@ int BasicInterface::MPI_Finalize()
 
 int BasicInterface::MPI_Request_free(MPI_Request *request)
 {
-	// TODO
+	// TODO implement request freeing
 	return -1;
 }
 
@@ -204,7 +205,7 @@ int BasicInterface::construct_request(const void *buf, int count, MPI_Datatype d
 	
 	Universe& universe = Universe::get_root_universe();
 
-	// TODO store in a unique_ptr pool?
+	// todo store in a unique_ptr pool?
 	// allows ownership to be internal, handle/alias to outside, we need to have C space
 	Request_ptr req = universe.allocate_request();
 	if(req == nullptr)
@@ -325,17 +326,16 @@ int BasicInterface::MPI_Start(MPI_Request *request)
 	CHECK_STAGES_ERROR();
 
 	// check active status
-	// TODO
-	//if(request->active)
-	//{
-	//	return MPI_ERR_REQUEST;
-	//}
+	if(!request->persistent || request->active)
+	{
+		return MPI_ERR_REQUEST;
+	}
 
 	// TODO if Bsend, copy over to buffer, we punish those who screw up
 	// swap out buffer, so it is free to be reused
 
 	// hand request to progress engine
-	// TODO this is dereferencing already anyways, might as well dereference to unique pointer?
+	// todo this is dereferencing already anyways, might as well dereference to unique pointer?
 	// then hand ownership to progress? but progress doesn't own it
 	Request *req = reinterpret_cast<Request *>(*request);
 
@@ -427,7 +427,7 @@ int BasicInterface::MPI_Wait(MPI_Request *request, MPI_Status *status)
 
 	return finalize_request(request, req, status);
 
-// TODO also for MPI_Test 
+// TODO mpi stages error detection 
 //	if (st.MPI_ERROR == MPIX_TRY_RELOAD)
 //	{
 //		debugpp("MPIX_TRY_RELOAD FOUND");
@@ -451,14 +451,8 @@ int BasicInterface::MPI_Waitall(int count, MPI_Request array_of_requests[],
 {
 //	// sanitize user input
 //	CHECK_REQUEST(request);
-//	CHECK_STATUS(status);
-//
-//	// mpi stages error check
-//	// TODO CHECK_STAGES_ERROR();
-//	if (universe.errhandler->isErrSet())
-//	{
-//		return MPIX_TRY_RELOAD;
-//	}
+//	CHECK_STATUS(status);//	// mpi stages error check
+//	CHECK_STAGES_ERROR();
 //
 //	if (array_of_statuses != MPI_STATUSES_IGNORE)
 //	{
@@ -1058,7 +1052,7 @@ int BasicInterface::MPI_Abort(MPI_Comm comm, int errorcode)
 
 double BasicInterface::MPI_Wtime()
 {
-	// TODO move this into a macro
+	// todo move this into a macro
 	double wtime;
 
 	struct timespec t;

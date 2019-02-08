@@ -96,7 +96,8 @@ ProtocolMessage_uptr UDPTransport::ordered_recv()
 	hdr.msg_namelen = 0;
 
 	int err = recvmsg(socket_recv, &hdr, 0);
-	// TODO handle error
+	if(err <= 0)
+		return ProtocolMessage_uptr(nullptr);
 
 	return std::move(msg);
 }

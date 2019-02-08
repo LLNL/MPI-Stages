@@ -181,7 +181,9 @@ int Daemon::wait_commit()
 	std::string msgstr(msg);
 	universe.epoch = std::stoi(msgstr.substr(7));
 
-	// TODO might need to load mpi checkpoint data
+	// note might need to load mpi checkpoint data
+	// note this is an assumption that we can revert previous checkpoint
+	// note if corruption exists this will not work
 
 	return 0;
 }

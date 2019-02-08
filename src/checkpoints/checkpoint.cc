@@ -28,7 +28,7 @@ void BasicCheckpoint::save()
 		//i.save(target);
 	}
 
-	// TODO
+	// TODO reintegrate mpi stages into the new classes
 	//universe.progress->save(target);
 	//universe.transport->save(target);
 	//universe.interface->save(target);
@@ -44,7 +44,7 @@ void BasicCheckpoint::save()
 	if (universe.errhandler->isErrSet() != 1)
 	{
 		// needed in case process dies
-		// XXX could also send to daemon
+		// TODO could also send to daemon
 		// write out epoch number
 		universe.epoch++;
 		std::ofstream ef(universe.epoch_config);
@@ -59,7 +59,7 @@ int BasicCheckpoint::load()
 
 	if(universe.epoch == 0) // first init
 	{
-		// TODO we are getting rid of init
+		// note we are getting rid of init
 		//universe.transport->init();
 		//universe.progress->init();
 

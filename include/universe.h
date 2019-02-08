@@ -15,7 +15,7 @@
 namespace exampi
 {
 
-// TODO make singleton at the moment
+// NOTE make singleton at the moment
 class Universe
 {
 private:

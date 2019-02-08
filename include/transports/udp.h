@@ -39,7 +39,6 @@ namespace exampi
 //private:
 //	struct msghdr hdr;
 //
-//	// TODO REMOVE THIS
 //	std::vector<struct iovec> &iov;
 //
 //public:

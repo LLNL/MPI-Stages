@@ -18,7 +18,6 @@
 #include "daemon.h"
 #include "config.h"
 #include "pool.h"
-#include "header.h"
 
 namespace exampi
 {

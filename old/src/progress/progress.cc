@@ -15,13 +15,13 @@
 ////	// read in endpoints
 ////	std::vector < std::string > elem;
 //
-//// FIXME
+//// xxx shouldnt be here
 ////	std::list<int> rankList;
 ////	for (int i = 0; i < size; i++)
 ////	{
 ////		elem.clear();
 //
-//// FIXME
+//// xxx shouldnt be here
 ////		rankList.push_back(i);
 ////
 ////		std::string rank = std::to_string(i);
@@ -42,7 +42,7 @@
 ////		exampi::transport->addEndpoint(i, elem);
 ////	}
 //
-//// FIXME
+//// xxx shouldnt be here
 ////	group = new Group(rankList);
 ////}
 //
@@ -66,15 +66,12 @@
 //		debugpp("sendThread:  got result from outbox future");
 //
 //		// send message to remote in this thread
-//		// FIXME remove iovs
-//		// XXX 6.72%
 //		auto iovs = r->getIovecs();
 //
-//		// XXX 58.83%
 //		exampi::transport->send(iovs, r->endpoint.rank, 0);
 //		debugpp("sendThread: sent message");
 //
-//		// TODO:  check that sending actually completed
+//		// todo:  check that sending actually completed
 //
 //		//r->completionPromise.set_value( { .count = 0, .cancelled = 0,
 //		//                                  .MPI_SOURCE = r->source, .MPI_TAG = r->tag, .MPI_ERROR = MPI_SUCCESS });
@@ -113,7 +110,6 @@
 //
 //		debugpp("matchThread:  made request, about to peek...");
 //
-//		// FIXME remove iovs
 //		auto iovs = r->getHeaderIovecs();
 //		exampi::transport->peek(iovs, 0);
 //
@@ -303,7 +299,7 @@
 //	matchLock.unlock();
 //	unexpectedLock.unlock();
 //
-//	// TODO do thread join?
+//	// todo do thread join?
 //	ThreadMap::const_iterator it = tm_.find("1");
 //	if (it != tm_.end())
 //	{
@@ -365,13 +361,13 @@
 //
 //
 //	// send SIGUSR1 signal to daemon
-//	// TODO convert to socket comms
+//	// todo convert to socket comms
 //	Daemon &daemon = Daemon::get_instance();
 //	daemon.send_clean_up();
 //
 //	//kill(parent_pid, SIGUSR1);
 //
-//	// TODO what is this?
+//	// todo what is this?
 //	matchLock.lock();
 //	int size = matchList.size();
 //	matchLock.unlock();

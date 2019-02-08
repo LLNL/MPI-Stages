@@ -258,7 +258,7 @@ int MPI_Wait(MPI_Request *, MPI_Status *);
 int MPI_Waitall(int, MPI_Request [], MPI_Status []);
 double MPI_Wtime(void);
 
-// TODO:  Haven't cleared this for PMPI api yet
+// todo:  Haven't cleared this for PMPI api yet
 int MPIX_Checkpoint_write(void);
 int MPIX_Checkpoint_read(void);
 int MPIX_Get_fault_epoch(int *);

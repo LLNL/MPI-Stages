@@ -8,7 +8,7 @@ namespace exampi
 //{
 //	debugpp("library begins here");
 //
-//	// TODO this is a dirty hack to "fix" the problem of rank not being correctly initialized yet
+//	// todo this is a dirty hack to "fix" the problem of rank not being correctly initialized yet
 //	// that is due to conversion from global to singletons
 //	if(exampi::rank == -1)
 //	{
@@ -64,10 +64,8 @@ namespace exampi
 //{
 //	debugpp("basic::Transport::send(..., " << dest << ", " << comm);
 //
-//	// FIXME recreate socket each call to send
 //	Socket s;
 //
-//	// FIXME allocates a vector!
 //	Message msg(iov);
 //
 //	//debugpp("basic::Transport::send: endpoints" << endpoints[dest]);

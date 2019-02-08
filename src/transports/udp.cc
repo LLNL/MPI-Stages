@@ -21,7 +21,6 @@ namespace exampi
 //	addr.sin_addr.s_addr = INADDR_ANY;
 //	if(bind(fd, (struct sockaddr *)&addr, sizeof(addr)) == -1)
 //	{
-//		// TODO needs errorcode!
 //		std::cout << "WARNING:  Bind failed\n";
 //		exit(234);
 //	}
@@ -78,13 +77,11 @@ namespace exampi
 //	// debug output
 //	char str[INET_ADDRSTRLEN];
 //
-//	// XXX
 //	inet_ntop(AF_INET, &(addr.get()->sin_addr), str, INET_ADDRSTRLEN)
 //
 //	debugpp("basic::Transport::udp::send\t" << hdr.msg_iovlen << " iovecs\t" <<
 //	        str);
 //
-//	// TODO make use of length to check
 //	//ssize_t length = sendmsg(sock.getFd(), &hdr, 0);
 //	sendmsg(sock.getFd(), &hdr, 0);
 //	//debugpp("Send to UDP " << length);

@@ -11,6 +11,12 @@
 // https://thinkingeek.com/2017/11/19/simple-memory-pool/
 // MR: this is a dirty copy of that, use that as base for good implementation
 
+// todo use mutex only to reset free set
+// free set is a collection of 1 link with an atomic to iterate
+
+// todo make this smarter
+// use a free list to point to non reset ones, avoid doing mutex if we are not low of items.
+
 namespace exampi
 {
 
@@ -102,8 +108,6 @@ public:
 		debugpp("allocating " << typeid(T).name() << " from " << this->allocated_arenas
 		        << " arenas");
 
-		// TODO use mutex only to reset free set
-		// free set is a collection of 1 link with an atomic to iterate
 		std::lock_guard<std::mutex> lock(this->sharedlock);
 
 		// allocate a new arena if needed
@@ -145,9 +149,6 @@ public:
 
 	void deallocate(T *t)
 	{
-		// TODO make this smarter
-		// use a free list to point to non reset ones, avoid doing mutex if we are not low of items.
-
 		debugpp("freeing item, now at " << this->allocated_items << " : " <<
 		        this->allocated_arenas);
 

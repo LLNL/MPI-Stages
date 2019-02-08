@@ -15,7 +15,6 @@ namespace exampi
 //
 //	//int tcpSock;
 //
-//	// TODO this is being used from an environment variable
 //	int base_port;
 //	int port;
 //

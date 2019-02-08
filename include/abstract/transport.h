@@ -16,7 +16,7 @@ private:
 	MemoryPool<ProtocolMessage> protocol_message_pool;
 
 public:
-	// TODO find solution for settable pool size
+	// todo find solution for settable pool size
 	Transport() : protocol_message_pool(128)
 	{
 		;
@@ -29,6 +29,7 @@ public:
 	}
 
 	// stages
+	// TODO stages integration into new stuff
 	//virtual int save(std::ostream &r) = 0;
 	//virtual int load(std::istream &r) = 0;
 	//virtual int cleanUp(MPI_Comm comm) = 0;

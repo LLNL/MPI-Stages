@@ -46,9 +46,6 @@ std::string debug_init(const char *file, int line, const char *func)
 	std::string function(func);
 
 	// check for main thread at init
-	// TODO this should be in global space, that is the main
-	// THIS HAS TO BE MOVED
-	// TO GLOBAL IN DEBUG, this is the main thread
 	//if(thread_counter == 0)
 	//{
 	//	thread_counter++;
@@ -57,6 +54,24 @@ std::string debug_init(const char *file, int line, const char *func)
 	//}
 
 	std::stringstream stream;
+
+	// TODO prepend symbol string for each thread, easier than text name
+	// ####
+	// ****
+	// &&&&
+	// @@@@
+	// %%%%
+	// !!!!
+	// ????
+	// TODO register threads that we create, progress threads for example
+	// ## 01 internal 
+	// ## 02 internal
+	// ## 03 internal
+	// ## 04 internal
+	// $$ 01 external 
+	// $$ 02 external
+	// $$ 03 external
+	
 
 	// check for new line needed on thread switch
 	if(last_thread != std::this_thread::get_id())
@@ -71,7 +86,7 @@ std::string debug_init(const char *file, int line, const char *func)
 	//{
 	//	stream << std::string("\t");
 	//}
-	// TODO broken at the moment
+	// todo broken at the moment
 
 	if(last_function.empty())
 	{

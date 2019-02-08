@@ -21,7 +21,7 @@ public:
 		std::memset(hdr, 0xD0, HeaderSize);
 	}
 
-	// TODO:  Don't forget these debugs, this can create a lot of spam
+	// todo:  Don't forget these debugs, this can create a lot of spam
 	void dump()
 	{
 		//std::ios oldState(nullptr);
