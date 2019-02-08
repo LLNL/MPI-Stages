@@ -46,7 +46,6 @@ namespace exampi
 //extern exampi::Progress *progress;
 //extern exampi::Transport *transport;
 
-extern std::unordered_map<MPI_Datatype, exampi::Datatype> datatypes;
 //extern exampi::Checkpoint *checkpoint;
 //extern std::vector<exampi::Comm *> communicators;
 //extern std::vector<exampi::Group *> groups;

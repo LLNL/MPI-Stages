@@ -4,16 +4,15 @@
 #include <time.h>
 #include <cstdlib>
 
-#include "basic.h"
 #include "funcType.h"
 #include "errhandler.h"
-#include "engines/progress.h"
 #include "abstract/interface.h"
 #include "daemon.h"
 #include "config.h"
 #include "errors.h"
 #include "pool.h"
 #include "stages.h"
+#include "request.h"
 
 namespace exampi
 {

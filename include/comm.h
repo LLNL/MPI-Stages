@@ -1,7 +1,6 @@
 #ifndef __EXAMPI_COMM_H
 #define __EXAMPI_COMM_H
 
-#include <global.h>
 #include <context.h>
 #include <group.h>
 #include <memory>

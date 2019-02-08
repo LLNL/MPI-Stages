@@ -1,5 +1,7 @@
-#include "interfaces/interface.h"
+#include <sstream>
+#include <cstring>
 
+#include "interfaces/interface.h"
 #include "debug.h"
 #include "daemon.h"
 #include "universe.h"
@@ -324,20 +326,26 @@ int BasicInterface::MPI_Start(MPI_Request *request)
 	CHECK_REQUEST(request);
 	CHECK_STAGES_ERROR();
 
-	// check active status
-	if(!request->persistent || request->active)
-	{
-		return MPI_ERR_REQUEST;
-	}
-
-	// TODO if Bsend, copy over to buffer, we punish those who screw up
-	// swap out buffer, so it is free to be reused
-
 	// hand request to progress engine
 	// todo this is dereferencing already anyways, might as well dereference to unique pointer?
 	// then hand ownership to progress? but progress doesn't own it
 	Request *req = reinterpret_cast<Request *>(*request);
 
+
+	// check active status
+	if(!req->persistent || req->active)
+	{
+		return MPI_ERR_REQUEST;
+	}
+
+	// bsend check
+	if(req->operation == Operation::Bsend)
+	{
+		// TODO if Bsend, copy over to buffer, we punish those who screw up
+		// swap out buffer, so it is free to be reused
+		return MPI_ERR_BSEND;
+	}
+	
 	Universe& universe = Universe::get_root_universe();
 	return universe.progress->post_request(req);
 }

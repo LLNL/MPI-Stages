@@ -1,8 +1,9 @@
-#include "checkpoints/checkpoint.h"
+#include <fstream>
+#include <sstream>
 
-#include <basic.h>
-#include "engines/progress.h"
+#include "checkpoints/checkpoint.h"
 #include "universe.h"
+#include "daemon.h"
 
 namespace exampi
 {
@@ -13,7 +14,9 @@ void BasicCheckpoint::save()
 	
 	// get a file.  this is actually nontrivial b/c of shared filesystems; we'll salt for now
 	std::stringstream filename;
+
 	filename << universe.epoch << "." << universe.rank << ".cp";
+
 	std::ofstream target(filename.str(), std::ofstream::out);
 
 	long long int size = 0;

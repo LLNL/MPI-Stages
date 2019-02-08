@@ -22,26 +22,11 @@ private:
 	// MPI universe owns all request objects
 	MemoryPool<Request> request_pool;
 	
-	Universe() : request_pool(128)
-	{
-		// TODO MPI WORLD GROUP
-		//groups.push_back(group);
-
-		// TODO MPI_COMM_WORLD
-		//communicator = new Comm(true, group, group);
-		//communicator->set_rank(exampi::rank);
-		//communicator->set_context(0, 1);
-
-		//communicators.push_back(communicator);
-	}
+	Universe();
+	~Universe();
 
 public:
-	static Universe &get_root_universe()
-	{
-		static Universe root;
-		
-		return root;
-	}
+	static Universe &get_root_universe();
 
 	std::vector<Comm *> communicators;
 	std::vector<Group *> groups;
@@ -61,31 +46,8 @@ public:
 	Universe(const Universe &u)				= delete;
 	Universe &operator=(const Universe &u)	= delete;
 
-	~Universe()
-	{
-		for(auto &&com : communicators)
-	  	{
-        	delete com;
-	    }
-        communicators.clear();
-       
-        // delete groups
-		for (auto &&group : groups)
-        {
-        	delete group;
-        }
-        groups.clear();
-	}
-
-	Request_ptr allocate_request()
-	{
-		return request_pool.allocate();
-	}
-
-	void deallocate_request(Request_ptr request)
-	{
-		request_pool.deallocate(request);
-	}
+	Request_ptr allocate_request();
+	void deallocate_request(Request_ptr request);
 };
 
 }

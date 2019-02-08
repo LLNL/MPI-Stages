@@ -1,3 +1,7 @@
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+
 #include "transports/udptransport.h"
 #include "universe.h"
 #include "config.h"
