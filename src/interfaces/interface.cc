@@ -30,8 +30,6 @@ int BasicInterface::MPI_Init(int *argc, char ***argv)
 {
 	debugpp("MPI_Init entered. argc=" << *argc);
 
-	Universe& universe = Universe::get_root_universe();
-
 	// check that exampi-mpiexec was used to launch the application
 	if(std::getenv("EXAMPI_MONITORED") == NULL)
 	{
@@ -39,10 +37,13 @@ int BasicInterface::MPI_Init(int *argc, char ***argv)
 		return MPI_ERR_MPIEXEC;
 	}
 
+	Universe& universe = Universe::get_root_universe();
+
 	debugpp("MPI_Init passed EXAMPI_LAUNCHED check.");
 
 	debugpp("Taking rank to be arg " << std::string(std::getenv("EXAMPI_RANK")));
 	
+	// TODO move these to universe creation
 	//universe.rank = std::stoi(std::string(std::getenv("EXAMPI_RANK")));
 
 	universe.rank = std::stoi(std::string(std::getenv("EXAMPI_RANK")));
