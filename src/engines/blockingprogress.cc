@@ -130,18 +130,43 @@ void BlockingProgress::progress()
 
 int BlockingProgress::handle_match(Match match)
 {
-	// the match links a request and a protocol message
-	// act on protocol
-	// unpack protocol message, extract protocol
-	
-	// we might still own a lock on transport here!
+	// note this is the big switch or dictionary protocol handling
 
-	// TODO
-	// rendevouz protocol?
-	// RTA, RAT, TA
+	// TODO put this into a dictionary
+	int err = MPI_SUCCESS;
+	switch(match.message->stage)
+	{
+	case Protocol::EAGER_ACK:
+		{
+			// return ACK message
+			ProtocolMessage_uptr msg(transporter->allocate_protocol_message());
 
-	// THIS IS THE BIG SWTICH OR MAP
-	// TODO is it? Isnot that inside transport, eager_ack, ack
+			msg->envelope = match.request->envelope;
+			msg->stage = Protocol::ACK;
+			
+			err = transporter->reliable_send(std::move(msg));
+		}
+
+	case Protocol::EAGER:
+		{
+			// copy into request buffer
+			err = match.message->unpack(match.request);
+
+			// inform mpi user
+			match.request->release();
+		}	
+		break;
+
+	case Protocol::ACK:
+		{
+			match.request->release();
+
+			// protocol message will be automagically deallocated
+		}
+		break;
+	}
+
+	return err;
 }
 
 int BlockingProgress::handle_request()
@@ -157,14 +182,19 @@ int BlockingProgress::handle_request()
 
 		lock.unlock();
 
-		// TODO decide protocol to use
-		// handle_send
-		// handle_bsend
-		// handle_rsend
-		// handle_ssend
+		// TODO this could be a decider object
+		// request, universe -> protocol selection
 
+		// handle_send  -> EAGER 
+		// handle_bsend -> EAGER
+		// handle_rsend -> EAGER
+		// handle_ssend -> EAGER_ACK
+
+		// TODO this is temporary, assume everything is MPI_Send
 		return handle_send(request);
 	}
+	else
+		return MPI_SUCCESS;
 }
 
 int BlockingProgress::handle_send(Request *request)
@@ -172,15 +202,14 @@ int BlockingProgress::handle_send(Request *request)
 	// request -> ProtocolMessage
 	ProtocolMessage_uptr message = transporter->allocate_protocol_message();
 
-	// ASSUMPTION TODO whole request fits into a single protocolmessage
-
 	// pack message
-	message->stage = ProtocolStage::EAGER;
+	message->stage = Protocol::EAGER;
 	message->envelope = request->envelope;
-	// TODO pack data
-	// eager, all in ProtocolMessage
-	// eager_ack, all in ProtocolMessage, requires acknowledgement
-	// rendevouz, announce size, request buffer
+
+	// pack protocol message
+	int err = message->pack(request);
+	if(err != MPI_SUCCESS)
+		return err;
 
 	// send protocol message
 	return transporter->reliable_send(std::move(message));
@@ -194,7 +223,7 @@ int BlockingProgress::handle_send(Request *request)
 //	Daemon &daemon = Daemon::get_instance();
 //	daemon.send_clean_up();
 //
-////	// TODO what is this?
+//		// todo what is this?
 ////	matchLock.lock();
 ////	int size = matchList.size();
 ////	matchLock.unlock();

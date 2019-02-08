@@ -38,7 +38,6 @@ private:
 
 	void progress();
 
-	int handle_protocol_message(ProtocolMessage_uptr msg);
 	int handle_match(Match match);
 	int handle_request();
 
