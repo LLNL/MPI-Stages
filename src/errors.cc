@@ -5,10 +5,10 @@ namespace exampi
 
 int check_buffer(void *buf)
 {
-	if(buf > 0)
+	if((uintptr_t)buf > (uintptr_t)0)
 		return MPI_SUCCESS;
 	else
-		return MPI_ERR_BUF;
+		return MPI_ERR_BUFFER;
 }
 
 int check_comm(MPI_Comm comm)
@@ -48,7 +48,7 @@ int check_rank(int rank, MPI_Comm comm)
 	if(rank >= 0) 
 		return MPI_SUCCESS;
 	else
-		return MPI_ERR_RANK
+		return MPI_ERR_RANK;
 }
 
 int check_request(MPI_Request *request)
@@ -61,7 +61,7 @@ int check_request(MPI_Request *request)
 
 int check_status(MPI_Status *status)
 {
-	if(status == MPI_STATUS_IGNORE || status > 0)
+	if(status == MPI_STATUS_IGNORE || (uintptr_t)status > (uintptr_t)0)
 		return MPI_SUCCESS;
 	else
 		return MPI_ERR_STATUS;

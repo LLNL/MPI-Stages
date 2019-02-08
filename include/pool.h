@@ -105,7 +105,7 @@ public:
 	template <typename... Args>
 	T* allocate(Args &&... args)
 	{
-		debugpp("allocating " << typeid(T).name() << " from " << this->allocated_arenas
+		debug("allocating " << typeid(T).name() << " from " << this->allocated_arenas
 		        << " arenas");
 
 		std::lock_guard<std::mutex> lock(this->sharedlock);
@@ -113,7 +113,7 @@ public:
 		// allocate a new arena if needed
 		if (free_list == nullptr)
 		{
-			debugpp("allocating additional arena");
+			debug("allocating additional arena");
 
 			std::unique_ptr<MemoryPool_arena> new_arena(new MemoryPool_arena(arena_size));
 
@@ -134,7 +134,7 @@ public:
 		new (result) T(std::forward<Args>(args)...);
 
 		this->allocated_items++;
-		debugpp("item is number " << this->allocated_items);
+		debug("item is number " << this->allocated_items);
 
 		return result;
 	}
@@ -149,7 +149,7 @@ public:
 
 	void deallocate(T *t)
 	{
-		debugpp("freeing item, now at " << this->allocated_items << " : " <<
+		debug("freeing item, now at " << this->allocated_items << " : " <<
 		        this->allocated_arenas);
 
 		std::lock_guard<std::mutex> lock(this->sharedlock);

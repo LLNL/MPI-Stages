@@ -53,6 +53,7 @@ typedef void (*MPIX_Deserialize_handler) (MPIX_Handles handle);
 #define MPI_STATUS_IGNORE 0
 #define MPI_STATUSES_IGNORE 0
 #define MPI_REQUEST_NULL 0
+#define MPI_TAG_UB 65536
 
 #define MPI_SUCCESS 0 /* this is the default error class for success */
 #define MPI_REVERT 100  /* Need to revert to a checkpoint epoch */
@@ -74,6 +75,7 @@ typedef void (*MPIX_Deserialize_handler) (MPIX_Handles handle);
 #define MPI_ERR_REQUEST 16
 #define MPI_ERR_ARG		17
 #define MPI_ERR_BUFFER	18
+#define MPI_ERR_STATUS  19
 
 
 /* other error classes not defined yet */

@@ -28,32 +28,32 @@ BasicInterface::~BasicInterface()
 
 int BasicInterface::MPI_Init(int *argc, char ***argv)
 {
-	debugpp("MPI_Init entered. argc=" << *argc);
+	debug("MPI_Init entered. argc=" << *argc);
 
 	// check that exampi-mpiexec was used to launch the application
 	if(std::getenv("EXAMPI_MONITORED") == NULL)
 	{
-		debugpp("Application was not launched with mpiexec.");
+		debug("Application was not launched with mpiexec.");
 		return MPI_ERR_MPIEXEC;
 	}
 
 	Universe& universe = Universe::get_root_universe();
 
-	debugpp("MPI_Init passed EXAMPI_LAUNCHED check.");
+	debug("MPI_Init passed EXAMPI_LAUNCHED check.");
 
-	debugpp("Taking rank to be arg " << std::string(std::getenv("EXAMPI_RANK")));
+	debug("Taking rank to be arg " << std::string(std::getenv("EXAMPI_RANK")));
 	
 	// TODO move these to universe creation
 	//universe.rank = std::stoi(std::string(std::getenv("EXAMPI_RANK")));
 
 	universe.rank = std::stoi(std::string(std::getenv("EXAMPI_RANK")));
 
-	//debugpp("Taking epoch config to be " << **argv);
+	//debug("Taking epoch config to be " << **argv);
 	//universe.epochConfig = std::string(std::getenv("EXAMPI_EPOCH_FILE"));
 
 	universe.epoch_config = std::string(std::getenv("EXAMPI_EPOCH_FILE"));
 
-	debugpp("Taking epoch to be " << std::string(std::getenv("EXAMPI_EPOCH")));
+	debug("Taking epoch to be " << std::string(std::getenv("EXAMPI_EPOCH")));
 
 	//universe.epoch = std::stoi(std::string(std::getenv("EXAMPI_EPOCH")));
 	universe.epoch = std::stoi(std::string(std::getenv("EXAMPI_EPOCH")));
@@ -70,7 +70,7 @@ int BasicInterface::MPI_Init(int *argc, char ***argv)
 	//if(universe.epoch == 0)
 	if(universe.epoch == 0)
 	{
-		debugpp("Executing barrier" << universe.rank);
+		debug("Executing barrier" << universe.rank);
 
 		Daemon& daemon = Daemon::get_instance();
 		daemon.barrier();
@@ -81,7 +81,7 @@ int BasicInterface::MPI_Init(int *argc, char ***argv)
 	 * handler.setErrToHandle(SIGUSR2);
 	 */
 
-	debugpp("Finished MPI_Init with code: " << recovery_code);
+	debug("Finished MPI_Init with code: " << recovery_code);
 	return recovery_code;
 }
 
@@ -105,17 +105,17 @@ int BasicInterface::MPI_Request_free(MPI_Request *request)
 int BasicInterface::MPI_Send(const void *buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm)
 {
 	// offload into persistent path
-	debugpp("initiating persistent send path");
+	debug("initiating persistent send path");
 	int err;
 	MPI_Request request;
 	err = MPI_Send_init(buf, count, datatype, dest, tag, comm, &request);
 	if(err != MPI_SUCCESS) return err;
 
-	debugpp("starting request");
+	debug("starting request");
 	err = MPI_Start(&request);
 	if(err != MPI_SUCCESS) return err;
 
-	debugpp("waiting for request");
+	debug("waiting for request");
 	err = MPI_Wait(&request, MPI_STATUS_IGNORE);
 	return err;
 }
@@ -123,17 +123,17 @@ int BasicInterface::MPI_Send(const void *buf, int count, MPI_Datatype datatype, 
 int BasicInterface::MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, int tag, MPI_Comm comm, MPI_Status *status)
 {
 	// offload into persistent path
-	debugpp("initiating persistent recv path");
+	debug("initiating persistent recv path");
 	int err;
 	MPI_Request request;
 	err = MPI_Recv_init(buf, count, datatype, source, tag, comm, &request);
 	if(err != MPI_SUCCESS) return err;
 
-	debugpp("starting request");
+	debug("starting request");
 	err = MPI_Start(&request);
 	if(err != MPI_SUCCESS) return err;
 
-	debugpp("waiting for request");
+	debug("waiting for request");
 	err = MPI_Wait(&request, MPI_STATUS_IGNORE);
 	return err;
 }
@@ -141,12 +141,12 @@ int BasicInterface::MPI_Recv(void *buf, int count, MPI_Datatype datatype, int so
 int BasicInterface::MPI_Isend(const void *buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm, MPI_Request *request)
 {
 	// offload into persistent path
-	debugpp("initiating persistent send path");
+	debug("initiating persistent send path");
 	int err;
 	err = MPI_Send_init(buf, count, datatype, dest, tag, comm, request);
 	if(err != MPI_SUCCESS) return err;
 
-	debugpp("starting request");
+	debug("starting request");
 	err = MPI_Start(request);
 	return err;
 }
@@ -154,12 +154,12 @@ int BasicInterface::MPI_Isend(const void *buf, int count, MPI_Datatype datatype,
 int BasicInterface::MPI_Irecv(void *buf, int count, MPI_Datatype datatype, int source, int tag, MPI_Comm comm, MPI_Request *request)
 {
 	// offload into persistent path
-	debugpp("initiating persistent recv path");
+	debug("initiating persistent recv path");
 	int err;
 	err = MPI_Recv_init(buf, count, datatype, source, tag, comm, request);
 	if(err != MPI_SUCCESS) return err;
 	
-	debugpp("starting request");
+	debug("starting request");
 	err = MPI_Start(request);
 	return err;
 }
@@ -203,7 +203,7 @@ int BasicInterface::MPI_Sendrecv(const void *sendbuf, int sendcount,
 int BasicInterface::construct_request(const void *buf, int count, MPI_Datatype datatype, int source, int dest, int tag, MPI_Comm comm, MPI_Request *request, Operation operation)
 {
 	// request generation
-	debugpp("generating request object");
+	debug("generating request object");
 	
 	Universe& universe = Universe::get_root_universe();
 
@@ -244,9 +244,9 @@ int BasicInterface::MPI_Bsend_init(const void* buf, int count, MPI_Datatype data
 	CHECK_BUFFER(buf);
 	CHECK_COUNT(count);
 	CHECK_DATATYPE(datatype);
-	CHECK_RANK(dest);
-	CHECK_TAG(tag);
 	CHECK_COMM(comm);
+	CHECK_RANK(dest, comm);
+	CHECK_TAG(tag);
 	CHECK_STAGES_ERROR();
 
 	Universe& universe = Universe::get_root_universe();
@@ -260,9 +260,9 @@ int BasicInterface::MPI_Rsend_init(const void* buf, int count, MPI_Datatype data
 	CHECK_BUFFER(buf);
 	CHECK_COUNT(count);
 	CHECK_DATATYPE(datatype);
-	CHECK_RANK(dest);
-	CHECK_TAG(tag);
 	CHECK_COMM(comm);
+	CHECK_RANK(dest, comm);
+	CHECK_TAG(tag);
 	CHECK_STAGES_ERROR();
 
 	Universe& universe = Universe::get_root_universe();
@@ -276,9 +276,9 @@ int BasicInterface::MPI_Ssend_init(const void* buf, int count, MPI_Datatype data
 	CHECK_BUFFER(buf);
 	CHECK_COUNT(count);
 	CHECK_DATATYPE(datatype);
-	CHECK_RANK(dest);
-	CHECK_TAG(tag);
 	CHECK_COMM(comm);
+	CHECK_RANK(dest, comm);
+	CHECK_TAG(tag);
 	CHECK_STAGES_ERROR();
 
 	Universe& universe = Universe::get_root_universe();
@@ -292,9 +292,9 @@ int BasicInterface::MPI_Send_init(const void* buf, int count, MPI_Datatype datat
 	CHECK_BUFFER(buf);
 	CHECK_COUNT(count);
 	CHECK_DATATYPE(datatype);
-	CHECK_RANK(dest);
-	CHECK_TAG(tag);
 	CHECK_COMM(comm);
+	CHECK_RANK(dest, comm);
+	CHECK_TAG(tag);
 	CHECK_STAGES_ERROR();
 
 	Universe& universe = Universe::get_root_universe();
@@ -305,13 +305,13 @@ int BasicInterface::MPI_Send_init(const void* buf, int count, MPI_Datatype datat
 int BasicInterface::MPI_Recv_init(const void* buf, int count, MPI_Datatype datatype, int source, int tag, MPI_Comm comm, MPI_Request *request) 
 {
 	// sanitize user input
-	debugpp("sanitizing user input");
+	debug("sanitizing user input");
 	CHECK_BUFFER(buf);
 	CHECK_COUNT(count);
 	CHECK_DATATYPE(datatype);
-	CHECK_RANK(source);
-	CHECK_TAG(tag);
 	CHECK_COMM(comm);
+	CHECK_RANK(source, comm);
+	CHECK_TAG(tag);
 	CHECK_STAGES_ERROR();
 
 	Universe& universe = Universe::get_root_universe();
@@ -391,7 +391,7 @@ int BasicInterface::finalize_request(MPI_Request *request, Request *req, MPI_Sta
 int BasicInterface::MPI_Wait(MPI_Request *request, MPI_Status *status)
 {
 	// sanitize user input
-	debugpp("sanitizing user input");
+	debug("sanitizing user input");
 	CHECK_REQUEST(request);
 	CHECK_STATUS(status);
 	CHECK_STAGES_ERROR();
@@ -438,7 +438,7 @@ int BasicInterface::MPI_Wait(MPI_Request *request, MPI_Status *status)
 // TODO mpi stages error detection 
 //	if (st.MPI_ERROR == MPIX_TRY_RELOAD)
 //	{
-//		debugpp("MPIX_TRY_RELOAD FOUND");
+//		debug("MPIX_TRY_RELOAD FOUND");
 //
 //		if(status != MPI_STATUS_IGNORE)
 //			memmove(status, &st, sizeof(MPI_Status));
@@ -495,7 +495,7 @@ int BasicInterface::MPI_Waitall(int count, MPI_Request array_of_requests[],
 int BasicInterface::MPI_Test(MPI_Request *request, int *flag, MPI_Status *status)
 {
 	// sanitize user input
-	debugpp("sanitizing user input");
+	debug("sanitizing user input");
 	CHECK_REQUEST(request);
 	CHECK_STATUS(status);
 	CHECK_STAGES_ERROR();
@@ -549,7 +549,7 @@ int BasicInterface::MPI_Test(MPI_Request *request, int *flag, MPI_Status *status
 
 int BasicInterface::MPI_Comm_rank(MPI_Comm comm, int *r)
 {
-	debugpp("entered MPI_Comm_rank");
+	debug("entered MPI_Comm_rank");
 	
 	Universe& universe = Universe::get_root_universe();
 
@@ -566,7 +566,7 @@ int BasicInterface::MPI_Comm_rank(MPI_Comm comm, int *r)
 
 int BasicInterface::MPI_Comm_size(MPI_Comm comm, int *r)
 {
-	debugpp("entered MPI_Comm_size");
+	debug("entered MPI_Comm_size");
 
 	Universe& universe = Universe::get_root_universe();
 
@@ -623,7 +623,7 @@ int BasicInterface::MPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm)
 
 int BasicInterface::MPI_Comm_set_errhandler(MPI_Comm comm, MPI_Errhandler err)
 {
-	debugpp("entered comm error set");
+	debug("entered comm error set");
 	Universe& universe = Universe::get_root_universe();
 	// This sets the signal handler for SIGUSR2
 	// will call cleanup
@@ -807,7 +807,7 @@ int BasicInterface::MPIX_Checkpoint_read()
 		universe.errhandler->setErrToZero();
 	}
 
-	debugpp("commit epoch received" << universe.epoch);
+	debug("commit epoch received" << universe.epoch);
 
 	// wait for restarted process
 	Daemon& daemon = Daemon::get_instance();
@@ -818,7 +818,7 @@ int BasicInterface::MPIX_Checkpoint_read()
 
 int BasicInterface::MPIX_Get_fault_epoch(int *epoch)
 {
-	debugpp("entered MPIX_Get_fault_epoch");
+	debug("entered MPIX_Get_fault_epoch");
 
 	Universe& universe = Universe::get_root_universe();
 	if (universe.errhandler->isErrSet())

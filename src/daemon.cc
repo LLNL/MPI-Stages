@@ -28,38 +28,38 @@ Daemon::Daemon()
 	this->sock = socket(AF_INET, SOCK_STREAM, 0);
 	if(this->sock < 0)
 	{
-		debugpp("rank " << universe.rank << " daemon socket failed.");
+		debug("rank " << universe.rank << " daemon socket failed.");
 		return;
 	}
 
 	// find hostname
 	char hostname[1024];
 	gethostname(hostname, 1024);
-	debugpp("getting hostname as " << hostname);
+	debug("getting hostname as " << hostname);
 
 	struct in_addr *host = (struct in_addr *)gethostbyname(
 	                           hostname)->h_addr_list[0];
-	debugpp("getting local ip as " << inet_ntoa(*host));
+	debug("getting local ip as " << inet_ntoa(*host));
 
 	// set daemon sock addr
-	debugpp("daemon port " << std::string(std::getenv("EXAMPI_HEAD_DAEMON_PORT")));
+	debug("daemon port " << std::string(std::getenv("EXAMPI_HEAD_DAEMON_PORT")));
 	int daemon_port = std::stoi(std::string(
 	                                std::getenv("EXAMPI_HEAD_DAEMON_PORT")));
 
 	this->daemon.sin_family = AF_INET;
 	this->daemon.sin_port = htons(daemon_port);
 	this->daemon.sin_addr = *host;
-	debugpp("generated daemon sockaddr_in");
+	debug("generated daemon sockaddr_in");
 
 	bool unconnected = true;
 	do
 	{
-		debugpp("attempting connection to daemon");
+		debug("attempting connection to daemon");
 		if(connect(this->sock, (const sockaddr *)&this->daemon,
 		           sizeof(this->daemon)) == -1)
 		{
 			// failed to connect to head daemon
-			debugpp("failed to establish tcp connection, waiting 250ms");
+			debug("failed to establish tcp connection, waiting 250ms");
 
 			// sleep for 250 ms
 			usleep(250 * 1000);
@@ -70,7 +70,7 @@ Daemon::Daemon()
 		}
 	}
 	while(unconnected);
-	debugpp("tcp connection to daemon established");
+	debug("tcp connection to daemon established");
 }
 
 Daemon::~Daemon()
@@ -88,7 +88,7 @@ int Daemon::barrier()
 
 	err = recv_barrier_release();
 
-	debugpp("daemon: barrier complete");
+	debug("daemon: barrier complete");
 	return err;
 }
 
@@ -114,7 +114,7 @@ int Daemon::send_barrier_ready()
 		packet << ' ';
 	}
 
-	debugpp("send_barrier_ready:" << packet.str() << " " << packet.str().length());
+	debug("send_barrier_ready:" << packet.str() << " " << packet.str().length());
 
 	return send(packet.str());
 }
@@ -123,25 +123,25 @@ int Daemon::recv_barrier_release()
 {
 	Universe& universe = Universe::get_root_universe();
 
-	debugpp("in recv_barrier_release " << universe.rank);
+	debug("in recv_barrier_release " << universe.rank);
 
 	char msg[64];
 	int err = ::recv(this->sock, msg, 64, 0);
-	debugpp("rank recv barrier release " << err << " msg " << msg);
+	debug("rank recv barrier release " << err << " msg " << msg);
 	if(err != 64)
 	{
-		debugpp("rank " << universe.rank << " msg failed, retrying barrier");
+		debug("rank " << universe.rank << " msg failed, retrying barrier");
 		return 1;
 	}
 
-	debugpp("rank " << universe.rank << " recv barrier " << std::string(msg));
-	debugpp("rank " << universe.rank << " " << std::string(msg));
+	debug("rank " << universe.rank << " recv barrier " << std::string(msg));
+	debug("rank " << universe.rank << " " << std::string(msg));
 
 	if(std::string(msg).compare(std::string("release")) == 0)
 		return 0;
 	else
 	{
-		debugpp("release invalid compare " << std::string(msg));
+		debug("release invalid compare " << std::string(msg));
 	}
 
 	return 1;
@@ -163,7 +163,7 @@ int Daemon::send_clean_up()
 		packet << ' ';
 	}
 
-	debugpp("send_clean_up:" << packet.str() << " " << packet.str().length());
+	debug("send_clean_up:" << packet.str() << " " << packet.str().length());
 
 	return send(packet.str());
 }
@@ -172,18 +172,18 @@ int Daemon::wait_commit()
 {
 	Universe& universe = Universe::get_root_universe();
 
-	debugpp("in wait_commit " << universe.rank);
+	debug("in wait_commit " << universe.rank);
 
 	char msg[64];
 	int err = ::recv(this->sock, msg, 64, 0);
-	debugpp("rank recv commit " << err << " msg " << msg);
+	debug("rank recv commit " << err << " msg " << msg);
 	if(err != 64)
 	{
-		debugpp("rank " << universe.rank << " msg failed");
+		debug("rank " << universe.rank << " msg failed");
 		return 1;
 	}
 
-	debugpp("rank " << universe.rank << " recv commit " << std::string(msg));
+	debug("rank " << universe.rank << " recv commit " << std::string(msg));
 
 	// assign epoch number
 	std::string msgstr(msg);
@@ -200,19 +200,19 @@ int Daemon::send(std::string packet)
 {
 	if(this->sock < 0)
 	{
-		debugpp("ERROR this->sock < 0");
+		debug("ERROR this->sock < 0");
 		return -35434;
 	}
 
 	// check if socket is open
 	else if(packet.length() > 64)
 	{
-		debugpp("ERROR packet.legnth > 64");
+		debug("ERROR packet.legnth > 64");
 		return -54563;
 	}
 
 	// send packet to daemon
-	debugpp("send packet to daemon: " << packet.c_str());
+	debug("send packet to daemon: " << packet.c_str());
 	return ::send(this->sock, packet.c_str(), packet.length(), 0);
 }
 

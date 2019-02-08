@@ -22,7 +22,7 @@ bool sigHandler::setSignalToHandle(int sig)
 
 void sigHandler::setSignal(int signal)
 {
-	debugpp("sigHandler::setSignal " << std::to_string(signal));
+	debug("sigHandler::setSignal " << std::to_string(signal));
 
 	is_signalSet = 1;
 }
