@@ -25,10 +25,9 @@ bool errHandler::setErrToHandle(int sig)
 
 void errHandler::setErr(int unused)
 {
-	Universe& universe = Universe::get_root_universe();
-
 	is_errSet = 1;
 
+	Universe& universe = Universe::get_root_universe();
 	universe.progress->cleanUp();
 }
 

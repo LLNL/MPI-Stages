@@ -41,24 +41,10 @@ int BasicInterface::MPI_Init(int *argc, char ***argv)
 
 	debug("MPI_Init passed EXAMPI_LAUNCHED check.");
 
-	debug("Taking rank to be arg " << std::string(std::getenv("EXAMPI_RANK")));
-	
 	// TODO move these to universe creation
-	//universe.rank = std::stoi(std::string(std::getenv("EXAMPI_RANK")));
-
 	universe.rank = std::stoi(std::string(std::getenv("EXAMPI_RANK")));
-
-	//debug("Taking epoch config to be " << **argv);
-	//universe.epochConfig = std::string(std::getenv("EXAMPI_EPOCH_FILE"));
-
 	universe.epoch_config = std::string(std::getenv("EXAMPI_EPOCH_FILE"));
-
-	debug("Taking epoch to be " << std::string(std::getenv("EXAMPI_EPOCH")));
-
-	//universe.epoch = std::stoi(std::string(std::getenv("EXAMPI_EPOCH")));
 	universe.epoch = std::stoi(std::string(std::getenv("EXAMPI_EPOCH")));
-
-	//universe.worldSize = std::stoi(std::string(std::getenv("EXAMPI_WORLD_SIZE")));	
 	universe.world_size = std::stoi(std::string(std::getenv("EXAMPI_WORLD_SIZE")));	
 
 	// note this initializes progress and transport
@@ -67,15 +53,15 @@ int BasicInterface::MPI_Init(int *argc, char ***argv)
 
 	// execute global barrier
 	// this is so that P1 doesn't init and send before P0 is ready to recv
-	//if(universe.epoch == 0)
 	if(universe.epoch == 0)
 	{
-		debug("Executing barrier" << universe.rank);
+		debug("executing daemon barrier " << universe.rank);
 
 		Daemon& daemon = Daemon::get_instance();
 		daemon.barrier();
 	}
 
+	// todo Nawrin?
 	/* Checkpoint/restart
 	 * errHandler handler;
 	 * handler.setErrToHandle(SIGUSR2);

@@ -20,9 +20,6 @@ public:
 	// start threads, restore groups, communicators
 	virtual int load(std::istream &t) = 0;
 
-	// nullify match list
-	//virtual int stop() = 0;
-	
 	// stages recovery send cleanup to daemon, this gets triggered by sigusr2 from daemon
 	virtual void cleanUp() = 0;
 };

@@ -28,10 +28,12 @@ public:
 		return protocol_message_pool.allocate_unique();
 	}
 
-	// stages
+	// mpi stages
 	// TODO stages integration into new stuff
 	//virtual int save(std::ostream &r) = 0;
 	//virtual int load(std::istream &r) = 0;
+
+	// never called
 	//virtual int cleanUp(MPI_Comm comm) = 0;
 
 	virtual ProtocolMessage_uptr ordered_recv() = 0;
