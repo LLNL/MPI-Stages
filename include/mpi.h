@@ -49,7 +49,6 @@ typedef struct
 typedef void (*MPIX_Serialize_handler) (MPIX_Handles *handle);
 typedef void (*MPIX_Deserialize_handler) (MPIX_Handles handle);
 
-
 #define MPI_STATUS_IGNORE 0
 #define MPI_STATUSES_IGNORE 0
 #define MPI_REQUEST_NULL 0

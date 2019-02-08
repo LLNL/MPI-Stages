@@ -5,12 +5,14 @@
 CXX ?= c++
 
 # flags
-CXXFLAGS += -Wall -Wextra -pedantic -Wno-unused-parameter
+CXXFLAGS += -Wall -Wextra -pedantic
 CXXFLAGS += -Wno-unused-parameter -Wno-unused-function -Wno-unused-variable -Wno-unused-but-set-variable
-CXXFLAGS += -std=c++16 -g -pthread -O2
+
+CXXFLAGS += -std=c++17 -g -pthread 
+
+CXXFLAGS += -O3 -funroll-loops
 
 CXXFLAGS += -DDEBUG 
-#CXXFLAGS += -Wfatal-errors
 
 LDFLAGS = 
 

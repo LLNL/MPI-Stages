@@ -24,10 +24,10 @@ enum class ProtocolStage: int
 	
 	EAGER_SEQ_ACK,	// packed data, multiple messages, ack required
 
-	RENDEVOUZ_PUT,	// send buffer is packed, requesting buffer on receiver
-	RENDEVOUZ_ACK,	// recv buffer is packed, requesting putting into receiver, follow by ack
+	//RENDEVOUZ_PUT,	// send buffer is packed, requesting buffer on receiver
+	//RENDEVOUZ_ACK,	// recv buffer is packed, requesting putting into receiver, follow by ack
 
-	RENDEVOUZ_GET,	// send buffer is packed, requesting get from buffer and ack
+	//RENDEVOUZ_GET,	// send buffer is packed, requesting get from buffer and ack
 };
 
 struct ProtocolMessage

@@ -130,6 +130,7 @@ void BlockingProgress::progress()
 
 int BlockingProgress::handle_match(Match match)
 {
+	// the match links a request and a protocol message
 	// act on protocol
 	// unpack protocol message, extract protocol
 	
