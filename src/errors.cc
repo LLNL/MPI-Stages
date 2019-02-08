@@ -5,50 +5,66 @@ namespace exampi
 
 int check_buffer(void *buf)
 {
-	// return MPI_ERR_BUFFER
-	return MPI_SUCCESS;
+	if(buf > 0)
+		return MPI_SUCCESS;
+	else
+		return MPI_ERR_BUF;
 }
 
 int check_comm(MPI_Comm comm)
 {
 	//return MPI_ERR_COMM
+	// TODO 
 	return MPI_SUCCESS;
 }
 
 int check_count(int count)
 {
-	//return MPI_ERR_COUNT
-	return MPI_SUCCESS;
+	if(count > 0)
+		return MPI_SUCCESS;
+	else
+		return MPI_ERR_COUNT;
 }
 
 int check_tag(int tag)
 {
-	//return MPI_ERR_TAG
-	return MPI_SUCCESS;
+	if((tag >= 0)|| (tag < MPI_TAG_UB))
+		return MPI_ERR_TAG;
+	else
+		return MPI_SUCCESS;
 }
 
 int check_datatype(MPI_Datatype datatype)
 {
 	//return MPI_ERR_DATATYPE
+	// TODO 
 	return MPI_SUCCESS;
 }
 
-int check_rank(int rank)
+int check_rank(int rank, MPI_Comm comm)
 {
-	//return MPI_ERR_RANK
-	return MPI_SUCCESS;
+	// TODO valid for communicator check
+
+	if(rank >= 0) 
+		return MPI_SUCCESS;
+	else
+		return MPI_ERR_RANK
 }
 
 int check_request(MPI_Request *request)
 {
-	// return MPI_ERR_REQUEST
-	return MPI_SUCCESS;
+	if(request == 0)
+		return MPI_ERR_REQUEST;
+	else
+		return MPI_SUCCESS;
 }
 
 int check_status(MPI_Status *status)
 {
-	// return MPI_ERR_STATUS
-	return MPI_SUCCESS;
+	if(status == MPI_STATUS_IGNORE || status > 0)
+		return MPI_SUCCESS;
+	else
+		return MPI_ERR_STATUS;
 }
 
 }
