@@ -4,35 +4,8 @@
 #include "transports/transport.h"
 #include "checkpoints/checkpoint.h"
 
-// global definitions
-// NOTE:  This is where you would use preproc (or w/e)
-// to determine modules built and linked at runtime,
-// by changing what is instantiated (in other words,
-// ideally we'd have heavy preproc or generation of
-// this file)   --sf
-
 namespace exampi
 {
-
-//int rank = -1;
-//int worldSize = -1;
-//int epoch = -1;
-//std::string epochConfig;
-
-// NOTE:  I construct the objects here to give them the chance
-// to do preinit at startup -- init calls will be required anyway
-// to avoid OoI problems, so might as well take advantage of them.
-
-//Progress *progress = new BlockingProgress();
-
-//Transport *transport = new BasicTransport();
-
-//Checkpoint *checkpoint = new BasicCheckpoint();
-
-//std::vector<exampi::Comm *> communicators;
-//std::vector<exampi::Group *> groups;
-
-//errHandler *handler = new errHandler();
 
 std::unordered_map<MPI_Datatype, exampi::Datatype> datatypes =
 {

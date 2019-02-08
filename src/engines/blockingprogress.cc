@@ -73,9 +73,10 @@ int BlockingProgress::post_request(Request *request)
 
 	return MPI_SUCCESS;
 	
-	// NOTE later on there will be others here
+	// note later on there will be others here
 	// collectives, rma
-	// allreduce, reduce, scan, exscan, broadcast, ...
+	// allreduce, allgather, reduce, broadcast, ...
+	// put, get, atomic
 }
 
 void BlockingProgress::progress()

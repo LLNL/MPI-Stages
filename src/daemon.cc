@@ -91,6 +91,13 @@ int Daemon::barrier()
 	return err;
 }
 
+int Daemon::abort()
+{
+	// TODO send abort early warning to head daemon
+
+	return -1;
+}
+
 int Daemon::send_barrier_ready()
 {
 	Universe& universe = Universe::get_root_universe();

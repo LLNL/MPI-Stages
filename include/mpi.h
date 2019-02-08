@@ -17,7 +17,6 @@ extern "C"
 {
 #endif
 
-/* FIXME: These are dummy datatypes!  SF */
 typedef int MPI_Datatype;
 typedef int MPI_Comm;
 typedef int MPIX_Session;
@@ -63,6 +62,7 @@ typedef void (*MPIX_Deserialize_handler) (MPIX_Handles handle);
 #define MPIX_CLEANUP_TAG 1
 #define MPI_UNDEFINED -1
 #define MPI_ERR_MPIEXEC 104
+#define MPI_ERR_ABORT 255
 
 #define MPI_ERR_COMM	10
 #define MPI_ERR_COUNT	11

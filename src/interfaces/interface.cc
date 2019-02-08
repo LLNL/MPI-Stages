@@ -28,7 +28,6 @@ int BasicInterface::MPI_Init(int *argc, char ***argv)
 {
 	debugpp("MPI_Init entered. argc=" << *argc);
 
-	// XXX
 	Universe& universe = Universe::get_root_universe();
 
 	// check that exampi-mpiexec was used to launch the application
@@ -403,7 +402,7 @@ int BasicInterface::MPI_Wait(MPI_Request *request, MPI_Status *status)
 		return MPI_SUCCESS;
 	}
 
-	// NOTE if we want to do some polling execution before blocking
+	// note if we want to do some polling execution before blocking
 	// poll for counter_max cycles
 	//size_t counter = 0; counter_max = 100;
 	//while(!req->complete && (counter < counter_max))
@@ -1043,11 +1042,14 @@ int BasicInterface::MPI_Get_count(MPI_Status *status, MPI_Datatype datatype,
 
 int BasicInterface::MPI_Abort(MPI_Comm comm, int errorcode)
 {
-	// NOTE is this really all that is required?
-	// daemon abort
+	// early warning for head daemon
+	Daemon &daemon = Daemon::get_instance();
+	int err = daemon.abort();
+	// TODO handle error
 
-	exit(-1);
-	return errorcode;
+	exit(errorcode);
+
+	return MPI_ERR_ABORT;
 }
 
 double BasicInterface::MPI_Wtime()

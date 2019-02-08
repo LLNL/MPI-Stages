@@ -96,7 +96,7 @@ std::string debug_init(const char *file, int line, const char *func)
 	else if(last_function.compare(function) != 0)
 	{
 		// either decrement or increment
-		// NOTE does not support recursion
+		// note does not support recursion
 		if((function_stack.size() > 0) && (function_stack.top().compare(function) == 0))
 		{
 			// returned

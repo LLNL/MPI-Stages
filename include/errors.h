@@ -6,6 +6,7 @@
 namespace exampi
 {
 
+// todo consolidate error definitions
 //enum mpi_error
 //{
 //	MPI_SUCCESS = MPI_SUCCESS,
