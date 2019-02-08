@@ -18,7 +18,7 @@ BlockingProgress::BlockingProgress(std::shared_ptr<Matcher> matcher, std::shared
 	matcher(matcher),
 	transporter(transporter)
 {
-	// TODO fetch progress thread count from config
+	// todo fetch progress thread count from config
 	//for(size_t tidx = 0; tidx < thread_num; ++tidx)
 	for(size_t tidx = 0; tidx < 1; ++tidx)
 	{
