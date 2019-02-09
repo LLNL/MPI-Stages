@@ -38,7 +38,7 @@ private:
 
 	void progress();
 
-	int handle_match(Match match);
+	int handle_match(Match &match);
 	int handle_request();
 
 	int handle_send(Request *request);

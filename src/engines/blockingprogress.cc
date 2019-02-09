@@ -113,7 +113,7 @@ void BlockingProgress::progress()
 		{
 			debug("progress thread, matching message");
 
-			int err = handle_match(std::move(match));
+			int err = handle_match(match);
 			if(err != MPI_SUCCESS)
 			{
 				// TODO handle error
@@ -155,7 +155,7 @@ void BlockingProgress::progress()
 	}
 }
 
-int BlockingProgress::handle_match(Match match)
+int BlockingProgress::handle_match(Match &match)
 {
 	// note this is the big switch or dictionary protocol handling
 
@@ -181,6 +181,7 @@ int BlockingProgress::handle_match(Match match)
 	case Protocol::EAGER:
 		{
 			debug("protocol message: EAGER");
+			debug("req: " << match.request << " <-> message: " << match.message.get());
 
 			// copy into request buffer
 			err = match.message->unpack(match.request);

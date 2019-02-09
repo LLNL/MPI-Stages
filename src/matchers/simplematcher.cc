@@ -76,8 +76,9 @@ bool SimpleMatcher::progress(Match &match)
 				match.request = req;
 				match.message = std::move(*std::move_iterator<msg_iter>(iterator));
 
+				debug("matched req " << match.request << " <-> " << match.message.get());
+
 				// remove from respective lists
-				debug("removing list items");
 				posted_request_queue.erase(riter);
 				received_message_queue.erase(iterator);
 

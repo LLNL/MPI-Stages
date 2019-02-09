@@ -12,7 +12,8 @@ namespace exampi
 
 int UDPProtocolMessage::pack(const Request_ptr request)
 {
-	void* data_begin = &payload;
+	// NOTE this is temporary packing
+	void* data_begin = &payload[0];
 	
 	debug("packing message " << *(int*)data_begin);
 
@@ -26,15 +27,18 @@ int UDPProtocolMessage::pack(const Request_ptr request)
 
 int UDPProtocolMessage::unpack(Request_ptr request) const
 {
-	const void* data_begin = &payload;
+	// NOTE this is temporary unpacking
+	debug("unpacking called");
+
+	//const void* data_begin = &payload[0];
 
 	debug("unpacking message");
 	
 	// TODO fix this cast
 	// and the rest
-	memcpy((void*)request->payload.buffer, data_begin, sizeof(int));
+	//memcpy((void*)request->payload.buffer, data_begin, sizeof(int));
 
-	debug("unpacked message " << *(int*)data_begin);
+	//debug("unpacked message " << *(int*)data_begin);
 	
 	return MPI_SUCCESS;
 }
@@ -156,6 +160,7 @@ const ProtocolMessage_uptr UDPTransport::ordered_recv()
 		return ProtocolMessage_uptr(nullptr);
 	}
 	debug("successful receive " << ((UDPProtocolMessage*)msg.get())->payload[0]);
+	debug("protocolmessage address: " << msg.get());
 
 	return std::move(msg);
 }
