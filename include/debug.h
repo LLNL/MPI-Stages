@@ -34,9 +34,23 @@ void debug_function_exit();
                     << msg << std::endl << std::flush; \
                     debug_mutex.unlock();
 
+// TODO debug improvements
+#define debug_error(msg)
+#define debug_warning(msg)
+#define debug_info(msg)
+#define debug_info_deep(msg)
+#define debug_time(msg)
+
+
 #else
 
 #define debug_add_thread(name)
+
+#define debug_error(msg)
+#define debug_warning(msg)
+#define debug_info(msg)
+#define debug_info_deep(msg)
+#define debug_time(msg)
 
 #define debug(msg)
 

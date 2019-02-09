@@ -64,7 +64,7 @@ int BasicCheckpoint::load()
 
 	if(universe.epoch == 0)
 	{
-		debug("epoch 0, starting normally");
+		debug("epoch 0, starting BlockingProgress");
 		
 		universe.progress = new BlockingProgress();
 

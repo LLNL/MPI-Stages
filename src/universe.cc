@@ -106,7 +106,10 @@ Universe::~Universe()
     }
     groups.clear();
 
+	delete progress;
 	delete checkpoint;
+
+	debug("terminating universe");
 }
 
 Request_ptr Universe::allocate_request()

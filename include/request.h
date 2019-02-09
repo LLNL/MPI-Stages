@@ -32,7 +32,7 @@ extern thread_local std::condition_variable thr_request_condition;
 struct Request
 {
 	// management data
-	std::mutex lock;
+	std::mutex guard;
 	std::condition_variable *condition;
 
 	bool complete;

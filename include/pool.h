@@ -163,6 +163,8 @@ public:
 		// return item to pool
 		current_item->set_next_item(this->free_list);
 		this->free_list = current_item;
+
+		debug("freed item to pool");
 	}
 };
 

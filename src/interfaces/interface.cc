@@ -1,5 +1,6 @@
 #include <sstream>
 #include <cstring>
+#include <mutex>
 
 #include "interfaces/interface.h"
 #include "debug.h"
@@ -67,11 +68,11 @@ int BasicInterface::MPI_Init(int *argc, char ***argv)
 
 int BasicInterface::MPI_Finalize()
 {
+	debug("MPI_Finalize");
+
+	// TODO
 	serialize_handlers.clear();
 	deserialize_handlers.clear();
-
-	//universe.transport->finalize();
-	//universe.progress->finalize();
 
 	return MPI_SUCCESS;
 }
@@ -191,7 +192,10 @@ int BasicInterface::construct_request(const void *buf, int count, MPI_Datatype d
 	// allows ownership to be internal, handle/alias to outside, we need to have C space
 	Request_ptr req = universe.allocate_request();
 	if(req == nullptr)
+	{
+		debug("ERROR: universe request allocation is nullptr, ptr " << req);
 		return MPI_ERR_INTERN;
+	}
 
 	// assign user handle
 	*request = reinterpret_cast<MPI_Request>(req);
@@ -206,7 +210,7 @@ int BasicInterface::construct_request(const void *buf, int count, MPI_Datatype d
 	// envelope
 	req->envelope.epoch = universe.epoch;
 	req->envelope.communicator = comm;
-	req->envelope.source = universe.rank;
+	req->envelope.source = source;
 	req->envelope.destination = dest;
 	req->envelope.tag = tag;
 	
@@ -310,23 +314,28 @@ int BasicInterface::MPI_Start(MPI_Request *request)
 	// hand request to progress engine
 	// todo this is dereferencing already anyways, might as well dereference to unique pointer?
 	// then hand ownership to progress? but progress doesn't own it
-	Request *req = reinterpret_cast<Request *>(*request);
-
-
+	debug("translating request");
+	Request_ptr req = reinterpret_cast<Request_ptr>(*request);
+	
 	// check active status
-	if(!req->persistent || req->active)
+	debug("persistent check");
+	if(req->persistent && req->active)
 	{
+		debug("persistent request is active");
 		return MPI_ERR_REQUEST;
 	}
 
 	// bsend check
+	debug("checking Bsend operation");
 	if(req->operation == Operation::Bsend)
 	{
+		debug("found Bsend");
 		// TODO if Bsend, copy over to buffer, we punish those who screw up
 		// swap out buffer, so it is free to be reused
 		return MPI_ERR_BSEND;
 	}
 	
+	debug("posting request to progress");
 	Universe& universe = Universe::get_root_universe();
 	return universe.progress->post_request(req);
 }
@@ -376,17 +385,22 @@ int BasicInterface::MPI_Wait(MPI_Request *request, MPI_Status *status)
 	CHECK_STAGES_ERROR();
 
 	// MPI_REQUEST_NULL check
+	debug("checking " << request << " == MPI_REQUEST_NULL " << MPI_REQUEST_NULL);
 	if(request == MPI_REQUEST_NULL)
 	{
+		debug("early exit due to MPI_REQUEST_NULL");
 		return MPI_SUCCESS;
 	}
 
 	// dereference MPI_Request -> Request
-	Request *req = reinterpret_cast<Request *>(request);
+	Request_ptr req = reinterpret_cast<Request_ptr>(*request);
+	debug("translated MPI_Request to Request_ptr: " << req);
 
-	// inactive persistent request check
+	// inactive persistent request chec
+	debug("checking persistent " << req->persistent << " and inactive " << req->active);
 	if(req->persistent && !req->active)
 	{
+		debug("persitent and inactive request found");
 		return MPI_SUCCESS;
 	}
 
@@ -397,21 +411,33 @@ int BasicInterface::MPI_Wait(MPI_Request *request, MPI_Status *status)
 	//	++counter;
 
 	// if request is not complete
+	debug("checking if request complete " << req->complete);
 	if(!req->complete)
 	{
+		debug("will wait for completion");
+
 		// wait for completion 
-		std::unique_lock<std::mutex> lock(req->lock);
+		// XXX invalid argument here!
+		debug("req " << req);
+
+		std::unique_lock<std::mutex> lock(req->guard);
+
+		debug("acquired lock on request");
 
 		// register condition variable
 		req->condition = &thr_request_condition;
 
 		// wait for completion
+		// TODO handle spurious wake up
 		thr_request_condition.wait(lock, [req] () -> bool {return req->complete;});
+
+		debug("finished waiting");
 
 		lock.unlock();
 	}
 	// request is now definitely completed
-
+	
+	debug("finalizing request");
 	return finalize_request(request, req, status);
 
 // TODO mpi stages error detection 

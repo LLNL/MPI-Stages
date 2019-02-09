@@ -22,15 +22,18 @@ BlockingProgress::BlockingProgress(std::shared_ptr<Matcher> matcher, std::shared
 	//for(size_t tidx = 0; tidx < thread_num; ++tidx)
 	for(size_t tidx = 0; tidx < 1; ++tidx)
 	{
+		debug("starting progress thread " << tidx);
 		// launch thread executing progress function
 		std::thread thr(&BlockingProgress::progress, this);
 		progress_threads.push_back(std::move(thr));
 	}
+	debug("progress threads running");
 }
 
 BlockingProgress::~BlockingProgress()
 {
 	// join all threads
+	debug("halting all progress threads");
 	shutdown = true;
 
 	for(auto&& thr : this->progress_threads)
@@ -56,11 +59,15 @@ BlockingProgress::~BlockingProgress()
 
 int BlockingProgress::post_request(Request *request)
 {
+	debug("posting request");
+
 	// user threads relinquishes control here
 	if(request->operation == Operation::Receive)
 	{
 		// insert into matching mechanism
 		matcher->post_request(request);
+
+		debug("handed off to matcher");
 	}
 	else // *sends
 	{
@@ -69,6 +76,8 @@ int BlockingProgress::post_request(Request *request)
 	
 		// queue for send
 		outbox.push(request);
+
+		debug("pushed into outbox");
 	}
 
 	return MPI_SUCCESS;
@@ -94,21 +103,37 @@ void BlockingProgress::progress()
 		// absorb message if any, this is inflow
 		if(ProtocolMessage_uptr msg = transporter->ordered_recv())
 		{
+			debug("progress thread, receiving message");
+
 			matcher->post_message(std::move(msg));
 		}
 
 		// match message if any, this is inflow
 		else if(matcher->progress(match))
 		{
+			debug("progress thread, matching message");
+
 			int err = handle_match(std::move(match));
-			// TODO handle error
+			if(err != MPI_SUCCESS)
+			{
+				// TODO handle error
+				debug("error receiving message");
+			}
 		}
 
 		// emit message if any, this is outflow
 		else if(outbox.size() > 0)
 		{
+			debug("progress thread, handling request");
+
 			int err = handle_request();
-			// TODO handle error
+			if(err != MPI_SUCCESS)
+			{
+				// TODO handle error
+				debug("error sending message");
+			}
+
+			debug("sent message");
 		}
 
 		// otherwise go to sleep
@@ -122,6 +147,8 @@ void BlockingProgress::progress()
 		cycles += 1;
 		if(cycles >= maximum_progress_cycles)
 		{
+			debug("progress thread, going to sleep forcefully");
+
 			cycles = 0;
 			std::this_thread::yield();
 		}
@@ -132,12 +159,16 @@ int BlockingProgress::handle_match(Match match)
 {
 	// note this is the big switch or dictionary protocol handling
 
+	debug("handling matched request <-> protocol message");
+
 	// TODO put this into a dictionary
 	int err = MPI_SUCCESS;
 	switch(match.message->stage)
 	{
 	case Protocol::EAGER_ACK:
 		{
+			debug("protocol message: EAGER_ACK");
+
 			// return ACK message
 			ProtocolMessage_uptr msg(transporter->allocate_protocol_message());
 
@@ -149,19 +180,28 @@ int BlockingProgress::handle_match(Match match)
 
 	case Protocol::EAGER:
 		{
+			debug("protocol message: EAGER");
+
 			// copy into request buffer
 			err = match.message->unpack(match.request);
+	
+			debug("protocol message unpacked");
 
 			// inform mpi user
 			match.request->release();
+
+			debug("request completed and released");
 		}	
 		break;
 
 	case Protocol::ACK:
 		{
+			debug("protocol message: ACK");
+
 			match.request->release();
 
 			// protocol message will be automagically deallocated
+			debug("request completed and released");
 		}
 		break;
 	}
@@ -176,6 +216,8 @@ int BlockingProgress::handle_request()
 	// emit message if there is a request
 	if(outbox.size() > 0)
 	{
+		debug("fetching request");
+
 		// fetch request
 		Request *request = outbox.front();
 		outbox.pop();
@@ -194,15 +236,21 @@ int BlockingProgress::handle_request()
 		return handle_send(request);
 	}
 	else
+	{
+		debug("false handle request");
+
 		return MPI_SUCCESS;
+	}
 }
 
 int BlockingProgress::handle_send(Request *request)
 {
 	// request -> ProtocolMessage
+	debug("allocating protocol message from transport");
 	ProtocolMessage_uptr message = transporter->allocate_protocol_message();
 
 	// pack message
+	debug("filling protocol message");
 	message->stage = Protocol::EAGER;
 	message->envelope = request->envelope;
 
@@ -211,8 +259,18 @@ int BlockingProgress::handle_send(Request *request)
 	if(err != MPI_SUCCESS)
 		return err;
 
+	debug("packed protocol message, sending");
+
 	// send protocol message
-	return transporter->reliable_send(std::move(message));
+	err = transporter->reliable_send(std::move(message));
+	if(err != MPI_SUCCESS)
+	{
+		// TODO handle error
+		debug("error sending message");
+	}
+
+	// complete request
+	request->release();
 }
 
 void BlockingProgress::cleanUp()

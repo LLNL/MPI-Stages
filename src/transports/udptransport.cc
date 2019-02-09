@@ -14,8 +14,12 @@ int UDPProtocolMessage::pack(const Request_ptr request)
 {
 	void* data_begin = &payload;
 	
+	debug("packing message " << *(int*)data_begin);
+
 	// TODO fix this
 	memcpy(data_begin, request->payload.buffer, sizeof(int));
+
+	debug("packed message");
 
 	return MPI_SUCCESS;
 }
@@ -23,10 +27,14 @@ int UDPProtocolMessage::pack(const Request_ptr request)
 int UDPProtocolMessage::unpack(Request_ptr request) const
 {
 	const void* data_begin = &payload;
+
+	debug("unpacking message");
 	
 	// TODO fix this cast
 	// and the rest
 	memcpy((void*)request->payload.buffer, data_begin, sizeof(int));
+
+	debug("unpacked message " << *(int*)data_begin);
 	
 	return MPI_SUCCESS;
 }
@@ -36,7 +44,7 @@ UDPTransport::UDPTransport() : message_pool(128)
 	// create
 	socket_recv = socket(AF_INET, SOCK_DGRAM, 0);
 	if(socket_recv == 0)
-		debug("socket creation failed");
+		debug("ERROR: socket creation failed: " << socket_recv);
 
 	// setsockopt to reuse address
 	//int opt = 1;
@@ -47,6 +55,7 @@ UDPTransport::UDPTransport() : message_pool(128)
 
 	// garuntees no local collision
 	int port = std::stoi(std::string(std::getenv("EXAMPI_UDP_TRANSPORT_BASE"))) + universe.rank;
+	debug("udp transport port: " << port);
 	
 	struct sockaddr_in address_local;
 	address_local.sin_family = AF_INET;
@@ -55,7 +64,7 @@ UDPTransport::UDPTransport() : message_pool(128)
 
 	if(bind(socket_recv, (sockaddr*)&address_local, sizeof(address_local)) < 0)
 	{
-		debug("socket binding failed");
+		debug("ERROR: socket binding failed");
 	}
 
 	// prepare msg header
@@ -92,7 +101,7 @@ UDPTransport::~UDPTransport()
 
 ProtocolMessage_uptr UDPTransport::allocate_protocol_message()
 {
-	std::lock_guard lock(guard);
+	std::lock_guard<std::recursive_mutex> lock(guard);
 
 	UDPProtocolMessage* ptr = message_pool.allocate();
 
@@ -111,19 +120,26 @@ const ProtocolMessage_uptr UDPTransport::ordered_recv()
 		return ProtocolMessage_uptr(nullptr);
 
 	// then commit
-	std::lock_guard<std::mutex> lock(guard);
+	std::lock_guard<std::recursive_mutex> lock(guard);
 
 	// check again, that the data has not been taken by another thread
+	debug("double checking work availability");
+
 	size = recv(socket_recv, &test, sizeof(test), MSG_PEEK | MSG_DONTWAIT);
 	if(size <= 0)
+	{
+		debug("failed recheck for work");
 		return ProtocolMessage_uptr(nullptr);
+	}
 
+	debug("allocating protocol message");
 	ProtocolMessage_uptr msg = allocate_protocol_message();
 
 	// fill iov
+	debug("iov processing");
 	iovec msg_iov;
 	msg_iov.iov_base = msg.get();
-	msg_iov.iov_len = sizeof(ProtocolMessage);
+	msg_iov.iov_len = sizeof(UDPProtocolMessage);
 
 	hdr.msg_iov = &msg_iov;
 	hdr.msg_iovlen = 1;
@@ -132,16 +148,23 @@ const ProtocolMessage_uptr UDPTransport::ordered_recv()
 	hdr.msg_name = NULL;
 	hdr.msg_namelen = 0;
 
+	debug("receiving message");
 	int err = recvmsg(socket_recv, &hdr, 0);
 	if(err <= 0)
+	{
+		debug("socket recv error " << err);
 		return ProtocolMessage_uptr(nullptr);
+	}
+	debug("successful receive " << ((UDPProtocolMessage*)msg.get())->payload[0]);
 
 	return std::move(msg);
 }
 
 int UDPTransport::reliable_send(ProtocolMessage_uptr message)
 {
-	std::lock_guard<std::mutex> lock(guard);
+	std::lock_guard<std::recursive_mutex> lock(guard);
+
+	debug("assembling udp msg");
 
 	// fill iov
 	iovec msg_iov;
@@ -156,11 +179,14 @@ int UDPTransport::reliable_send(ProtocolMessage_uptr message)
 	sockaddr_in &addr = cache[message->envelope.destination];
 	hdr.msg_name = &addr;
 	hdr.msg_namelen = sizeof(sockaddr_in);
-
+	
+	debug("sending message");
 	int err = sendmsg(socket_recv, &hdr, 0);
 	if(err <= 0)
 		return MPI_ERR_RELIABLE_SEND_FAILED;
 	
+	debug("sent message");
+
 	return MPI_SUCCESS;
 }
 

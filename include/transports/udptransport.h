@@ -24,7 +24,7 @@ struct UDPProtocolMessage: public ProtocolMessage
 class UDPTransport: public Transport
 {
 private:
-	std::mutex guard;
+	std::recursive_mutex guard;
 
 	int socket_recv;
 
