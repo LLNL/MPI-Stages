@@ -2,6 +2,7 @@
 #include <sstream>
 
 #include "checkpoints/checkpoint.h"
+#include "engines/blockingprogress.h"
 #include "universe.h"
 #include "daemon.h"
 
@@ -58,18 +59,21 @@ void BasicCheckpoint::save()
 
 int BasicCheckpoint::load()
 {
+	debug("fetching root universe for checkpointing");
 	Universe& universe = Universe::get_root_universe();
 
-	if(universe.epoch == 0) // first init
+	if(universe.epoch == 0)
 	{
-		// note we are getting rid of init
-		//universe.transport->init();
-		//universe.progress->init();
+		debug("epoch 0, starting normally");
+		
+		universe.progress = new BlockingProgress();
 
 		return MPI_SUCCESS;
 	}
 	else   // subsequent init
 	{
+		debug("epoch " << universe.epoch << ", reading checkpoint");
+
 		// get a file.  this is actually nontrivial b/c of shared filesystems; we'll salt for now
 		std::stringstream filename;
 		filename << universe.epoch - 1 << "." << universe.rank << ".cp";
@@ -99,6 +103,7 @@ int BasicCheckpoint::load()
 		ef >> universe.epoch;
 		ef.close();
 	}
+
 	return MPIX_SUCCESS_RESTART;
 }
 

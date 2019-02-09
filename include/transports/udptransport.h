@@ -15,8 +15,10 @@ namespace exampi
 
 struct UDPProtocolMessage: public ProtocolMessage
 {
+	int payload[10];
+	
 	int pack(const Request_ptr request);
-	int unpack(const Request_ptr request) const;
+	int unpack(Request_ptr request) const;
 };
 
 class UDPTransport: public Transport

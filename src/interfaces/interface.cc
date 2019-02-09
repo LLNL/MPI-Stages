@@ -46,6 +46,7 @@ int BasicInterface::MPI_Init(int *argc, char ***argv)
 
 	// execute global barrier
 	// this is so that P1 doesn't init and send before P0 is ready to recv
+	debug("checking if it is epoch == 0");
 	if(universe.epoch == 0)
 	{
 		debug("executing daemon barrier " << universe.rank);
@@ -539,10 +540,10 @@ int BasicInterface::MPI_Comm_rank(MPI_Comm comm, int *r)
 	Comm *c = universe.communicators.at(comm);
 
 	*r = (c)->get_rank();
-	return 0;
+	return MPI_SUCCESS;
 }
 
-int BasicInterface::MPI_Comm_size(MPI_Comm comm, int *r)
+int BasicInterface::MPI_Comm_size(MPI_Comm comm, int *size)
 {
 	debug("entered MPI_Comm_size");
 
@@ -555,9 +556,9 @@ int BasicInterface::MPI_Comm_size(MPI_Comm comm, int *r)
 
 	Comm *c = universe.communicators.at(comm);
 
-	*r = (c)->get_local_group()->get_process_list().size();
+	*size = (c)->get_local_group()->get_process_list().size();
 
-	return 0;
+	return MPI_SUCCESS;
 }
 
 int BasicInterface::MPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm)
@@ -580,6 +581,7 @@ int BasicInterface::MPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm)
 	{
 		return MPIX_TRY_RELOAD;
 	}
+
 	Comm *communicator;
 	communicator = new Comm(true, (c)->get_local_group(), (c)->get_remote_group());
 	communicator->set_rank((c)->get_rank());
@@ -596,6 +598,7 @@ int BasicInterface::MPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm)
 	{
 		*newcomm = std::distance(universe.communicators.begin(), it);
 	}
+
 	return MPI_SUCCESS;
 }
 

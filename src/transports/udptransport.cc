@@ -1,6 +1,7 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <cstring>
 
 #include "transports/udptransport.h"
 #include "universe.h"
@@ -8,6 +9,27 @@
 
 namespace exampi
 {
+
+int UDPProtocolMessage::pack(const Request_ptr request)
+{
+	void* data_begin = &payload;
+	
+	// TODO fix this
+	memcpy(data_begin, request->payload.buffer, sizeof(int));
+
+	return MPI_SUCCESS;
+}
+
+int UDPProtocolMessage::unpack(Request_ptr request) const
+{
+	const void* data_begin = &payload;
+	
+	// TODO fix this cast
+	// and the rest
+	memcpy((void*)request->payload.buffer, data_begin, sizeof(int));
+	
+	return MPI_SUCCESS;
+}
 
 UDPTransport::UDPTransport() : message_pool(128)
 {
@@ -124,13 +146,13 @@ int UDPTransport::reliable_send(ProtocolMessage_uptr message)
 	// fill iov
 	iovec msg_iov;
 	msg_iov.iov_base = message.get();
-	msg_iov.iov_len = sizeof(ProtocolMessage);
+	msg_iov.iov_len = sizeof(UDPProtocolMessage);
 	
 	hdr.msg_iov = &msg_iov;
 	hdr.msg_iovlen = 1;
 
 	// fill destination
-	// TODO caching not correct
+	// TODO need world rank not communicator rank
 	sockaddr_in &addr = cache[message->envelope.destination];
 	hdr.msg_name = &addr;
 	hdr.msg_namelen = sizeof(sockaddr_in);

@@ -39,7 +39,7 @@ struct ProtocolMessage
 	Envelope envelope;
 
 	virtual int pack(const Request_ptr request) = 0;
-	virtual int unpack(const Request_ptr request) const = 0;
+	virtual int unpack(Request_ptr request) const = 0;
 };
 
 typedef std::unique_ptr<ProtocolMessage, std::function<void(ProtocolMessage*)>> ProtocolMessage_uptr;

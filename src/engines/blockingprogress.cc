@@ -215,8 +215,8 @@ int BlockingProgress::handle_send(Request *request)
 	return transporter->reliable_send(std::move(message));
 }
 
-//void BlockingProgress::cleanUp()
-//{
+void BlockingProgress::cleanUp()
+{
 //	sigHandler handler;
 //	handler.setSignalToHandle(SIGUSR1);
 //
@@ -234,10 +234,10 @@ int BlockingProgress::handle_send(Request *request)
 ////		        exampi::rank, MPIX_CLEANUP_TAG, MPI_COMM_WORLD);
 ////		exampi::handler->setErrToOne();
 ////	}
-//}
-//
-//int BlockingProgress::save(std::ostream &t)
-//{
+}
+////
+int BlockingProgress::save(std::ostream &t)
+{
 ////	// save all groups
 ////	int group_size = exampi::groups.size();
 ////	t.write(reinterpret_cast<char *>(&group_size), sizeof(int));
@@ -272,11 +272,11 @@ int BlockingProgress::handle_send(Request *request)
 ////		t.write(reinterpret_cast<char *>(&value), sizeof(int));
 ////	}
 //
-//	return MPI_SUCCESS;
-//}
+	return MPI_SUCCESS;
+}
 //
-//int BlockingProgress::load(std::istream &t)
-//{
+int BlockingProgress::load(std::istream &t)
+{
 ////	alive = true;
 ////	sendThread = std::thread { sendThreadProc, &alive, &outbox };
 ////	matchThread = std::thread { matchThreadProc, &alive, &matchList, &unexpectedList,
@@ -348,7 +348,7 @@ int BlockingProgress::handle_send(Request *request)
 ////		exampi::communicators.push_back(com);
 ////		comm_size--;
 ////	}
-//	return MPI_SUCCESS;
-//}
+	return MPI_SUCCESS;
+}
 
 } // exampi

@@ -41,7 +41,6 @@ public:
 	std::string epoch_config;
 
 	Progress *progress;
-	Transport *transport;
 	Checkpoint *checkpoint;
 	errHandler *errhandler;
 	

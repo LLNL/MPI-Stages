@@ -1,5 +1,7 @@
 #include "universe.h"
 
+#include "checkpoints/checkpoint.h"
+
 namespace exampi
 {
 
@@ -12,19 +14,27 @@ Universe &Universe::get_root_universe()
 
 Universe::Universe() : request_pool(128)
 {
+	debug("creating universe");
+
 	rank = std::stoi(std::string(std::getenv("EXAMPI_RANK")));
 	epoch_config = std::string(std::getenv("EXAMPI_EPOCH_FILE"));
 	epoch = std::stoi(std::string(std::getenv("EXAMPI_EPOCH")));
 	world_size = std::stoi(std::string(std::getenv("EXAMPI_WORLD_SIZE")));	
+	
+	debug("creating checkpoint");
+	checkpoint = new BasicCheckpoint();
 
 	// MPI WORLD GROUP
+	debug("generating world group");
 	std::list<int> rankList;
 	for(int idx = 0; idx < world_size; ++idx)
 		rankList.push_back(idx);
 	world_group.set_process_list(rankList);
+
 	groups.push_back(&world_group);
 
 	// MPI_COMM_WORLD
+	debug("generating world communicator");
 	world_comm.is_intra = true;
 	world_comm.local = &world_group;
 	world_comm.remote = &world_group;
@@ -33,9 +43,9 @@ Universe::Universe() : request_pool(128)
 
 	communicators.push_back(&world_comm);
 
+	debug("generating universe datatypes");
 	datatypes =
 	{
-
 		{ MPI_BYTE, Datatype(MPI_BYTE,           sizeof(unsigned char),  true,  true, true)},
 		{ MPI_CHAR, Datatype(MPI_CHAR,           sizeof(char),           true,  true, true)},
 	#if 0
@@ -60,31 +70,54 @@ Universe::Universe() : request_pool(128)
 		{ MPI_LONG_DOUBLE, Datatype(MPI_LONG_DOUBLE,    sizeof(long double),    false, true, true)},
 	#endif
 	};
+
+	debug("finished creating universe");
 }
 
 Universe::~Universe()
 {
+	debug("universe being destroyed, deleting all communicators");
+
+
+	bool first = true;
 	for(auto &&com : communicators)
 	{
+		if(first)
+		{
+			first = false;
+			continue;
+		}
         delete com;
 	}
     communicators.clear();
-   
+
+	first = true;
+	debug("deleting all groups");   
     // delete groups
 	for (auto &&group : groups)
     {
+		if(first)
+		{
+			first = false;
+			continue;
+		}
+
         delete group;
     }
     groups.clear();
+
+	delete checkpoint;
 }
 
 Request_ptr Universe::allocate_request()
 {
+	debug("allocating request from memory pool");
 	return request_pool.allocate();
 }
 
 void Universe::deallocate_request(Request_ptr request)
 {
+	debug("freeing request to memory pool");
 	request_pool.deallocate(request);
 }
 
