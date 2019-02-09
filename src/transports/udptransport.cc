@@ -30,15 +30,15 @@ int UDPProtocolMessage::unpack(Request_ptr request) const
 	// NOTE this is temporary unpacking
 	debug("unpacking called");
 
-	//const void* data_begin = &payload[0];
+	const void* data_begin = &payload[0];
 
 	debug("unpacking message");
 	
 	// TODO fix this cast
 	// and the rest
-	//memcpy((void*)request->payload.buffer, data_begin, sizeof(int));
+	memcpy((void*)request->payload.buffer, data_begin, sizeof(int));
 
-	//debug("unpacked message " << *(int*)data_begin);
+	debug("unpacked message " << *(int*)data_begin);
 	
 	return MPI_SUCCESS;
 }
@@ -190,7 +190,7 @@ int UDPTransport::reliable_send(ProtocolMessage_uptr message)
 	if(err <= 0)
 		return MPI_ERR_RELIABLE_SEND_FAILED;
 	
-	debug("sent message");
+	debug("sent message: " << ((UDPProtocolMessage*)message.get())->payload[0]);
 
 	return MPI_SUCCESS;
 }
