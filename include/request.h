@@ -41,6 +41,8 @@ struct Request
 	bool persistent;
 	bool active;
 
+	int error;
+
 	// MPI data
 	Operation operation;
 	Protocol protocol;

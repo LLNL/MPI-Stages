@@ -8,9 +8,8 @@
 namespace exampi
 {
 
-class Comm
+struct Comm
 {
-public:
 	Comm()
 	{
 	}
@@ -110,7 +109,6 @@ public:
 	//
 	// [future version only]
 	//
-protected:
 	bool is_intra;
 	exampi::Group *local;
 	exampi::Group *remote;
@@ -122,8 +120,6 @@ protected:
 
 	//  context_id remote_pt2pt;
 	//  context_id remote_coll;
-
-private:
 
 };
 

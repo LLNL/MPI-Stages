@@ -12,19 +12,26 @@ Universe &Universe::get_root_universe()
 
 Universe::Universe() : request_pool(128)
 {
+	rank = std::stoi(std::string(std::getenv("EXAMPI_RANK")));
+	epoch_config = std::string(std::getenv("EXAMPI_EPOCH_FILE"));
+	epoch = std::stoi(std::string(std::getenv("EXAMPI_EPOCH")));
+	world_size = std::stoi(std::string(std::getenv("EXAMPI_WORLD_SIZE")));	
+
 	// MPI WORLD GROUP
 	std::list<int> rankList;
-	for(int idx = 0; idx < exampi::worldSize; ++idx)
+	for(int idx = 0; idx < world_size; ++idx)
 		rankList.push_back(idx);
 	world_group.set_process_list(rankList);
 	groups.push_back(&world_group);
 
-	// TODO MPI_COMM_WORLD
-	//communicator = new Comm(true, group, group);
-	//communicator->set_rank(exampi::rank);
-	//communicator->set_context(0, 1);
+	// MPI_COMM_WORLD
+	world_comm.is_intra = true;
+	world_comm.local = &world_group;
+	world_comm.remote = &world_group;
+	world_comm.set_rank(rank);
+	world_comm.set_context(0, 1);
 
-	//communicators.push_back(communicator);
+	communicators.push_back(&world_comm);
 
 	datatypes =
 	{
@@ -57,11 +64,6 @@ Universe::Universe() : request_pool(128)
 
 Universe::~Universe()
 {
-	universe.rank = std::stoi(std::string(std::getenv("EXAMPI_RANK")));
-	universe.epoch_config = std::string(std::getenv("EXAMPI_EPOCH_FILE"));
-	universe.epoch = std::stoi(std::string(std::getenv("EXAMPI_EPOCH")));
-	universe.world_size = std::stoi(std::string(std::getenv("EXAMPI_WORLD_SIZE")));	
-
 	for(auto &&com : communicators)
 	{
         delete com;
@@ -87,4 +89,3 @@ void Universe::deallocate_request(Request_ptr request)
 }
 
 }
-

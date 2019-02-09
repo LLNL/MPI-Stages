@@ -345,8 +345,7 @@ int BasicInterface::finalize_request(MPI_Request *request, Request *req, MPI_Sta
 		status->cancelled = static_cast<int>(req->cancelled);
 		status->MPI_SOURCE = req->envelope.source;
 		status->MPI_TAG = req->envelope.tag;
-		// TODO the request has a MPI_ERROR? It can't always succeed
-		status->MPI_ERROR = MPI_SUCCESS; 
+		status->MPI_ERROR = req->error; 
 	}
 
 	// for persistent request
