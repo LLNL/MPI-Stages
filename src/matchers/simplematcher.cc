@@ -30,6 +30,7 @@ void SimpleMatcher::post_message(ProtocolMessage_uptr message)
 }
 
 bool SimpleMatcher::progress(Match &match)
+//std::tuple<bool, Request_ptr, ProtocolMessage_uptr> SimpleMatcher::progress()
 {
 	std::lock_guard<std::mutex> lock(guard);
 	
@@ -76,15 +77,16 @@ bool SimpleMatcher::progress(Match &match)
 				match.request = req;
 				match.message = std::move(*std::move_iterator<msg_iter>(iterator));
 
-				debug("matched req " << match.request << " <-> " << match.message.get());
-
 				// remove from respective lists
 				posted_request_queue.erase(riter);
 				received_message_queue.erase(iterator);
 
+				debug("matched req " << match.request << " <-> " << match.message.get());
+
 				debug("matching complete, found match");
 
 				return true;
+				//return std::make_tuple(true, req, std::move(*std::move_iterator<msg_iter>(iterator)));
 			}
 			else
 			{
@@ -96,6 +98,7 @@ bool SimpleMatcher::progress(Match &match)
 					
 	}
 
+	//return std::make_tuple(false, nullptr, ProtocolMessage_uptr*(nullptr));
 	return false;
 }
 

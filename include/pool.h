@@ -91,16 +91,15 @@ public:
 	std::mutex sharedlock;
 
 public:
-	// shortcut unique ptr type for simplicity
-	//typedef typename std::unique_ptr<T, std::function<void(T *)>> unique_ptr;
-
 	MemoryPool(size_t arena_size)
 		: arena_size(arena_size),
 		  allocated_items(0),
 		  allocated_arenas(1),
 		  arena(new MemoryPool_arena(arena_size)),
 		  free_list(arena->get_storage())
-	{;}
+	{
+		debug("free_list starts at: " << &free_list[0]);
+	}
 
 	template <typename... Args>
 	T* allocate(Args &&... args)
@@ -139,18 +138,13 @@ public:
 		return result;
 	}
 
-	//template <typename... Args>
-	//MemoryPool::unique_ptr allocate_unique(Args &&... args)
-	//{
-	//	T* result = allocate(std::forward<Args>(args)...);
-
-	//	return MemoryPool::unique_ptr(result, [this](T* t) -> void { this->deallocate(t); });
-	//}
-
 	void deallocate(T *t)
 	{
 		debug("freeing item, now at " << this->allocated_items << " : " <<
 		        this->allocated_arenas);
+
+		if(t == nullptr)
+			return;
 
 		std::lock_guard<std::mutex> lock(this->sharedlock);
 		this->allocated_items--;

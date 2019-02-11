@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <mutex>
 #include <unordered_map>
+#include <exception>
 
 #include "abstract/transport.h"
 #include "protocol.h"
@@ -15,10 +16,32 @@ namespace exampi
 
 struct UDPProtocolMessage: public ProtocolMessage
 {
+	~UDPProtocolMessage() final {}
+	int size() final
+	{
+		return ProtocolMessage::size() + sizeof(payload);
+	}
+	
 	int payload[10];
 	
-	int pack(const Request_ptr request);
-	int unpack(Request_ptr request) const;
+	int pack(const Request_ptr request) final;
+	int unpack(Request_ptr request) const final;
+};
+
+class UDPTransportCreationException: public std::exception
+{
+	const char* what() const noexcept override
+	{
+		return "UDPTransport failed to create socket.";
+	}
+};
+
+class UDPTransportBindingException: public std::exception
+{
+	const char* what() const noexcept override
+	{
+		return "UDPTransport failed to bind socket.";
+	}
 };
 
 class UDPTransport: public Transport
@@ -35,9 +58,11 @@ private:
 	// TODO caching per rank does not work, needs per communicator...
 	std::unordered_map<long int, sockaddr_in> cache;
 
+	std::map<Protocol, size_t> available_protocols;
+
 public:
 	UDPTransport();
-	~UDPTransport();
+	~UDPTransport() final;
 
 	ProtocolMessage_uptr allocate_protocol_message();
 

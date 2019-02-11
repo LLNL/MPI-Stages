@@ -70,7 +70,7 @@ int BasicInterface::MPI_Finalize()
 {
 	debug("MPI_Finalize");
 
-	// TODO
+	// TODO mpi stages shut down?
 	serialize_handlers.clear();
 	deserialize_handlers.clear();
 
@@ -115,7 +115,7 @@ int BasicInterface::MPI_Recv(void *buf, int count, MPI_Datatype datatype, int so
 	if(err != MPI_SUCCESS) return err;
 
 	debug("waiting for request");
-	err = MPI_Wait(&request, MPI_STATUS_IGNORE);
+	err = MPI_Wait(&request, status);
 	return err;
 }
 
@@ -200,9 +200,9 @@ int BasicInterface::construct_request(const void *buf, int count, MPI_Datatype d
 	// assign user handle
 	*request = reinterpret_cast<MPI_Request>(req);
 	
+	// TODO what is this from shane?
 	Comm *c = universe.communicators.at(comm);
 	int context = c->get_context_id_pt2pt();
-	size_t szcount = count;
 
 	// operation descriptor
 	req->operation = operation;
@@ -317,7 +317,7 @@ int BasicInterface::MPI_Start(MPI_Request *request)
 	debug("translating request");
 	Request_ptr req = reinterpret_cast<Request_ptr>(*request);
 	
-	// check active status
+	// check active request
 	debug("persistent check");
 	if(req->persistent && req->active)
 	{
@@ -373,6 +373,25 @@ int BasicInterface::finalize_request(MPI_Request *request, Request *req, MPI_Sta
 		*request = MPI_REQUEST_NULL;
 	}
 
+// TODO mpi stages error detection 
+//	if (st.MPI_ERROR == MPIX_TRY_RELOAD)
+//	{
+//		debug("MPIX_TRY_RELOAD FOUND");
+//
+//		if(status != MPI_STATUS_IGNORE)
+//			memmove(status, &st, sizeof(MPI_Status));
+//
+//		return MPIX_TRY_RELOAD;
+//	}
+//	else
+//	{
+//		if(status != MPI_STATUS_IGNORE)
+//			memmove(status, &st, sizeof(MPI_Status));
+//
+//		return 0;
+//	}
+
+
 	return MPI_SUCCESS;
 }
 
@@ -417,9 +436,6 @@ int BasicInterface::MPI_Wait(MPI_Request *request, MPI_Status *status)
 		debug("will wait for completion");
 
 		// wait for completion 
-		// XXX invalid argument here!
-		debug("req " << req);
-
 		std::unique_lock<std::mutex> lock(req->guard);
 
 		debug("acquired lock on request");
@@ -428,7 +444,6 @@ int BasicInterface::MPI_Wait(MPI_Request *request, MPI_Status *status)
 		req->condition = &thr_request_condition;
 
 		// wait for completion
-		// TODO handle spurious wake up
 		thr_request_condition.wait(lock, [req] () -> bool {return req->complete;});
 
 		debug("finished waiting");
@@ -439,24 +454,6 @@ int BasicInterface::MPI_Wait(MPI_Request *request, MPI_Status *status)
 	
 	debug("finalizing request");
 	return finalize_request(request, req, status);
-
-// TODO mpi stages error detection 
-//	if (st.MPI_ERROR == MPIX_TRY_RELOAD)
-//	{
-//		debug("MPIX_TRY_RELOAD FOUND");
-//
-//		if(status != MPI_STATUS_IGNORE)
-//			memmove(status, &st, sizeof(MPI_Status));
-//
-//		return MPIX_TRY_RELOAD;
-//	}
-//	else
-//	{
-//		if(status != MPI_STATUS_IGNORE)
-//			memmove(status, &st, sizeof(MPI_Status));
-//
-//		return 0;
-//	}
 }
 
 int BasicInterface::MPI_Waitall(int count, MPI_Request array_of_requests[],
@@ -1061,7 +1058,8 @@ int BasicInterface::MPI_Abort(MPI_Comm comm, int errorcode)
 	// early warning for head daemon
 	Daemon &daemon = Daemon::get_instance();
 	int err = daemon.abort();
-	// TODO handle error
+	if(err != MPI_SUCCESS)
+		return err;
 
 	exit(errorcode);
 

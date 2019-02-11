@@ -11,6 +11,8 @@ namespace exampi
 class Progress
 {
 public:
+	virtual ~Progress() {}
+
 	// handle user request object
 	virtual int post_request(Request *request) = 0;
 

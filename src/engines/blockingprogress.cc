@@ -90,16 +90,16 @@ int BlockingProgress::post_request(Request *request)
 
 void BlockingProgress::progress()
 {
+	// debug_add_thread()
+
 	int cycles = 0;
 
 	// keep progress threads alive
 	while(!this->shutdown)
 	{
-		// NOTE this is actually just a slow poll
-		// 		blocking would be woken up by post_request, transporter absorb()
+		// note this is actually just a slow poll
+		// 		blocking would be woken up by post_request, transporter ordered_recv()
 		
-		Match match;
-
 		// absorb message if any, this is inflow
 		if(ProtocolMessage_uptr msg = transporter->ordered_recv())
 		{
@@ -109,9 +109,10 @@ void BlockingProgress::progress()
 		}
 
 		// match message if any, this is inflow
-		else if(matcher->progress(match))
+		else if(Match match; matcher->progress(match))
+		//else if(auto [match, request, msg] = matcher->progress())
 		{
-			debug("progress thread, matching message");
+			debug("progress thread, matched message -> handling match");
 
 			int err = handle_match(match);
 			if(err != MPI_SUCCESS)
@@ -140,6 +141,7 @@ void BlockingProgress::progress()
 		else
 		{
 			cycles = 0;	
+			// TODO record number of sleep cycles for debugging since last work
 			std::this_thread::yield();
 		}
 		
@@ -162,7 +164,7 @@ int BlockingProgress::handle_match(Match &match)
 	debug("handling matched request <-> protocol message");
 
 	// TODO put this into a dictionary
-	int err = MPI_SUCCESS;
+	int err = -1;
 	switch(match.message->stage)
 	{
 	case Protocol::EAGER_ACK:
@@ -176,6 +178,10 @@ int BlockingProgress::handle_match(Match &match)
 			msg->stage = Protocol::ACK;
 			
 			err = transporter->reliable_send(std::move(msg));
+			if(err != MPI_SUCCESS)
+				return err;
+
+			[[fallthrough]];
 		}
 
 	case Protocol::EAGER:
@@ -183,9 +189,8 @@ int BlockingProgress::handle_match(Match &match)
 			debug("protocol message: EAGER");
 			debug("req: " << match.request << " <-> message: " << match.message.get());
 
-			// copy into request buffer
 			err = match.message->unpack(match.request);
-	
+
 			debug("protocol message unpacked");
 
 			// inform mpi user
@@ -272,6 +277,8 @@ int BlockingProgress::handle_send(Request *request)
 
 	// complete request
 	request->release();
+
+	return MPI_SUCCESS;
 }
 
 void BlockingProgress::cleanUp()

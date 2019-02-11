@@ -28,9 +28,9 @@ public:
 	void post_request(Request_ptr request);
 	void post_message(const ProtocolMessage_uptr message);
 
-	//bool match(ProtocolMessage_uptr message, Match &match);
-
 	bool progress(Match &match);
+
+	//std::tuple<bool, Request_ptr, ProtocolMessage_uptr> progress();
 };
 
 }

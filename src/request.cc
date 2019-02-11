@@ -16,10 +16,10 @@ Request::Request() :
 	;
 }
 
-Request::Request(Operation operation, Payload payload, Envelope envelope) : 
+Request::Request(Operation op, Payload payload, Envelope envelope) : 
 	Request()
 {
-	operation = operation;
+	operation = op;
 	payload = payload;
 	envelope = envelope;
 }
@@ -27,6 +27,7 @@ Request::Request(Operation operation, Payload payload, Envelope envelope) :
 void Request::release()
 {
 	std::lock_guard<std::mutex> lock(guard);
+	debug("request lock acquired");
 
 	// lock may or may not be acquired
 	complete = true;
@@ -35,8 +36,12 @@ void Request::release()
 	if(condition != nullptr)
 	{
 		// lock is already acquired
-		condition->notify_one();
-	}	
+		debug("notifying waiting thread");
+		//condition->notify_one();
+		condition->notify_all();
+	}
+	
+	debug("released request entirely");
 }
 
 }

@@ -12,13 +12,9 @@ namespace exampi
 
 int UDPProtocolMessage::pack(const Request_ptr request)
 {
-	// NOTE this is temporary packing
-	void* data_begin = &payload[0];
-	
-	debug("packing message " << *(int*)data_begin);
+	debug("packing message " << payload[0])
 
-	// TODO fix this
-	memcpy(data_begin, request->payload.buffer, sizeof(int));
+	memcpy(&payload[0], request->payload.buffer, sizeof(payload));
 
 	debug("packed message");
 
@@ -27,18 +23,11 @@ int UDPProtocolMessage::pack(const Request_ptr request)
 
 int UDPProtocolMessage::unpack(Request_ptr request) const
 {
-	// NOTE this is temporary unpacking
 	debug("unpacking called");
 
-	const void* data_begin = &payload[0];
+	memcpy((void*)request->payload.buffer, &payload[0], sizeof(payload));
 
-	debug("unpacking message");
-	
-	// TODO fix this cast
-	// and the rest
-	memcpy((void*)request->payload.buffer, data_begin, sizeof(int));
-
-	debug("unpacked message " << *(int*)data_begin);
+	debug("request buffer " << ((int*)request->payload.buffer)[0]);
 	
 	return MPI_SUCCESS;
 }
@@ -48,7 +37,11 @@ UDPTransport::UDPTransport() : message_pool(128)
 	// create
 	socket_recv = socket(AF_INET, SOCK_DGRAM, 0);
 	if(socket_recv == 0)
+	{
 		debug("ERROR: socket creation failed: " << socket_recv);
+
+		throw UDPTransportCreationException();
+	}
 
 	// setsockopt to reuse address
 	//int opt = 1;
@@ -69,6 +62,8 @@ UDPTransport::UDPTransport() : message_pool(128)
 	if(bind(socket_recv, (sockaddr*)&address_local, sizeof(address_local)) < 0)
 	{
 		debug("ERROR: socket binding failed");
+		
+		throw UDPTransportBindingException();
 	}
 
 	// prepare msg header
@@ -96,6 +91,9 @@ UDPTransport::UDPTransport() : message_pool(128)
 
 		cache.insert({rank, addr});
 	}
+
+	available_protocols[Protocol::EAGER] = sizeof(UDPProtocolMessage::payload);
+	available_protocols[Protocol::EAGER_ACK] = sizeof(UDPProtocolMessage::payload);
 }
 
 UDPTransport::~UDPTransport()
@@ -109,10 +107,13 @@ ProtocolMessage_uptr UDPTransport::allocate_protocol_message()
 
 	UDPProtocolMessage* ptr = message_pool.allocate();
 
-	return std::unique_ptr<ProtocolMessage, std::function<void(ProtocolMessage*)>>(ptr, [this](ProtocolMessage* ptr)
+	ProtocolMessage* ptr2 = dynamic_cast<ProtocolMessage*>(ptr);
+
+	return std::unique_ptr<ProtocolMessage, std::function<void(ProtocolMessage *)>>(ptr2, [this](ProtocolMessage *ptr)
 	{
-		this->message_pool.deallocate(dynamic_cast<UDPProtocolMessage*>(ptr));
-	}); 
+		debug("UDPProtocolMessage deallocation called");
+		this->message_pool.deallocate(dynamic_cast<UDPProtocolMessage *>(ptr));
+	});
 }
 
 const ProtocolMessage_uptr UDPTransport::ordered_recv()
@@ -142,8 +143,8 @@ const ProtocolMessage_uptr UDPTransport::ordered_recv()
 	// fill iov
 	debug("iov processing");
 	iovec msg_iov;
-	msg_iov.iov_base = msg.get();
-	msg_iov.iov_len = sizeof(UDPProtocolMessage);
+	msg_iov.iov_base = &msg->stage;
+	msg_iov.iov_len = msg->size();
 
 	hdr.msg_iov = &msg_iov;
 	hdr.msg_iovlen = 1;
@@ -160,7 +161,6 @@ const ProtocolMessage_uptr UDPTransport::ordered_recv()
 		return ProtocolMessage_uptr(nullptr);
 	}
 	debug("successful receive " << ((UDPProtocolMessage*)msg.get())->payload[0]);
-	debug("protocolmessage address: " << msg.get());
 
 	return std::move(msg);
 }
@@ -169,12 +169,15 @@ int UDPTransport::reliable_send(ProtocolMessage_uptr message)
 {
 	std::lock_guard<std::recursive_mutex> lock(guard);
 
+	debug("begin comparison");
+	debug("explicit first " << &(message->stage) << " address " << message.get());
+
 	debug("assembling udp msg");
 
 	// fill iov
 	iovec msg_iov;
-	msg_iov.iov_base = message.get();
-	msg_iov.iov_len = sizeof(UDPProtocolMessage);
+	msg_iov.iov_base = &message->stage;
+	msg_iov.iov_len = message->size();
 	
 	hdr.msg_iov = &msg_iov;
 	hdr.msg_iovlen = 1;
@@ -198,8 +201,7 @@ int UDPTransport::reliable_send(ProtocolMessage_uptr message)
 
 const std::map<Protocol, size_t> &UDPTransport::provided_protocols() const
 {
-	// TODO actually give protocols/sizes 
-	return std::map<Protocol, size_t>();
+	return available_protocols;
 }
 
 }

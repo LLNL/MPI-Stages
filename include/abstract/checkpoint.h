@@ -9,6 +9,7 @@ namespace exampi
 class Checkpoint
 {
 public:
+	virtual ~Checkpoint() {}
 	virtual void save() = 0;
 	virtual int load() = 0;
 };
