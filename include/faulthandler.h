@@ -1,18 +1,18 @@
-#ifndef __EXAMPI_ERRHANDLER_H
-#define __EXAMPI_ERRHANDLER_H
+#ifndef __EXAMPI_FAULTHANDLER_H
+#define __EXAMPI_FAULTHANDLER_H
 
 #include <csignal>
 
 namespace exampi
 {
 
-class errHandler
+class FaultHandler
 {
 public:
-	static errHandler &get_instance();
+	static FaultHandler &get_instance();
 
-	errHandler(const errHandler &e)				= delete;
-	errHandler &operator=(const errHandler &e)	= delete;
+	FaultHandler(const FaultHandler &e)				= delete;
+	FaultHandler &operator=(const FaultHandler &e)	= delete;
 	
 	bool setErrToHandle(int sig);
 
@@ -22,7 +22,7 @@ public:
 	static void setErrToOne();
 
 private:
-	errHandler() {}
+	FaultHandler() {}
 
 	volatile static std::sig_atomic_t is_errSet;
 };

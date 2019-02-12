@@ -5,6 +5,7 @@
 #include "engines/blockingprogress.h"
 #include "universe.h"
 #include "daemon.h"
+#include "faulthandler.h"
 
 namespace exampi
 {
@@ -48,8 +49,8 @@ void BasicCheckpoint::save()
 	target.write(reinterpret_cast<char *>(&size), sizeof(long long int));
 	target.close();
 
-	// TODO this is global
-	if(universe.errhandler->isErrSet() != 1)
+	FaultHandler &faulthandler = FaultHandler::get_instance();
+	if(faulthandler.isErrSet() != 1)
 	{
 		// NOTE needed in case process dies
 		// NOTE could also send to daemon

@@ -6,6 +6,7 @@
 #include "debug.h"
 #include "daemon.h"
 #include "universe.h"
+#include "faulthandler.h"
 
 namespace exampi
 {
@@ -616,10 +617,8 @@ int BasicInterface::MPI_Comm_set_errhandler(MPI_Comm comm, MPI_Errhandler err)
 
 	Universe& universe = Universe::get_root_universe();
 
-	// This sets the signal handler for SIGUSR2
-	// will call cleanup
-	// TODO this is singleton
-	universe.errhandler->setErrToHandle(SIGUSR2);
+	FaultHandler &faulthandler = FaultHandler::get_instance();
+	faulthandler.setErrToHandle(SIGUSR2);
 
 	return MPI_SUCCESS;
 }
