@@ -198,7 +198,7 @@ int BasicInterface::construct_request(const void *buf, int count, MPI_Datatype d
 	
 	// find context of communicator
 	std::shared_ptr<Comm> c = universe.communicators.at(comm);
-	int context = c->get_context_id_pt2pt(); // this acted as communicator
+	int context = c->get_context_id_pt2pt();
 
 	// operation descriptor
 	req->operation = operation;
@@ -423,6 +423,7 @@ int BasicInterface::MPI_Wait(MPI_Request *request, MPI_Status *status)
 	// poll for counter_max cycles
 	//size_t counter = 0; counter_max = 100;
 	//while(!req->complete && (counter < counter_max))
+	//while(!req->complete) {}
 	//	++counter;
 
 	// if request is not complete

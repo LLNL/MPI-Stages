@@ -35,7 +35,7 @@ struct Request
 	std::mutex guard;
 	std::condition_variable *condition;
 
-	bool complete;
+	volatile bool complete;
 	bool cancelled;
 
 	bool persistent;
