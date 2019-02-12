@@ -41,7 +41,6 @@ void debug_function_exit();
 #define debug_info_deep(msg)
 #define debug_time(msg)
 
-
 #else
 
 #define debug_add_thread(name)

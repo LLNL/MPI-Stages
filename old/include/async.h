@@ -23,7 +23,7 @@ protected:
 
 	void test()
 	{
-		debugpp("AQ:  testing");
+		debug("AQ:  testing");
 
 		std::unique_lock<std::mutex> lock(promiseLock);
 
@@ -34,7 +34,7 @@ protected:
 		if(promises.size() > 0)
 			if(data.size() > 0)
 			{
-				debugpp("AQ:  data and promises, advancing");
+				debug("AQ:  data and promises, advancing");
 
 				// MR 22/01/19 calling thread does copy between threads?
 				promises.front()->set_value(std::move(data.front()));
@@ -47,19 +47,19 @@ protected:
 
 		lock.unlock();
 
-		debugpp("AQ:  done testing");
+		debug("AQ:  done testing");
 	}
 
 public:
 	//AsyncQueue() : promise_pool(256)
 	AsyncQueue()
 	{
-		debugpp("AsyncQueue:  constructing");
+		debug("AsyncQueue:  constructing");
 	}
 
 	std::future<T> promise()
 	{
-		debugpp("AQ: Promise requested.  data(" << data.size() << ") promises(" <<
+		debug("AQ: Promise requested.  data(" << data.size() << ") promises(" <<
 		        promises.size() << ")");
 
 		// TODO MR 22/01/19 avoid lock constantly
@@ -69,7 +69,7 @@ public:
 		promises.push_back(make_unique<std::promise<T>>());
 		//promises.push_back(this->promise_pool.alloc());
 
-		debugpp("AQ: Promise pushed; about to get_future...");
+		debug("AQ: Promise pushed; about to get_future...");
 
 		auto result = promises.back()->get_future();
 
@@ -81,7 +81,7 @@ public:
 
 	void put(T &&v)
 	{
-		debugpp("Inserting into aqueue");
+		debug("Inserting into aqueue");
 
 		// push unique ptr into linked list
 		data.push_back(std::move(v));

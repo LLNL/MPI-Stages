@@ -140,6 +140,9 @@ public:
 
 	void deallocate(T *t)
 	{
+		// TODO make this smarter
+		// use a free list to point to non reset ones, avoid doing mutex if we are not low of items.
+
 		debug("freeing item, now at " << this->allocated_items << " : " <<
 		        this->allocated_arenas);
 
