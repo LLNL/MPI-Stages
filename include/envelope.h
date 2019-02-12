@@ -9,7 +9,7 @@ namespace exampi
 struct Envelope
 {
 	int epoch;
-	MPI_Comm communicator;
+	int context;
 	int source;
 	int destination;
 	int tag;

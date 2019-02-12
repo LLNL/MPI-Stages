@@ -78,6 +78,7 @@ struct Comm
 	{
 		return local_pt2pt;
 	}
+
 	int get_context_id_coll() const
 	{
 		return local_coll;
@@ -87,6 +88,7 @@ struct Comm
 	{
 		rank = r;
 	}
+
 	void set_context(int pt2pt, int coll)
 	{
 		local_pt2pt = pt2pt;
@@ -109,7 +111,7 @@ struct Comm
 	}
 
 	// Nawrin task for later, introduce the entire MPI API here as methods of this comm; right now, we do "Shane-mode,"
-	// where the C API directly calls the Interface singledon, which is allowed to use accessors of Comm for info.
+	// where the C API directly calls the Interface singleton, which is allowed to use accessors of Comm for info.
 	//
 	// [future version only]
 	//

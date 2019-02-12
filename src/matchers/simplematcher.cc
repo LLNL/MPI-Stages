@@ -62,7 +62,7 @@ bool SimpleMatcher::progress(Match &match)
 											
 											// TODO support WILD CARD ANY_TAG AND ANY_SOURCE
 	                                		return (req->envelope.epoch        == msg->envelope.epoch) &&
-	                                       	   	   (req->envelope.communicator == msg->envelope.communicator) &&
+	                                       	   	   (req->envelope.context == msg->envelope.context) &&
 	                                       	   	   (req->envelope.source       == msg->envelope.source) &&
 	                                       	   	   (req->envelope.destination  == msg->envelope.destination) &&
 	                                       	   	   (req->envelope.tag          == msg->envelope.tag);

@@ -196,7 +196,7 @@ int BasicInterface::construct_request(const void *buf, int count, MPI_Datatype d
 	// assign user handle
 	*request = reinterpret_cast<MPI_Request>(req);
 	
-	// TODO what is this from shane?
+	// find context of communicator
 	std::shared_ptr<Comm> c = universe.communicators.at(comm);
 	int context = c->get_context_id_pt2pt(); // this acted as communicator
 
@@ -205,7 +205,7 @@ int BasicInterface::construct_request(const void *buf, int count, MPI_Datatype d
 
 	// envelope
 	req->envelope.epoch = universe.epoch;
-	req->envelope.communicator = comm;
+	req->envelope.context = context;
 	req->envelope.source = source;
 	req->envelope.destination = dest;
 	req->envelope.tag = tag;
