@@ -27,11 +27,12 @@ private:
 public:
 	static Universe &get_root_universe();
 
-	Group world_group;
-	Comm world_comm;
+	std::shared_ptr<Group>	world_group;
+	std::shared_ptr<Comm>	world_comm;
 
-	std::vector<Comm *> communicators;
-	std::vector<Group *> groups;
+	std::vector<std::shared_ptr<Comm>> 	communicators;
+	std::vector<std::shared_ptr<Group>> groups;
+
 	std::unordered_map<MPI_Datatype, Datatype> datatypes;
 
 	int rank;
@@ -39,8 +40,8 @@ public:
 	int epoch;
 	std::string epoch_config;
 
-	Progress *progress;
-	Checkpoint *checkpoint;
+	std::unique_ptr<Progress> progress;
+	std::unique_ptr<Checkpoint> checkpoint;
 
 	// todo eventually Interface *interface
 	

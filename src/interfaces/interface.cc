@@ -1,6 +1,7 @@
 #include <sstream>
 #include <cstring>
 #include <mutex>
+#include <memory>
 
 #include "interfaces/interface.h"
 #include "debug.h"
@@ -13,6 +14,7 @@ namespace exampi
 
 BasicInterface &BasicInterface::get_instance()
 {
+	// TODO get rid of interface singleton, should be part of universe
 	static BasicInterface instance;
 
 	return instance;
@@ -195,8 +197,8 @@ int BasicInterface::construct_request(const void *buf, int count, MPI_Datatype d
 	*request = reinterpret_cast<MPI_Request>(req);
 	
 	// TODO what is this from shane?
-	Comm *c = universe.communicators.at(comm);
-	int context = c->get_context_id_pt2pt();
+	std::shared_ptr<Comm> c = universe.communicators.at(comm);
+	int context = c->get_context_id_pt2pt(); // this acted as communicator
 
 	// operation descriptor
 	req->operation = operation;
@@ -541,8 +543,6 @@ int BasicInterface::MPI_Test(MPI_Request *request, int *flag, MPI_Status *status
 
 //#############################################################################
 
-
-
 int BasicInterface::MPI_Comm_rank(MPI_Comm comm, int *r)
 {
 	CHECK_STAGES_ERROR();
@@ -550,10 +550,9 @@ int BasicInterface::MPI_Comm_rank(MPI_Comm comm, int *r)
 	debug("entered MPI_Comm_rank");
 	
 	Universe& universe = Universe::get_root_universe();
+	std::shared_ptr<Comm> c = universe.communicators.at(comm);
+	*r = c->get_rank();
 
-	Comm *c = universe.communicators.at(comm);
-
-	*r = (c)->get_rank();
 	return MPI_SUCCESS;
 }
 
@@ -565,9 +564,8 @@ int BasicInterface::MPI_Comm_size(MPI_Comm comm, int *size)
 
 	Universe& universe = Universe::get_root_universe();
 
-	Comm *c = universe.communicators.at(comm);
-
-	*size = (c)->get_local_group()->get_process_list().size();
+	std::shared_ptr<Comm> c = universe.communicators.at(comm);
+	*size = c->get_local_group()->get_process_list().size();
 
 	return MPI_SUCCESS;
 }
@@ -579,25 +577,29 @@ int BasicInterface::MPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm)
 	Universe& universe = Universe::get_root_universe();
 
 	int rc;
-	Comm *c = universe.communicators.at(comm);
+	std::shared_ptr<Comm> c = universe.communicators.at(comm);
 
 	int coll_context;
 	int p2p_context;
 
-	rc = (c)->get_next_context(&p2p_context, &coll_context);
+	rc = c->get_next_context(&p2p_context, &coll_context);
 	if (rc != MPI_SUCCESS)
 	{
 		return MPIX_TRY_RELOAD;
 	}
 
-	Comm *communicator;
-	communicator = new Comm(true, (c)->get_local_group(), (c)->get_remote_group());
-	communicator->set_rank((c)->get_rank());
+	std::shared_ptr<Comm> communicator;
+	communicator = std::make_shared<Comm>(true, c->get_local_group(), c->get_remote_group());
+
+	communicator->set_rank(c->get_rank());
 	communicator->set_context(p2p_context, coll_context);
+
 	universe.communicators.push_back(communicator);
+
 	auto it = std::find_if(universe.communicators.begin(),
 	                       universe.communicators.end(),
-	                       [communicator](const Comm *i) -> bool {return i->get_context_id_pt2pt() == communicator->get_context_id_pt2pt();});
+	                       [communicator](const std::shared_ptr<Comm> i) -> bool {return i->get_context_id_pt2pt() == communicator->get_context_id_pt2pt();});
+
 	if (it == universe.communicators.end())
 	{
 		return MPIX_TRY_RELOAD;
@@ -618,6 +620,7 @@ int BasicInterface::MPI_Comm_set_errhandler(MPI_Comm comm, MPI_Errhandler err)
 	Universe& universe = Universe::get_root_universe();
 
 	FaultHandler &faulthandler = FaultHandler::get_instance();
+	// TODO should this be per Comm
 	faulthandler.setErrToHandle(SIGUSR2);
 
 	return MPI_SUCCESS;
@@ -627,147 +630,151 @@ int BasicInterface::MPI_Comm_set_errhandler(MPI_Comm comm, MPI_Errhandler err)
 
 int BasicInterface::MPIX_Serialize_handles()
 {
-	CHECK_STAGES_ERROR();
-
-	Universe& universe = Universe::get_root_universe();
-
-	std::stringstream filename;
-	filename << universe.epoch - 1 << "." << universe.rank << ".cp";
-	std::ofstream t(filename.str(), std::ofstream::out | std::ofstream::app);
-
-	if (!serialize_handlers.empty())
-	{
-		for (auto it : serialize_handlers)
-		{
-			MPIX_Handles handles;
-			(*it)(&handles);
-			t.write(reinterpret_cast<char *>(&handles.comm_size), sizeof(int));
-			for (int i = 0; i < handles.comm_size; i++)
-			{
-				Comm *c = universe.communicators.at(handles.comms[i]);
-				int id = c->get_context_id_pt2pt();
-				t.write(reinterpret_cast<char *>(&id), sizeof(int));
-			}
-
-			t.write(reinterpret_cast<char *>(&handles.group_size), sizeof(int));
-			for (int i = 0; i < handles.group_size; i++)
-			{
-				Group *g = universe.groups.at(handles.grps[i]);
-				int id = g->get_group_id();
-				t.write(reinterpret_cast<char *>(&id), sizeof(int));
-			}
-		}
-	}
-	t.close();
-
-	return MPI_SUCCESS;
+//	CHECK_STAGES_ERROR();
+//
+//	Universe& universe = Universe::get_root_universe();
+//
+//	std::stringstream filename;
+//	filename << universe.epoch - 1 << "." << universe.rank << ".cp";
+//	std::ofstream t(filename.str(), std::ofstream::out | std::ofstream::app);
+//
+//	if (!serialize_handlers.empty())
+//	{
+//		for (auto it : serialize_handlers)
+//		{
+//			MPIX_Handles handles;
+//			(*it)(&handles);
+//			t.write(reinterpret_cast<char *>(&handles.comm_size), sizeof(int));
+//			for (int i = 0; i < handles.comm_size; i++)
+//			{
+//				Comm *c = universe.communicators.at(handles.comms[i]);
+//				int id = c->get_context_id_pt2pt();
+//				t.write(reinterpret_cast<char *>(&id), sizeof(int));
+//			}
+//
+//			t.write(reinterpret_cast<char *>(&handles.group_size), sizeof(int));
+//			for (int i = 0; i < handles.group_size; i++)
+//			{
+//				Group *g = universe.groups.at(handles.grps[i]);
+//				int id = g->get_group_id();
+//				t.write(reinterpret_cast<char *>(&id), sizeof(int));
+//			}
+//		}
+//	}
+//	t.close();
+//
+//	return MPI_SUCCESS;
+	return MPI_ERR_DISABLED;
 }
 
 int BasicInterface::MPIX_Deserialize_handles()
 {
-	CHECK_STAGES_ERROR();
-
-	Universe& universe = Universe::get_root_universe();
-	std::stringstream filename;
-	filename << universe.epoch - 1 << "." << universe.rank << ".cp";
-	std::ifstream t(filename.str(), std::ifstream::in);
-
-	long long int pos;
-	t.read(reinterpret_cast<char *>(&pos), sizeof(long long int));
-	t.seekg(pos);
-
-	int size, id;
-
-	if (!deserialize_handlers.empty())
-	{
-		for (auto iter : deserialize_handlers)
-		{
-			MPIX_Handles handles;
-			t.read(reinterpret_cast<char *>(&size), sizeof(int));
-			handles.comm_size = size;
-			if (handles.comm_size > 0)
-			{
-				handles.comms = (MPI_Comm *)malloc(size * sizeof(MPI_Comm));
-				for (int i = 0; i < size; i++)
-				{
-					t.read(reinterpret_cast<char *>(&id), sizeof(int));
-					auto it = std::find_if(universe.communicators.begin(),
-					                       universe.communicators.end(),
-					                       [id](const Comm *i) -> bool {return i->get_context_id_pt2pt() == id;});
-					if (it == universe.communicators.end())
-					{
-						return MPIX_TRY_RELOAD;
-					}
-					else
-					{
-						handles.comms[i] = std::distance(universe.communicators.begin(), it);
-					}
-				}
-			}
-			t.read(reinterpret_cast<char *>(&size), sizeof(int));
-			handles.group_size = size;
-			if (handles.group_size > 0)
-			{
-				handles.grps = (MPI_Group *)malloc(size * sizeof(MPI_Group));
-				for (int i = 0; i < size; i++)
-				{
-					t.read(reinterpret_cast<char *>(&id), sizeof(int));
-					auto it = std::find_if(universe.groups.begin(),
-					                       universe.groups.end(),
-					                       [id](const Group *i) -> bool {return i->get_group_id() == id;});
-					if (it == universe.groups.end())
-					{
-						return MPIX_TRY_RELOAD;
-					}
-					else
-					{
-						handles.grps[i] = std::distance(universe.groups.begin(), it);
-					}
-				}
-			}
-			(*iter)(handles);
-		}
-	}
-
-	t.close();
-	return MPI_SUCCESS;
+//	CHECK_STAGES_ERROR();
+//
+//	Universe& universe = Universe::get_root_universe();
+//	std::stringstream filename;
+//	filename << universe.epoch - 1 << "." << universe.rank << ".cp";
+//	std::ifstream t(filename.str(), std::ifstream::in);
+//
+//	long long int pos;
+//	t.read(reinterpret_cast<char *>(&pos), sizeof(long long int));
+//	t.seekg(pos);
+//
+//	int size, id;
+//
+//	if (!deserialize_handlers.empty())
+//	{
+//		for (auto iter : deserialize_handlers)
+//		{
+//			MPIX_Handles handles;
+//			t.read(reinterpret_cast<char *>(&size), sizeof(int));
+//			handles.comm_size = size;
+//			if (handles.comm_size > 0)
+//			{
+//				handles.comms = (MPI_Comm *)malloc(size * sizeof(MPI_Comm));
+//				for (int i = 0; i < size; i++)
+//				{
+//					t.read(reinterpret_cast<char *>(&id), sizeof(int));
+//					auto it = std::find_if(universe.communicators.begin(),
+//					                       universe.communicators.end(),
+//					                       [id](const Comm *i) -> bool {return i->get_context_id_pt2pt() == id;});
+//					if (it == universe.communicators.end())
+//					{
+//						return MPIX_TRY_RELOAD;
+//					}
+//					else
+//					{
+//						handles.comms[i] = std::distance(universe.communicators.begin(), it);
+//					}
+//				}
+//			}
+//			t.read(reinterpret_cast<char *>(&size), sizeof(int));
+//			handles.group_size = size;
+//			if (handles.group_size > 0)
+//			{
+//				handles.grps = (MPI_Group *)malloc(size * sizeof(MPI_Group));
+//				for (int i = 0; i < size; i++)
+//				{
+//					t.read(reinterpret_cast<char *>(&id), sizeof(int));
+//					auto it = std::find_if(universe.groups.begin(),
+//					                       universe.groups.end(),
+//					                       [id](const Group *i) -> bool {return i->get_group_id() == id;});
+//					if (it == universe.groups.end())
+//					{
+//						return MPIX_TRY_RELOAD;
+//					}
+//					else
+//					{
+//						handles.grps[i] = std::distance(universe.groups.begin(), it);
+//					}
+//				}
+//			}
+//			(*iter)(handles);
+//		}
+//	}
+//
+//	t.close();
+//	return MPI_SUCCESS;
+	return MPI_ERR_DISABLED;
 }
 
 int BasicInterface::MPIX_Serialize_handler_register(const MPIX_Serialize_handler
         handler)
 {
-	CHECK_STAGES_ERROR();
-	
-	Universe& universe = Universe::get_root_universe();
-	if (universe.epoch == 0 && recovery_code == MPI_SUCCESS)
-	{
-		serialize_handlers.push_back(handler);
-	}
-	else if (universe.epoch > 0 && recovery_code == MPIX_SUCCESS_RESTART)
-	{
-		serialize_handlers.push_back(handler);
-	}
-
-	return MPI_SUCCESS;
+//	CHECK_STAGES_ERROR();
+//	
+//	Universe& universe = Universe::get_root_universe();
+//	if (universe.epoch == 0 && recovery_code == MPI_SUCCESS)
+//	{
+//		serialize_handlers.push_back(handler);
+//	}
+//	else if (universe.epoch > 0 && recovery_code == MPIX_SUCCESS_RESTART)
+//	{
+//		serialize_handlers.push_back(handler);
+//	}
+//
+//	return MPI_SUCCESS;
+	return MPI_ERR_DISABLED;
 }
 
 int BasicInterface::MPIX_Deserialize_handler_register(const
         MPIX_Deserialize_handler
         handler)
 {
-	CHECK_STAGES_ERROR();
-
-	Universe& universe = Universe::get_root_universe();
-	if (universe.epoch == 0 && recovery_code == MPI_SUCCESS)
-	{
-		deserialize_handlers.push_back(handler);
-	}
-	else if (universe.epoch > 0 && recovery_code == MPIX_SUCCESS_RESTART)
-	{
-		deserialize_handlers.push_back(handler);
-	}
-
-	return MPI_SUCCESS;
+//	CHECK_STAGES_ERROR();
+//
+//	Universe& universe = Universe::get_root_universe();
+//	if (universe.epoch == 0 && recovery_code == MPI_SUCCESS)
+//	{
+//		deserialize_handlers.push_back(handler);
+//	}
+//	else if (universe.epoch > 0 && recovery_code == MPIX_SUCCESS_RESTART)
+//	{
+//		deserialize_handlers.push_back(handler);
+//	}
+//
+//	return MPI_SUCCESS;
+	return MPI_ERR_DISABLED;
 }
 
 int BasicInterface::MPIX_Checkpoint_write()

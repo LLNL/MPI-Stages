@@ -1,5 +1,6 @@
 #include <fstream>
 #include <sstream>
+#include <memory>
 
 #include "checkpoints/checkpoint.h"
 #include "engines/blockingprogress.h"
@@ -74,7 +75,7 @@ int BasicCheckpoint::load()
 		debug("epoch 0, starting BlockingProgress");
 		
 		// todo is there any other?
-		universe.progress = new BlockingProgress();
+		universe.progress = std::make_unique<BlockingProgress>();
 
 		return MPI_SUCCESS;
 	}

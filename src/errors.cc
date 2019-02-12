@@ -1,5 +1,7 @@
 #include "errors.h"
 
+#include "universe.h"
+
 namespace exampi
 {
 
@@ -13,6 +15,8 @@ int check_buffer(void *buf)
 
 int check_comm(MPI_Comm comm)
 {
+	Universe &universe = Universe::get_root_universe();
+
 	// TODO return MPI_ERR_COMM
 	return MPI_SUCCESS;
 }

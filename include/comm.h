@@ -13,8 +13,7 @@ struct Comm
 	Comm()
 	{
 	}
-	Comm(bool _isintra, exampi::Group *_local,
-	     exampi::Group *_remote) :
+	Comm(bool _isintra, std::shared_ptr<Group> _local, std::shared_ptr<Group> _remote) :
 		is_intra(_isintra), local(_local), remote(_remote)
 	{
 	}
@@ -28,20 +27,25 @@ struct Comm
 	int get_next_context(int *pt2pt, int *coll)
 	{
 		int rc;
+		
 		if (rank == 0)
 		{
 			//Context::contextLock.lock();
+
 			Context::nextID++;
 			*pt2pt = Context::nextID;
 			Context::nextID++;
 			*coll = Context::nextID;
+
 			//Context::contextLock.unlock();
 		}
+		
 		rc = MPI_Bcast(pt2pt, 1, MPI_INT, 0, local_pt2pt);
 		if (rc != MPI_SUCCESS)
 		{
 			return MPIX_TRY_RELOAD;
 		}
+
 		rc = MPI_Bcast(coll, 1, MPI_INT, 0, local_pt2pt);
 		if (rc != MPI_SUCCESS)
 		{
@@ -51,21 +55,21 @@ struct Comm
 		return 0;
 	}
 	// accessors
-	exampi::Group *get_local_group()
+	std::shared_ptr<Group> get_local_group()
 	{
 		return local;
 	}
-	exampi::Group *get_remote_group()
+	std::shared_ptr<Group> get_remote_group()
 	{
 		return remote;
 	}
 
-	void set_local_group(Group *group)
+	void set_local_group(std::shared_ptr<Group> group)
 	{
 		local = group;
 	}
 
-	void set_remote_group(Group *group)
+	void set_remote_group(std::shared_ptr<Group> group)
 	{
 		remote = group;
 	}
@@ -110,8 +114,8 @@ struct Comm
 	// [future version only]
 	//
 	bool is_intra;
-	exampi::Group *local;
-	exampi::Group *remote;
+	std::shared_ptr<Group> local;
+	std::shared_ptr<Group> remote;
 
 	int local_pt2pt;
 	int local_coll;

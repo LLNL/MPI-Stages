@@ -1,6 +1,7 @@
 #include "universe.h"
 
 #include "checkpoints/checkpoint.h"
+#include <memory>
 
 namespace exampi
 {
@@ -25,32 +26,38 @@ Universe::Universe() : request_pool(128)
 	//}
 	//debug("MPI_Init passed EXAMPI_LAUNCHED check.");
 
+	// TODO check for null values
 	rank = std::stoi(std::string(std::getenv("EXAMPI_RANK")));
 	epoch_config = std::string(std::getenv("EXAMPI_EPOCH_FILE"));
 	epoch = std::stoi(std::string(std::getenv("EXAMPI_EPOCH")));
 	world_size = std::stoi(std::string(std::getenv("EXAMPI_WORLD_SIZE")));	
 	
 	debug("creating checkpoint");
-	checkpoint = new BasicCheckpoint();
+	checkpoint = std::make_unique<BasicCheckpoint>();
 
 	// MPI WORLD GROUP
 	debug("generating world group");
+	
+	// NOTE this potentially becomes huge! millions++
 	std::list<int> rankList;
 	for(int idx = 0; idx < world_size; ++idx)
 		rankList.push_back(idx);
-	world_group.set_process_list(rankList);
 
-	groups.push_back(&world_group);
-
+	world_group = std::make_shared<Group>(rankList);
+	groups.push_back(world_group);
+	
 	// MPI_COMM_WORLD
 	debug("generating world communicator");
-	world_comm.is_intra = true;
-	world_comm.local = &world_group;
-	world_comm.remote = &world_group;
-	world_comm.set_rank(rank);
-	world_comm.set_context(0, 1);
 
-	communicators.push_back(&world_comm);
+	world_comm = std::make_shared<Comm>();
+
+	world_comm->is_intra = true;
+	world_comm->local = world_group;
+	world_comm->remote = world_group;
+	world_comm->set_rank(rank);
+	world_comm->set_context(0, 1);
+
+	communicators.push_back(world_comm);
 
 	debug("generating universe datatypes");
 	datatypes =
@@ -86,37 +93,10 @@ Universe::Universe() : request_pool(128)
 Universe::~Universe()
 {
 	debug("universe being destroyed, deleting all communicators");
-
-
-	bool first = true;
-	for(auto &&com : communicators)
-	{
-		if(first)
-		{
-			first = false;
-			continue;
-		}
-        delete com;
-	}
     communicators.clear();
 
-	first = true;
 	debug("deleting all groups");   
-    // delete groups
-	for (auto &&group : groups)
-    {
-		if(first)
-		{
-			first = false;
-			continue;
-		}
-
-        delete group;
-    }
     groups.clear();
-
-	delete progress;
-	delete checkpoint;
 
 	debug("terminating universe");
 }
