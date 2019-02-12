@@ -17,7 +17,7 @@ class FaultDaemon(object):
 	"""FaultDaemon is the class representing the FaultDaemon wrapper around an MPI Stages enabled
 	application. FaultDaemon also instantiates HeadDaemon and ControllerDaemon."""
 
-	def __init__(self, udp_transport_base=31121):
+	def __init__(self, udp_transport_base=32321):
 		self.udp_transport_base = udp_transport_base
 		self.rank = None
 		self.job_id = None

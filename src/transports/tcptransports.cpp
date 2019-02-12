@@ -18,7 +18,7 @@ void TCPTransport::init()
 
 		Address address(ip, std::stoi(port));
 		endpoints[rank] = address;
-		debugpp("added address for rank " << rank << " as " << ip << " " << port);
+		debug("added address for rank " << rank << " as " << ip << " " << port);
 	}
 
 	tcpListenSocket.bindPort(8080);

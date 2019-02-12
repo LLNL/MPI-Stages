@@ -6,7 +6,7 @@ namespace exampi
 
 BasicTransport::BasicTransport()
 {
-	debugpp("library begins here");
+	debug("library begins here");
 
 	// TODO this is a dirty hack to "fix" the problem of rank not being correctly initialized yet
 	// that is due to conversion from global to singletons
@@ -15,19 +15,19 @@ BasicTransport::BasicTransport()
 		exampi::rank = std::stoi(std::string(std::getenv("EXAMPI_RANK")));
 	}
 
-	debugpp("transport base_port: " << std::string(
+	debug("transport base_port: " << std::string(
 	            std::getenv("EXAMPI_UDP_TRANSPORT_BASE")));
 	base_port = std::stoi(std::string(std::getenv("EXAMPI_UDP_TRANSPORT_BASE")));
 	port = base_port + exampi::rank;
 
-	debugpp("transport ports: " << base_port << " " << port << " for rank " <<
+	debug("transport ports: " << base_port << " " << port << " for rank " <<
 	        exampi::rank);
 }
 
 void BasicTransport::init()
 {
 	// add all endpoints
-	debugpp("adding endpoints");
+	debug("adding endpoints");
 
 	Config &config = Config::get_instance();
 
@@ -41,11 +41,11 @@ void BasicTransport::init()
 
 		Address address(ip, std::stoi(port));
 		endpoints[rank] = address;
-		debugpp("added address for rank " << rank << " as " << ip << " " << port);
+		debug("added address for rank " << rank << " as " << ip << " " << port);
 	}
 
 	// bind port
-	debugpp("binding udp port " << this->port);
+	debug("binding udp port " << this->port);
 	recvSocket.bindPort(this->port);
 }
 
@@ -62,7 +62,7 @@ void BasicTransport::finalize()
 std::future<int> BasicTransport::send(std::vector<struct iovec> &iov, int dest,
                                       MPI_Comm comm)
 {
-	debugpp("basic::Transport::send(..., " << dest << ", " << comm);
+	debug("basic::Transport::send(..., " << dest << ", " << comm);
 
 	// FIXME recreate socket each call to send
 	Socket s;
@@ -70,7 +70,7 @@ std::future<int> BasicTransport::send(std::vector<struct iovec> &iov, int dest,
 	// FIXME allocates a vector!
 	Message msg(iov);
 
-	//debugpp("basic::Transport::send: endpoints" << endpoints[dest]);
+	//debug("basic::Transport::send: endpoints" << endpoints[dest]);
 	msg.send(s, endpoints[dest]);
 
 	return std::promise<int>().get_future();
@@ -80,17 +80,17 @@ std::future<int> BasicTransport::receive(std::vector<struct iovec> &iov,
         MPI_Comm comm,
         ssize_t *count)
 {
-	debugpp("basic::Transport::receive(...)");
-	debugpp("\tiov says size is " << iov.size());
+	debug("basic::Transport::receive(...)");
+	debug("\tiov says size is " << iov.size());
 
 	Message msg(iov);
 
-	debugpp("basic::Transport::receive, constructed msg, calling msg.receive");
+	debug("basic::Transport::receive, constructed msg, calling msg.receive");
 	//msg.receive(recvSocket, tcpSock); /*For TCP transport*/
 
 	*count = msg.receive(recvSocket);
 
-	debugpp("basic::Transport::receive returning");
+	debug("basic::Transport::receive returning");
 
 	return std::promise<int>().get_future();
 }
@@ -127,7 +127,7 @@ int BasicTransport::cleanUp(MPI_Comm comm)
 
 int BasicTransport::peek(std::vector<struct iovec> &iov, MPI_Comm comm)
 {
-	debugpp("peek: msg.peek()");
+	debug("peek: msg.peek()");
 
 	Message msg(iov);
 	//msg.peek(recvSocket, tcpSock); /*For TCP transport*/

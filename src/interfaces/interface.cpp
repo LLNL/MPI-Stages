@@ -14,27 +14,27 @@ BasicInterface &BasicInterface::get_instance()
 
 int BasicInterface::MPI_Init(int *argc, char ***argv)
 {
-	debugpp("MPI_Init entered. argc=" << *argc);
+	debug("MPI_Init entered. argc=" << *argc);
 
 	// check that exampi-mpiexec was used to launch the application
 	if(std::getenv("EXAMPI_MONITORED") == NULL)
 	{
-		debugpp("Application was not launched with mpiexec.");
+		debug("Application was not launched with mpiexec.");
 		// TODO add proper error code
 		// TODO ideally similar utility as libfabrics -> fi_strerror
 		// TODO error code 0-255! not bigger nor smaller?
 		return 244;
 	}
 
-	debugpp("MPI_Init passed EXAMPI_LAUNCHED check.");
+	debug("MPI_Init passed EXAMPI_LAUNCHED check.");
 
-	debugpp("Taking rank to be arg " << std::string(std::getenv("EXAMPI_RANK")));
+	debug("Taking rank to be arg " << std::string(std::getenv("EXAMPI_RANK")));
 	exampi::rank = std::stoi(std::string(std::getenv("EXAMPI_RANK")));
 
-	//debugpp("Taking epoch config to be " << **argv);
+	//debug("Taking epoch config to be " << **argv);
 	exampi::epochConfig = std::string(std::getenv("EXAMPI_EPOCH_FILE"));
 
-	debugpp("Taking epoch to be " << std::string(std::getenv("EXAMPI_EPOCH")));
+	debug("Taking epoch to be " << std::string(std::getenv("EXAMPI_EPOCH")));
 	exampi::epoch = std::stoi(std::string(std::getenv("EXAMPI_EPOCH")));
 
 	exampi::worldSize = std::stoi(std::string(std::getenv("EXAMPI_WORLD_SIZE")));	
@@ -46,7 +46,7 @@ int BasicInterface::MPI_Init(int *argc, char ***argv)
 	// this is so that P1 doesn't init and send before P0 is ready to recv
 	if(exampi::epoch == 0)
 	{
-		debugpp("Executing barrier" << exampi::rank);
+		debug("Executing barrier" << exampi::rank);
 		exampi::progress->barrier();
 	}
 
@@ -55,7 +55,7 @@ int BasicInterface::MPI_Init(int *argc, char ***argv)
 	 * handler.setErrToHandle(SIGUSR2);
 	 */
 
-	debugpp("Finished MPI_Init with code: " << recovery_code);
+	debug("Finished MPI_Init with code: " << recovery_code);
 	return recovery_code;
 }
 
@@ -74,7 +74,7 @@ int BasicInterface::MPI_Send(const void *buf, int count, MPI_Datatype datatype,
 {
 	// TODO argument checking, sanitize
 
-	debugpp("MPI_Send MPI_Stages check");
+	debug("MPI_Send MPI_Stages check");
 	if (exampi::handler->isErrSet())
 	{
 		return MPIX_TRY_RELOAD;
@@ -98,7 +98,7 @@ int BasicInterface::MPI_Send(const void *buf, int count, MPI_Datatype datatype,
 	// is this where it waits?
 	MPI_Status st = stf.get();
 
-	//debugpp("Finished MPI_Send: " << mpiStatusString(st));
+	//debug("Finished MPI_Send: " << mpiStatusString(st));
 
 	return 0;
 }
@@ -107,7 +107,7 @@ int BasicInterface::MPI_Recv(void *buf, int count, MPI_Datatype datatype,
                              int source,
                              int tag, MPI_Comm comm, MPI_Status *status)
 {
-	debugpp("MPI_Recv MPI_Stages check");
+	debug("MPI_Recv MPI_Stages check");
 	if (exampi::handler->isErrSet())
 	{
 		return MPIX_TRY_RELOAD;
@@ -119,18 +119,18 @@ int BasicInterface::MPI_Recv(void *buf, int count, MPI_Datatype datatype,
 	size_t szcount = count;
 
 	//
-	debugpp("MPI_Recv post recv call");
+	debug("MPI_Recv post recv call");
 	// wait for received message
 	MPI_Status st = exampi::progress->postRecv(
 	{
 		const_cast<void *>(buf), &(exampi::datatypes[datatype]),
 		szcount }, {source, context}, tag).get();
 
-	debugpp("Finished MPI_Recv: " << mpiStatusString(st));
+	debug("Finished MPI_Recv: " << mpiStatusString(st));
 
 	if (st.MPI_ERROR == MPIX_TRY_RELOAD)
 	{
-		debugpp("MPIX_TRY_RELOAD FOUND");
+		debug("MPIX_TRY_RELOAD FOUND");
 
 		if(status != MPI_STATUS_IGNORE)
 			memmove(status, &st, sizeof(MPI_Status));
@@ -291,7 +291,7 @@ int BasicInterface::MPI_Bcast(void *buf, int count, MPI_Datatype datatype,
 
 int BasicInterface::MPI_Comm_rank(MPI_Comm comm, int *r)
 {
-	debugpp("entered MPI_Comm_rank");
+	debug("entered MPI_Comm_rank");
 	if (exampi::handler->isErrSet())
 	{
 		return MPIX_TRY_RELOAD;
@@ -304,7 +304,7 @@ int BasicInterface::MPI_Comm_rank(MPI_Comm comm, int *r)
 
 int BasicInterface::MPI_Comm_size(MPI_Comm comm, int *r)
 {
-	debugpp("entered MPI_Comm_size");
+	debug("entered MPI_Comm_size");
 
 	if (exampi::handler->isErrSet())
 	{
@@ -521,7 +521,7 @@ int BasicInterface::MPIX_Checkpoint_read()
 		exampi::handler->setErrToZero();
 	}
 
-	debugpp("in MPIX_Checkpoint_read");
+	debug("in MPIX_Checkpoint_read");
 
 	//sigHandler signal;
 
@@ -538,7 +538,7 @@ int BasicInterface::MPIX_Checkpoint_read()
 	Daemon &daemon = Daemon::get_instance();
 	daemon.wait_commit();
 
-	debugpp("commit epoch received" << exampi::epoch);
+	debug("commit epoch received" << exampi::epoch);
 
 	// wait for restarted process
 	exampi::progress->barrier();
@@ -548,7 +548,7 @@ int BasicInterface::MPIX_Checkpoint_read()
 
 int BasicInterface::MPIX_Get_fault_epoch(int *epoch)
 {
-	debugpp("entered MPIX_Get_fault_epoch");
+	debug("entered MPIX_Get_fault_epoch");
 
 	if (exampi::handler->isErrSet())
 	{
@@ -642,7 +642,7 @@ double BasicInterface::MPI_Wtime()
 
 int BasicInterface::MPI_Comm_set_errhandler(MPI_Comm comm, MPI_Errhandler err)
 {
-	debugpp("entered comm error set");
+	debug("entered comm error set");
 	// This sets the signal handler for SIGUSR2
 	// will call cleanup
 	exampi::handler->setErrToHandle(SIGUSR2);

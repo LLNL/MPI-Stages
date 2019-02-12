@@ -30,7 +30,7 @@ void debug_function_exit();
 
 #define debug_add_thread(name) debug_add_thread(name)
 
-#define debugpp(msg) debug_mutex.lock(); \
+#define debug(msg) debug_mutex.lock(); \
                      std::clog << debug_init(__FILE__, __LINE__,__PRETTY_FUNCTION__) \
                      << msg << std::endl << std::flush; \
                      debug_mutex.unlock();
@@ -39,7 +39,7 @@ void debug_function_exit();
 
 #define debug_add_thread(name)
 
-#define debugpp(msg)
+#define debug(msg)
 
 #endif
 

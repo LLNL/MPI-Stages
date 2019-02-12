@@ -12,7 +12,7 @@ BasicProgress::BasicProgress() : request_pool(256)
 //	// read in size
 //	Config &config = Config::get_instance();
 //
-//	debugpp("BasicProgress addEngpoints " << config["size"]);
+//	debug("BasicProgress addEngpoints " << config["size"]);
 //	int size = std::stoi(std::string(std::getenv("EXAMPI_WORLD_SIZE")));
 //
 //	// read in endpoints
@@ -30,14 +30,14 @@ BasicProgress::BasicProgress() : request_pool(256)
 //		std::string rank = std::to_string(i);
 //
 //		std::string remote = config[rank];
-//		debugpp(remote);
+//		debug(remote);
 //
 //		size_t beg = remote.find_first_of(":");
 //		std::string port = remote.substr(beg+1);
 //		std::string ip = remote.substr(0, beg);
-//		debugpp("ip " << ip);
+//		debug("ip " << ip);
 //
-//		debugpp("ports " << port);
+//		debug("ports " << port);
 //
 //		elem.push_back(ip);
 //		elem.push_back(port);
@@ -53,12 +53,12 @@ BasicProgress::BasicProgress() : request_pool(256)
 void BasicProgress::sendThreadProc()
 {
 	debug_add_thread("send");
-	debugpp("Launching sendThreadProc(...)");
+	debug("Launching sendThreadProc(...)");
 
 	//while (*alive)
 	while(this->alive)
 	{
-		debugpp("sendThread: fetching promise");
+		debug("sendThread: fetching promise");
 
 		//std::unique_ptr<Request> r(outbox->promise().get());
 		MemoryPool<Request>::unique_ptr r(this->outbox.promise().get());
@@ -66,7 +66,7 @@ void BasicProgress::sendThreadProc()
 
 		// get protocol message
 
-		debugpp("sendThread:  got result from outbox future");
+		debug("sendThread:  got result from outbox future");
 
 		// send message to remote in this thread
 		// FIXME remove iovs
@@ -75,7 +75,7 @@ void BasicProgress::sendThreadProc()
 
 		// XXX 58.83%
 		exampi::transport->send(iovs, r->endpoint.rank, 0);
-		debugpp("sendThread: sent message");
+		debug("sendThread: sent message");
 
 		// TODO:  check that sending actually completed
 
@@ -92,7 +92,7 @@ void BasicProgress::sendThreadProc()
 		r->completionPromise.set_value(status);
 
 		// let r drop scope and die (unique_ptr)
-		debugpp("sendThread: completed message");
+		debug("sendThread: completed message");
 	}
 }
 
@@ -104,43 +104,43 @@ void BasicProgress::sendThreadProc()
 void BasicProgress::matchThreadProc()
 {
 	debug_add_thread("match");
-	debugpp("Launching matchThreadProc(...)");
+	debug("Launching matchThreadProc(...)");
 
 	//while (*alive)
 	while(this->alive)
 	{
-		debugpp("matchThread: before request");
+		debug("matchThread: before request");
 
 		//std::unique_ptr<Request> r = make_unique<Request>();
 		MemoryPool<Request>::unique_ptr r(this->request_pool.alloc());
 
-		debugpp("matchThread:  made request, about to peek...");
+		debug("matchThread:  made request, about to peek...");
 
 		// FIXME remove iovs
 		auto iovs = r->getHeaderIovecs();
 		exampi::transport->peek(iovs, 0);
 
-		debugpp("matchThread:  finished peeking");
+		debug("matchThread:  finished peeking");
 		r->unpack();
 
-		debugpp("matchThread:  received, unexpectedlock locking");
+		debug("matchThread:  received, unexpectedlock locking");
 
 		//unexpectedLock->lock();
 		this->unexpectedLock.lock();
 
-		debugpp("matchThread:  match lock locking");
+		debug("matchThread:  match lock locking");
 
 		//matchLock->lock();
 		this->matchLock.lock();
 
-		debugpp("matchThread:  locked everything");
+		debug("matchThread:  locked everything");
 
 		int t = r->tag;
 		int s = r->source;
 		int c = r->comm;
 		int e = r->stage;
 
-		debugpp("matchThread context " << c);
+		debug("matchThread context " << c);
 
 		// search for match
 		//auto result = std::find_if(matchList->begin(), matchList->end(), [t, s, c, e](const std::unique_ptr<Request> &i) -> bool {return (i->tag == t && i->source == s && i->stage == e && i->comm == c);});
@@ -161,7 +161,7 @@ void BasicProgress::matchThreadProc()
 			//matchLock->unlock();
 			this->matchLock.unlock();
 
-			debugpp("WARNING:  Failed to match incoming msg");
+			debug("WARNING:  Failed to match incoming msg");
 
 			if (t == MPIX_CLEANUP_TAG)
 			{
@@ -178,11 +178,11 @@ void BasicProgress::matchThreadProc()
 					//unexpectedLock->unlock();
 					this->unexpectedLock.unlock();
 
-					debugpp("WARNING: Message from last stage (discarded)");
+					debug("WARNING: Message from last stage (discarded)");
 				}
 				else
 				{
-					debugpp("\tUnexpected message\n");
+					debug("\tUnexpected message\n");
 
 					//std::unique_ptr<Request> tmp = make_unique<Request>();
 					MemoryPool<Request>::unique_ptr tmp(this->request_pool.alloc());
@@ -210,9 +210,9 @@ void BasicProgress::matchThreadProc()
 			//unexpectedLock->unlock();
 			this->unexpectedLock.unlock();
 
-			debugpp("matchThread:  matched, about to receive remainder");
-			debugpp("\tTarget array is " << (*result)->array.toString());
-			debugpp("\tDatatype says extent is " << (*result)->array.datatype->getExtent());
+			debug("matchThread:  matched, about to receive remainder");
+			debug("\tTarget array is " << (*result)->array.toString());
+			debug("\tDatatype says extent is " << (*result)->array.datatype->getExtent());
 
 			ssize_t length;
 
@@ -241,7 +241,7 @@ void BasicProgress::matchThreadProc()
 			//matchLock->unlock();
 			this->matchLock.unlock();
 
-			debugpp(" matching done, matchthread done");
+			debug(" matching done, matchthread done");
 		}
 
 		// NOT commented out as part of bug-perf work
@@ -426,7 +426,7 @@ void BasicProgress::barrier()
 std::future<MPI_Status> BasicProgress::postSend(UserArray array, Endpoint dest,
         int tag)
 {
-	debugpp("basic::Interface::postSend(...)");
+	debug("basic::Interface::postSend(...)");
 
 	// fetch new request
 	//std::unique_ptr<Request> r = make_unique<Request>();
@@ -454,7 +454,7 @@ std::future<MPI_Status> BasicProgress::postSend(UserArray array, Endpoint dest,
 std::future<MPI_Status> BasicProgress::postRecv(UserArray array,
         Endpoint source, int tag)
 {
-	debugpp("basic::Interface::postRecv(...)");
+	debug("basic::Interface::postRecv(...)");
 
 	// make request
 
@@ -475,7 +475,7 @@ std::future<MPI_Status> BasicProgress::postRecv(UserArray array,
 	auto result = r->completionPromise.get_future();
 
 	// search unexpected message queue
-	debugpp("searching unexpected message queue");
+	debug("searching unexpected message queue");
 	unexpectedLock.lock();
 	matchLock.lock();
 	auto res = std::find_if(unexpectedList.begin(), unexpectedList.end(),
@@ -484,7 +484,7 @@ std::future<MPI_Status> BasicProgress::postRecv(UserArray array,
 	//
 	if (res == unexpectedList.end())
 	{
-		debugpp("NO match in unexpectedList, push");
+		debug("NO match in unexpectedList, push");
 
 		// put request into match list for later matching
 		unexpectedLock.unlock();
@@ -498,7 +498,7 @@ std::future<MPI_Status> BasicProgress::postRecv(UserArray array,
 		// found in UMQ
 		matchLock.unlock();
 
-		debugpp("Found match in unexpectedList");
+		debug("Found match in unexpectedList");
 
 		(*res)->unpack();
 		//memcpy(array.ptr, )

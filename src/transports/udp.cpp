@@ -58,7 +58,7 @@ void Message::addBuf(exampi::Buf *b)
 
 void Message::updateHeader()
 {
-	debugpp("updateHeader length of message" << iov[1].iov_len << " header "<<
+	debug("updateHeader length of message" << iov[1].iov_len << " header "<<
 	        iov[0].iov_len );
 	hdr.msg_iov = iov.data();
 	hdr.msg_iovlen = iov.size();
@@ -81,36 +81,36 @@ void Message::send(Socket &sock, Address &addr)
 	// XXX
 	inet_ntop(AF_INET, &(addr.get()->sin_addr), str, INET_ADDRSTRLEN);
 
-	debugpp("basic::Transport::udp::send\t" << hdr.msg_iovlen << " iovecs\t" <<
+	debug("basic::Transport::udp::send\t" << hdr.msg_iovlen << " iovecs\t" <<
 	        str);
 
 	// TODO make use of length to check
 	//ssize_t length = sendmsg(sock.getFd(), &hdr, 0);
 	sendmsg(sock.getFd(), &hdr, 0);
-	//debugpp("Send to UDP " << length);
+	//debug("Send to UDP " << length);
 }
 
 ssize_t Message::receive(Socket &sock)
 {
-	debugpp("basic::Transport::udp::recv");
+	debug("basic::Transport::udp::recv");
 	updateHeader();
 	ssize_t length = recvmsg(sock.getFd(), &hdr, MSG_WAITALL);
-	debugpp("Received from UDP " << length);
-	debugpp("basic::Transport::udp::recv exiting");
+	debug("Received from UDP " << length);
+	debug("basic::Transport::udp::recv exiting");
 	return length;
 }
 
 void Message::peek(Socket &sock)
 {
-	debugpp("msg::peek");
+	debug("msg::peek");
 
 	updateHeader();
 
-	debugpp("msg::peek recvmsg");
+	debug("msg::peek recvmsg");
 
 	recvmsg(sock.getFd(), &hdr, MSG_WAITALL | MSG_PEEK);
 
-	debugpp("msg::peek recvmsg completed");
+	debug("msg::peek recvmsg completed");
 }
 
 }

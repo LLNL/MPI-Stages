@@ -16,7 +16,7 @@ private:
 public:
 	void set(const std::string &ip, const uint16_t &port)
 	{
-		debugpp("Address::set " << ip << " " << port);
+		debug("Address::set " << ip << " " << port);
 
 		addr.sin_family = AF_INET;
 		addr.sin_port = htons(port);

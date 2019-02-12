@@ -45,15 +45,6 @@ static inline std::thread::id thisThread()
 	return std::this_thread::get_id();
 }
 
-// TODO remove this once all debug statements are properly wrapped!
-static inline std::string debug()
-{
-	std::stringstream stream;
-	stream << "\t[0x" << std::hex << std::setfill('0') << std::setw(
-	           8) << thisThread() << "] ";
-	return stream.str();
-}
-
 static inline std::string mpiStatusString(MPI_Status st)
 {
 	std::stringstream stream;

@@ -16,7 +16,7 @@ Config::Config()
 {
 	// load configuration file from environment variable
 	std::string filename = std::string(std::getenv("EXAMPI_CONFIG_FILE"));
-	debugpp("config loading " << filename);
+	debug("config loading " << filename);
 	load(filename);
 }
 
