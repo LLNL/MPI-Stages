@@ -26,18 +26,38 @@ Universe::Universe() : request_pool(128)
 	//}
 	//debug("MPI_Init passed EXAMPI_LAUNCHED check.");
 
-	// TODO check for null values
-	rank = std::stoi(std::string(std::getenv("EXAMPI_RANK")));
-	epoch_config = std::string(std::getenv("EXAMPI_EPOCH_FILE"));
-	epoch = std::stoi(std::string(std::getenv("EXAMPI_EPOCH")));
-	world_size = std::stoi(std::string(std::getenv("EXAMPI_WORLD_SIZE")));	
-	
+	char* variable;
+
+	// parse EXAMPI_RANK environment variable
+	variable = std::getenv("EXAMPI_RANK");
+	if(variable == nullptr)
+		throw UniverseCreationException();
+	rank = std::stoi(std::string(variable));
+
+	// parse EXAMPI_EPOCH_FILE environment variable
+	variable = std::getenv("EXAMPI_EPOCH_FILE");
+	if(variable == nullptr)
+		throw UniverseCreationException();		
+	epoch_config = std::string(variable);
+
+	// parse EXAMPI_EPOCH environment variable
+	variable = std::getenv("EXAMPI_EPOCH");
+	if(variable == nullptr)
+		throw UniverseCreationException();		
+	epoch = std::stoi(std::string(variable));
+
+	// parse EXAMPI_WORLD_SIZE environment variable
+	variable = std::getenv("EXAMPI_WORLD_SIZE");
+	if(variable == nullptr)
+		throw UniverseCreationException();		
+	world_size = std::stoi(std::string(variable));
+
 	debug("creating checkpoint");
 	checkpoint = std::make_unique<BasicCheckpoint>();
 
 	// MPI WORLD GROUP
 	debug("generating world group");
-	
+
 	// NOTE this potentially becomes huge! millions++
 	std::list<int> rankList;
 	for(int idx = 0; idx < world_size; ++idx)
@@ -45,7 +65,7 @@ Universe::Universe() : request_pool(128)
 
 	world_group = std::make_shared<Group>(rankList);
 	groups.push_back(world_group);
-	
+
 	// MPI_COMM_WORLD
 	debug("generating world communicator");
 
@@ -64,9 +84,9 @@ Universe::Universe() : request_pool(128)
 	{
 		{ MPI_BYTE, Datatype(MPI_BYTE,           sizeof(unsigned char),  true,  true, true)},
 		{ MPI_CHAR, Datatype(MPI_CHAR,           sizeof(char),           true,  true, true)},
-	#if 0
+#if 0
 		{ MPI_WCHAR, Datatype(MPI_WCHAR,          sizeof(wchar_t),        true,  true, true)},
-	#endif
+#endif
 		{ MPI_UNSIGNED_CHAR,  Datatype(MPI_UNSIGNED_CHAR,  sizeof(unsigned char),  true,  true, true)},
 		{ MPI_SHORT,          Datatype(MPI_SHORT,          sizeof(short),          true,  true, true)},
 		{ MPI_UNSIGNED_SHORT, Datatype(MPI_UNSIGNED_SHORT, sizeof(unsigned short), true,  true, true)},
@@ -82,9 +102,9 @@ Universe::Universe() : request_pool(128)
 		{ MPI_LONG_INT,		Datatype(MPI_LONG_INT,		 sizeof(long_int_type),  false, false, false)},
 		{ MPI_DOUBLE_INT,		Datatype(MPI_DOUBLE_INT,	 sizeof(double_int_type),false, false, false)},
 		{ MPI_2INT,		    Datatype(MPI_2INT,	 		 sizeof(int_int_type),   false, false, false)},
-	#if 0
+#if 0
 		{ MPI_LONG_DOUBLE, Datatype(MPI_LONG_DOUBLE,    sizeof(long double),    false, true, true)},
-	#endif
+#endif
 	};
 
 	debug("finished creating universe");
@@ -93,10 +113,10 @@ Universe::Universe() : request_pool(128)
 Universe::~Universe()
 {
 	debug("universe being destroyed, deleting all communicators");
-    communicators.clear();
+	communicators.clear();
 
-	debug("deleting all groups");   
-    groups.clear();
+	debug("deleting all groups");
+	groups.clear();
 
 	debug("terminating universe");
 }
@@ -119,8 +139,8 @@ int Universe::save(std::ostream &t)
 	// deferred
 
 	// save requests?
-	
-	
+
+
 	// save groups
 	// TODO include world group
 	int group_size = groups.size();
@@ -136,7 +156,7 @@ int Universe::save(std::ostream &t)
 			t.write(reinterpret_cast<char *>(&p), sizeof(int));
 		}
 	}
-	
+
 	// save communicators
 	// TODO include world communciator
 	int comm_size = communicators.size();
