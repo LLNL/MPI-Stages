@@ -15,7 +15,7 @@ namespace exampi
 
 #else
 
-#define CHECK_STAGES_ERROR() 
+#define CHECK_STAGES_ERROR()
 
 #endif
 

@@ -64,14 +64,14 @@ std::string debug_init(const char *file, int line, const char *func)
 	// !!!!
 	// ????
 	// TODO register threads that we create, progress threads for example
-	// ## 01 internal 
+	// ## 01 internal
 	// ## 02 internal
 	// ## 03 internal
 	// ## 04 internal
-	// $$ 01 external 
+	// $$ 01 external
 	// $$ 02 external
 	// $$ 03 external
-	
+
 
 	// check for new line needed on thread switch
 	if(last_thread != std::this_thread::get_id())

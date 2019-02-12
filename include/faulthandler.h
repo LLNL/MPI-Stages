@@ -13,7 +13,7 @@ public:
 
 	FaultHandler(const FaultHandler &e)				= delete;
 	FaultHandler &operator=(const FaultHandler &e)	= delete;
-	
+
 	bool setErrToHandle(int sig);
 
 	static int isErrSet();

@@ -32,24 +32,24 @@ int check_status(MPI_Status *status);
 #define CHECK_BUFFER(buffer)			return check_buffer(buffer);
 #define CHECK_COMM(communicator)		return check_comm(communicator);
 #define CHECK_COUNT(count)				return check_count(count);
-#define CHECK_TAG(tag) 					return check_tag(tag);		
+#define CHECK_TAG(tag) 					return check_tag(tag);
 #define CHECK_DATATYPE(datatype)		return check_datatype(datatype);
 #define CHECK_RANK(rank, communiator)	return check_rank(rank, communicator);
 
 #define CHECK_REQUEST(request)			return check_request(request);
-#define CHECK_STATUS(status) 			return check_status(status);	
+#define CHECK_STATUS(status) 			return check_status(status);
 
 #else
 
 #define CHECK_BUFFER(buffer)
-#define CHECK_COMM(communicator) 
-#define CHECK_COUNT(count) 
-#define CHECK_TAG(tag) 
-#define CHECK_DATATYPE(datatype) 
+#define CHECK_COMM(communicator)
+#define CHECK_COUNT(count)
+#define CHECK_TAG(tag)
+#define CHECK_DATATYPE(datatype)
 #define CHECK_RANK(rank, communicator)
 
-#define CHECK_REQUEST(request) 
-#define CHECK_STATUS(status) 
+#define CHECK_REQUEST(request)
+#define CHECK_STATUS(status)
 
 #endif
 

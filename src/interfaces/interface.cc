@@ -42,7 +42,7 @@ int BasicInterface::MPI_Init(int *argc, char ***argv)
 	}
 	debug("MPI_Init passed EXAMPI_LAUNCHED check.");
 
-	Universe& universe = Universe::get_root_universe();
+	Universe &universe = Universe::get_root_universe();
 
 	// checkpoint load or initialize for first run
 	recovery_code = universe.checkpoint->load();
@@ -52,7 +52,7 @@ int BasicInterface::MPI_Init(int *argc, char ***argv)
 	{
 		debug("executing daemon barrier " << universe.rank);
 
-		Daemon& daemon = Daemon::get_instance();
+		Daemon &daemon = Daemon::get_instance();
 		daemon.barrier();
 	}
 
@@ -83,7 +83,8 @@ int BasicInterface::MPI_Request_free(MPI_Request *request)
 	return -1;
 }
 
-int BasicInterface::MPI_Send(const void *buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm)
+int BasicInterface::MPI_Send(const void *buf, int count, MPI_Datatype datatype,
+                             int dest, int tag, MPI_Comm comm)
 {
 	// offload into persistent path
 	debug("initiating persistent send path");
@@ -101,7 +102,8 @@ int BasicInterface::MPI_Send(const void *buf, int count, MPI_Datatype datatype, 
 	return err;
 }
 
-int BasicInterface::MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, int tag, MPI_Comm comm, MPI_Status *status)
+int BasicInterface::MPI_Recv(void *buf, int count, MPI_Datatype datatype,
+                             int source, int tag, MPI_Comm comm, MPI_Status *status)
 {
 	// offload into persistent path
 	debug("initiating persistent recv path");
@@ -119,7 +121,8 @@ int BasicInterface::MPI_Recv(void *buf, int count, MPI_Datatype datatype, int so
 	return err;
 }
 
-int BasicInterface::MPI_Isend(const void *buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm, MPI_Request *request)
+int BasicInterface::MPI_Isend(const void *buf, int count, MPI_Datatype datatype,
+                              int dest, int tag, MPI_Comm comm, MPI_Request *request)
 {
 	// offload into persistent path
 	debug("initiating persistent send path");
@@ -132,14 +135,15 @@ int BasicInterface::MPI_Isend(const void *buf, int count, MPI_Datatype datatype,
 	return err;
 }
 
-int BasicInterface::MPI_Irecv(void *buf, int count, MPI_Datatype datatype, int source, int tag, MPI_Comm comm, MPI_Request *request)
+int BasicInterface::MPI_Irecv(void *buf, int count, MPI_Datatype datatype,
+                              int source, int tag, MPI_Comm comm, MPI_Request *request)
 {
 	// offload into persistent path
 	debug("initiating persistent recv path");
 	int err;
 	err = MPI_Recv_init(buf, count, datatype, source, tag, comm, request);
 	if(err != MPI_SUCCESS) return err;
-	
+
 	debug("starting request");
 	err = MPI_Start(request);
 	return err;
@@ -152,7 +156,7 @@ int BasicInterface::MPI_Sendrecv(const void *sendbuf, int sendcount,
 {
 	// sanitize user input
 	CHECK_STAGES_ERROR();
-	
+
 //	MPI_Request recvreq;
 //	int rc = MPI_Irecv(recvbuf, recvcount, recvtype, source, recvtag, comm,
 //	                   &recvreq);
@@ -177,12 +181,14 @@ int BasicInterface::MPI_Sendrecv(const void *sendbuf, int sendcount,
 
 //#############################################################################
 
-int BasicInterface::construct_request(const void *buf, int count, MPI_Datatype datatype, int source, int dest, int tag, MPI_Comm comm, MPI_Request *request, Operation operation)
+int BasicInterface::construct_request(const void *buf, int count,
+                                      MPI_Datatype datatype, int source, int dest, int tag, MPI_Comm comm,
+                                      MPI_Request *request, Operation operation)
 {
 	// request generation
 	debug("generating request object");
-	
-	Universe& universe = Universe::get_root_universe();
+
+	Universe &universe = Universe::get_root_universe();
 
 	// todo store in a unique_ptr pool?
 	// allows ownership to be internal, handle/alias to outside, we need to have C space
@@ -195,7 +201,7 @@ int BasicInterface::construct_request(const void *buf, int count, MPI_Datatype d
 
 	// assign user handle
 	*request = reinterpret_cast<MPI_Request>(req);
-	
+
 	// find context of communicator
 	std::shared_ptr<Comm> c = universe.communicators.at(comm);
 	int context = c->get_context_id_pt2pt();
@@ -209,7 +215,7 @@ int BasicInterface::construct_request(const void *buf, int count, MPI_Datatype d
 	req->envelope.source = source;
 	req->envelope.destination = dest;
 	req->envelope.tag = tag;
-	
+
 	// data description
 	req->payload.datatype = datatype;
 	req->payload.count = count;
@@ -218,7 +224,8 @@ int BasicInterface::construct_request(const void *buf, int count, MPI_Datatype d
 	return MPI_SUCCESS;
 }
 
-int BasicInterface::MPI_Bsend_init(const void* buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm, MPI_Request *request)
+int BasicInterface::MPI_Bsend_init(const void *buf, int count,
+                                   MPI_Datatype datatype, int dest, int tag, MPI_Comm comm, MPI_Request *request)
 {
 	// sanitize user input
 	CHECK_BUFFER(buf);
@@ -229,12 +236,14 @@ int BasicInterface::MPI_Bsend_init(const void* buf, int count, MPI_Datatype data
 	CHECK_TAG(tag);
 	CHECK_STAGES_ERROR();
 
-	Universe& universe = Universe::get_root_universe();
+	Universe &universe = Universe::get_root_universe();
 
-	return construct_request(buf, count, datatype, universe.rank, dest, tag, comm, request, Operation::Bsend);
+	return construct_request(buf, count, datatype, universe.rank, dest, tag, comm,
+	                         request, Operation::Bsend);
 }
 
-int BasicInterface::MPI_Rsend_init(const void* buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm, MPI_Request *request)
+int BasicInterface::MPI_Rsend_init(const void *buf, int count,
+                                   MPI_Datatype datatype, int dest, int tag, MPI_Comm comm, MPI_Request *request)
 {
 	// sanitize user input
 	CHECK_BUFFER(buf);
@@ -245,12 +254,14 @@ int BasicInterface::MPI_Rsend_init(const void* buf, int count, MPI_Datatype data
 	CHECK_TAG(tag);
 	CHECK_STAGES_ERROR();
 
-	Universe& universe = Universe::get_root_universe();
+	Universe &universe = Universe::get_root_universe();
 
-	return construct_request(buf, count, datatype, universe.rank, dest, tag, comm, request, Operation::Bsend);
+	return construct_request(buf, count, datatype, universe.rank, dest, tag, comm,
+	                         request, Operation::Bsend);
 }
 
-int BasicInterface::MPI_Ssend_init(const void* buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm, MPI_Request *request)
+int BasicInterface::MPI_Ssend_init(const void *buf, int count,
+                                   MPI_Datatype datatype, int dest, int tag, MPI_Comm comm, MPI_Request *request)
 {
 	// sanitize user input
 	CHECK_BUFFER(buf);
@@ -261,12 +272,14 @@ int BasicInterface::MPI_Ssend_init(const void* buf, int count, MPI_Datatype data
 	CHECK_TAG(tag);
 	CHECK_STAGES_ERROR();
 
-	Universe& universe = Universe::get_root_universe();
+	Universe &universe = Universe::get_root_universe();
 
-	return construct_request(buf, count, datatype, universe.rank, dest, tag, comm, request, Operation::Ssend);
+	return construct_request(buf, count, datatype, universe.rank, dest, tag, comm,
+	                         request, Operation::Ssend);
 }
 
-int BasicInterface::MPI_Send_init(const void* buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm, MPI_Request *request)
+int BasicInterface::MPI_Send_init(const void *buf, int count,
+                                  MPI_Datatype datatype, int dest, int tag, MPI_Comm comm, MPI_Request *request)
 {
 	// sanitize user input
 	CHECK_BUFFER(buf);
@@ -277,12 +290,14 @@ int BasicInterface::MPI_Send_init(const void* buf, int count, MPI_Datatype datat
 	CHECK_TAG(tag);
 	CHECK_STAGES_ERROR();
 
-	Universe& universe = Universe::get_root_universe();
+	Universe &universe = Universe::get_root_universe();
 
-	return construct_request(buf, count, datatype, universe.rank, dest, tag, comm, request, Operation::Send);
+	return construct_request(buf, count, datatype, universe.rank, dest, tag, comm,
+	                         request, Operation::Send);
 }
 
-int BasicInterface::MPI_Recv_init(const void* buf, int count, MPI_Datatype datatype, int source, int tag, MPI_Comm comm, MPI_Request *request) 
+int BasicInterface::MPI_Recv_init(const void *buf, int count,
+                                  MPI_Datatype datatype, int source, int tag, MPI_Comm comm, MPI_Request *request)
 {
 	// sanitize user input
 	debug("sanitizing user input");
@@ -294,9 +309,10 @@ int BasicInterface::MPI_Recv_init(const void* buf, int count, MPI_Datatype datat
 	CHECK_TAG(tag);
 	CHECK_STAGES_ERROR();
 
-	Universe& universe = Universe::get_root_universe();
+	Universe &universe = Universe::get_root_universe();
 
-	return construct_request(buf, count, datatype, source, universe.rank, tag, comm, request, Operation::Receive);
+	return construct_request(buf, count, datatype, source, universe.rank, tag, comm,
+	                         request, Operation::Receive);
 }
 
 //#############################################################################
@@ -312,7 +328,7 @@ int BasicInterface::MPI_Start(MPI_Request *request)
 	// then hand ownership to progress? but progress doesn't own it
 	debug("translating request");
 	Request_ptr req = reinterpret_cast<Request_ptr>(*request);
-	
+
 	// check active request
 	debug("persistent check");
 	if(req->persistent && req->active)
@@ -330,9 +346,9 @@ int BasicInterface::MPI_Start(MPI_Request *request)
 		// swap out buffer, so it is free to be reused
 		return MPI_ERR_BSEND;
 	}
-	
+
 	debug("posting request to progress");
-	Universe& universe = Universe::get_root_universe();
+	Universe &universe = Universe::get_root_universe();
 	return universe.progress->post_request(req);
 }
 
@@ -342,7 +358,8 @@ int BasicInterface::MPI_Start(MPI_Request *request)
 
 //#############################################################################
 
-int BasicInterface::finalize_request(MPI_Request *request, Request *req, MPI_Status *status)
+int BasicInterface::finalize_request(MPI_Request *request, Request *req,
+                                     MPI_Status *status)
 {
 	// set status if required
 	if(status != MPI_STATUS_IGNORE)
@@ -351,7 +368,7 @@ int BasicInterface::finalize_request(MPI_Request *request, Request *req, MPI_Sta
 		status->cancelled = static_cast<int>(req->cancelled);
 		status->MPI_SOURCE = req->envelope.source;
 		status->MPI_TAG = req->envelope.tag;
-		status->MPI_ERROR = req->error; 
+		status->MPI_ERROR = req->error;
 	}
 
 	// for persistent request
@@ -362,14 +379,14 @@ int BasicInterface::finalize_request(MPI_Request *request, Request *req, MPI_Sta
 	// otherwise deallocate and set to REQUEST_NULL
 	else
 	{
-		Universe& universe = Universe::get_root_universe();
+		Universe &universe = Universe::get_root_universe();
 		universe.deallocate_request(req);
 
 		// invalidate user MPI_Request handle
 		*request = MPI_REQUEST_NULL;
 	}
 
-// TODO mpi stages error detection 
+// TODO mpi stages error detection
 //	if (st.MPI_ERROR == MPIX_TRY_RELOAD)
 //	{
 //		debug("MPIX_TRY_RELOAD FOUND");
@@ -412,7 +429,8 @@ int BasicInterface::MPI_Wait(MPI_Request *request, MPI_Status *status)
 	debug("translated MPI_Request to Request_ptr: " << req);
 
 	// inactive persistent request chec
-	debug("checking persistent " << req->persistent << " and inactive " << req->active);
+	debug("checking persistent " << req->persistent << " and inactive " <<
+	      req->active);
 	if(req->persistent && !req->active)
 	{
 		debug("persitent and inactive request found");
@@ -432,7 +450,7 @@ int BasicInterface::MPI_Wait(MPI_Request *request, MPI_Status *status)
 	{
 		debug("will wait for completion");
 
-		// wait for completion 
+		// wait for completion
 		std::unique_lock<std::mutex> lock(req->guard);
 
 		debug("acquired lock on request");
@@ -448,7 +466,7 @@ int BasicInterface::MPI_Wait(MPI_Request *request, MPI_Status *status)
 		lock.unlock();
 	}
 	// request is now definitely completed
-	
+
 	debug("finalizing request");
 	return finalize_request(request, req, status);
 }
@@ -491,7 +509,8 @@ int BasicInterface::MPI_Waitall(int count, MPI_Request array_of_requests[],
 //{
 //}
 
-int BasicInterface::MPI_Test(MPI_Request *request, int *flag, MPI_Status *status)
+int BasicInterface::MPI_Test(MPI_Request *request, int *flag,
+                             MPI_Status *status)
 {
 	// sanitize user input
 	debug("sanitizing user input");
@@ -503,7 +522,7 @@ int BasicInterface::MPI_Test(MPI_Request *request, int *flag, MPI_Status *status
 	if(request == MPI_REQUEST_NULL)
 	{
 		*flag = true;
-		
+
 		return MPI_SUCCESS;
 	}
 
@@ -514,7 +533,7 @@ int BasicInterface::MPI_Test(MPI_Request *request, int *flag, MPI_Status *status
 	if(req->persistent && !req->active)
 	{
 		*flag = true;
-		
+
 		return MPI_SUCCESS;
 	}
 
@@ -549,8 +568,8 @@ int BasicInterface::MPI_Comm_rank(MPI_Comm comm, int *r)
 	CHECK_STAGES_ERROR();
 
 	debug("entered MPI_Comm_rank");
-	
-	Universe& universe = Universe::get_root_universe();
+
+	Universe &universe = Universe::get_root_universe();
 	std::shared_ptr<Comm> c = universe.communicators.at(comm);
 	*r = c->get_rank();
 
@@ -563,7 +582,7 @@ int BasicInterface::MPI_Comm_size(MPI_Comm comm, int *size)
 
 	debug("entered MPI_Comm_size");
 
-	Universe& universe = Universe::get_root_universe();
+	Universe &universe = Universe::get_root_universe();
 
 	std::shared_ptr<Comm> c = universe.communicators.at(comm);
 	*size = c->get_local_group()->get_process_list().size();
@@ -575,7 +594,7 @@ int BasicInterface::MPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm)
 {
 	CHECK_STAGES_ERROR();
 
-	Universe& universe = Universe::get_root_universe();
+	Universe &universe = Universe::get_root_universe();
 
 	int rc;
 	std::shared_ptr<Comm> c = universe.communicators.at(comm);
@@ -590,7 +609,8 @@ int BasicInterface::MPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm)
 	}
 
 	std::shared_ptr<Comm> communicator;
-	communicator = std::make_shared<Comm>(true, c->get_local_group(), c->get_remote_group());
+	communicator = std::make_shared<Comm>(true, c->get_local_group(),
+	                                      c->get_remote_group());
 
 	communicator->set_rank(c->get_rank());
 	communicator->set_context(p2p_context, coll_context);
@@ -618,7 +638,7 @@ int BasicInterface::MPI_Comm_set_errhandler(MPI_Comm comm, MPI_Errhandler err)
 
 	debug("entered comm error set");
 
-	Universe& universe = Universe::get_root_universe();
+	Universe &universe = Universe::get_root_universe();
 
 	FaultHandler &faulthandler = FaultHandler::get_instance();
 	// TODO should this be per Comm
@@ -743,7 +763,7 @@ int BasicInterface::MPIX_Serialize_handler_register(const MPIX_Serialize_handler
         handler)
 {
 //	CHECK_STAGES_ERROR();
-//	
+//
 //	Universe& universe = Universe::get_root_universe();
 //	if (universe.epoch == 0 && recovery_code == MPI_SUCCESS)
 //	{
@@ -782,7 +802,7 @@ int BasicInterface::MPIX_Checkpoint_write()
 {
 	CHECK_STAGES_ERROR();
 
-	Universe& universe = Universe::get_root_universe();
+	Universe &universe = Universe::get_root_universe();
 	universe.checkpoint->save();
 
 	return MPI_SUCCESS;
@@ -792,12 +812,15 @@ int BasicInterface::MPIX_Checkpoint_read()
 {
 	CHECK_STAGES_ERROR();
 
-	Universe& universe = Universe::get_root_universe();
-	
-	debug("commit epoch received" << universe.epoch);
+	Universe &universe = Universe::get_root_universe();
 
 	// wait for restarted process
-	Daemon& daemon = Daemon::get_instance();
+	Daemon &daemon = Daemon::get_instance();
+
+	daemon.wait_commit();
+
+	debug("commit epoch received" << universe.epoch);
+
 	daemon.barrier();
 
 	return MPI_SUCCESS;
@@ -809,7 +832,7 @@ int BasicInterface::MPIX_Get_fault_epoch(int *epoch)
 
 	debug("entered MPIX_Get_fault_epoch");
 
-	Universe& universe = Universe::get_root_universe();
+	Universe &universe = Universe::get_root_universe();
 
 	*epoch = universe.epoch;
 	return MPI_SUCCESS;
@@ -821,7 +844,7 @@ int BasicInterface::MPI_Barrier(MPI_Comm comm)
 {
 	CHECK_STAGES_ERROR();
 
-	Universe& universe = Universe::get_root_universe();
+	Universe &universe = Universe::get_root_universe();
 	int rank, size;
 	MPI_Status status;
 	int coll_tag = 0;
@@ -891,7 +914,7 @@ int BasicInterface::MPI_Reduce(const void *s_buf, void *r_buf, int count,
 {
 
 	CHECK_STAGES_ERROR();
-	Universe& universe = Universe::get_root_universe();
+	Universe &universe = Universe::get_root_universe();
 	int mask, comm_size, peer, peer_rank, peer_rel_rank, rc;
 	int rank, rel_rank;
 
@@ -952,7 +975,7 @@ int BasicInterface::MPI_Allreduce(const void *s_buf, void *r_buf, int count,
 {
 	CHECK_STAGES_ERROR();
 
-	Universe& universe = Universe::get_root_universe();
+	Universe &universe = Universe::get_root_universe();
 	int rc = MPI_Reduce(s_buf, r_buf, count, type, op, 0, comm);
 	if (rc != MPI_SUCCESS)
 	{
@@ -969,7 +992,7 @@ int BasicInterface::MPI_Bcast(void *buf, int count, MPI_Datatype datatype,
 {
 	CHECK_STAGES_ERROR();
 
-	Universe& universe = Universe::get_root_universe();
+	Universe &universe = Universe::get_root_universe();
 
 	// todo this is an implementation, and therefore should be in progress engine
 	int rc;
@@ -1001,7 +1024,7 @@ int BasicInterface::MPI_Get_count(MPI_Status *status, MPI_Datatype datatype,
 {
 	CHECK_STAGES_ERROR();
 
-	Universe& universe = Universe::get_root_universe();
+	Universe &universe = Universe::get_root_universe();
 	Datatype type = universe.datatypes[datatype];
 	if (type.getExtent())
 	{

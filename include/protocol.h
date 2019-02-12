@@ -12,7 +12,7 @@ namespace exampi
 {
 
 struct Request;
-typedef Request* Request_ptr;
+typedef Request *Request_ptr;
 
 enum class Protocol: int
 {
@@ -35,7 +35,7 @@ enum class Protocol: int
 
 struct ProtocolMessage
 {
-	Protocol stage; 
+	Protocol stage;
 	Envelope envelope;
 
 	virtual ~ProtocolMessage() {}
@@ -48,7 +48,8 @@ struct ProtocolMessage
 	virtual int unpack(Request_ptr request) const = 0;
 };
 
-typedef std::unique_ptr<ProtocolMessage, std::function<void(ProtocolMessage*)>> ProtocolMessage_uptr;
+typedef std::unique_ptr<ProtocolMessage, std::function<void(ProtocolMessage *)>>
+        ProtocolMessage_uptr;
 
 //class ProtocolQueue
 //{
@@ -56,11 +57,11 @@ typedef std::unique_ptr<ProtocolMessage, std::function<void(ProtocolMessage*)>> 
 //	std::mutex queue_lock;
 //
 //	std::list<ProtocolMessage> slots;
-//	
+//
 //public:
 //	ProtocolQueue();
 //	~ProtocolQueue();
-//	
+//
 //	int insert(Request *request);
 //	int remove(Request *request);
 //};

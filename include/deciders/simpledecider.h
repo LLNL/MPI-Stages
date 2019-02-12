@@ -8,7 +8,7 @@ namespace exampi
 
 class SimpleDecider: public Decider
 {
-	Protocol decide(const Request_ptr request, const Universe &universe) const;	
+	Protocol decide(const Request_ptr request, const Universe &universe) const;
 };
 
 }

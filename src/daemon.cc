@@ -22,7 +22,7 @@ Daemon &Daemon::get_instance()
 
 Daemon::Daemon()
 {
-	Universe& universe = Universe::get_root_universe();
+	Universe &universe = Universe::get_root_universe();
 
 	// initiate socket
 	this->sock = socket(AF_INET, SOCK_STREAM, 0);
@@ -101,7 +101,7 @@ int Daemon::abort()
 
 int Daemon::send_barrier_ready()
 {
-	Universe& universe = Universe::get_root_universe();
+	Universe &universe = Universe::get_root_universe();
 
 	std::stringstream packet;
 	packet << "barrier ";
@@ -121,7 +121,7 @@ int Daemon::send_barrier_ready()
 
 int Daemon::recv_barrier_release()
 {
-	Universe& universe = Universe::get_root_universe();
+	Universe &universe = Universe::get_root_universe();
 
 	debug("in recv_barrier_release " << universe.rank);
 
@@ -149,7 +149,7 @@ int Daemon::recv_barrier_release()
 
 int Daemon::send_clean_up()
 {
-	Universe& universe = Universe::get_root_universe();
+	Universe &universe = Universe::get_root_universe();
 
 	std::stringstream packet;
 	packet << "cleanup ";
@@ -170,7 +170,7 @@ int Daemon::send_clean_up()
 
 int Daemon::wait_commit()
 {
-	Universe& universe = Universe::get_root_universe();
+	Universe &universe = Universe::get_root_universe();
 
 	debug("in wait_commit " << universe.rank);
 
@@ -193,7 +193,7 @@ int Daemon::wait_commit()
 	// note this is an assumption that we can revert previous checkpoint
 	// note if corruption exists this will not work
 
-	return 0;
+	return MPI_SUCCESS;
 }
 
 int Daemon::send(std::string packet)

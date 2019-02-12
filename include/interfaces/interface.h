@@ -29,8 +29,10 @@ private:
 
 	int recovery_code;
 
-	int construct_request(const void *buf, int count, MPI_Datatype datatype, int source, int dest, int tag, MPI_Comm comm, MPI_Request *request, Operation operation);
-	int finalize_request(MPI_Request* request, Request* req, MPI_Status *status);
+	int construct_request(const void *buf, int count, MPI_Datatype datatype,
+	                      int source, int dest, int tag, MPI_Comm comm, MPI_Request *request,
+	                      Operation operation);
+	int finalize_request(MPI_Request *request, Request *req, MPI_Status *status);
 
 public:
 	//BasicInterface();
@@ -55,11 +57,16 @@ public:
 	              int source, int tag, MPI_Comm comm, MPI_Request *request);
 
 
-	int MPI_Send_init(const void* buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm, MPI_Request *request);
-	int MPI_Ssend_init(const void* buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm, MPI_Request *request);
-	int MPI_Rsend_init(const void* buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm, MPI_Request *request);
-	int MPI_Bsend_init(const void* buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm, MPI_Request *request);
-	int MPI_Recv_init(const void* buf, int count, MPI_Datatype datatype, int source, int tag, MPI_Comm comm, MPI_Request *request);
+	int MPI_Send_init(const void *buf, int count, MPI_Datatype datatype, int dest,
+	                  int tag, MPI_Comm comm, MPI_Request *request);
+	int MPI_Ssend_init(const void *buf, int count, MPI_Datatype datatype, int dest,
+	                   int tag, MPI_Comm comm, MPI_Request *request);
+	int MPI_Rsend_init(const void *buf, int count, MPI_Datatype datatype, int dest,
+	                   int tag, MPI_Comm comm, MPI_Request *request);
+	int MPI_Bsend_init(const void *buf, int count, MPI_Datatype datatype, int dest,
+	                   int tag, MPI_Comm comm, MPI_Request *request);
+	int MPI_Recv_init(const void *buf, int count, MPI_Datatype datatype, int source,
+	                  int tag, MPI_Comm comm, MPI_Request *request);
 
 	int MPI_Sendrecv(const void *sendbuf, int sendcount,
 	                 MPI_Datatype sendtype, int dest, int sendtag, void *recvbuf, int recvcount,

@@ -102,10 +102,10 @@ public:
 	}
 
 	template <typename... Args>
-	T* allocate(Args &&... args)
+	T *allocate(Args &&... args)
 	{
 		debug("allocating " << typeid(T).name() << " from " << this->allocated_arenas
-		        << " arenas");
+		      << " arenas");
 
 		std::lock_guard<std::mutex> lock(this->sharedlock);
 
@@ -144,7 +144,7 @@ public:
 		// use a free list to point to non reset ones, avoid doing mutex if we are not low of items.
 
 		debug("freeing item, now at " << this->allocated_items << " : " <<
-		        this->allocated_arenas);
+		      this->allocated_arenas);
 
 		if(t == nullptr)
 			return;

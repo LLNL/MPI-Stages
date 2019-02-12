@@ -21,7 +21,7 @@ public:
 	                          int *count) = 0;
 
 	virtual int MPI_Start(MPI_Request *request) =0;
-	
+
 	virtual int MPI_Wait(MPI_Request *request, MPI_Status *status) = 0;
 
 	virtual int MPI_Waitall(int count, MPI_Request array_of_requests[],
@@ -59,10 +59,12 @@ public:
 	virtual int MPI_Irecv(void *buf, int count, MPI_Datatype datatype, int dest,
 	                      int tag, MPI_Comm comm, MPI_Request *request) = 0;
 
-	virtual int MPI_Send_init(const void* buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm, MPI_Request *request) = 0;
-	virtual int MPI_Recv_init(const void* buf, int count, MPI_Datatype datatype, int source, int tag, MPI_Comm comm, MPI_Request *request) = 0;
+	virtual int MPI_Send_init(const void *buf, int count, MPI_Datatype datatype,
+	                          int dest, int tag, MPI_Comm comm, MPI_Request *request) = 0;
+	virtual int MPI_Recv_init(const void *buf, int count, MPI_Datatype datatype,
+	                          int source, int tag, MPI_Comm comm, MPI_Request *request) = 0;
 
-		// collective
+	// collective
 	virtual int MPI_Barrier(MPI_Comm comm) = 0;
 
 	virtual int MPI_Allreduce(const void *s_buf, void *r_buf, int count,
@@ -83,7 +85,8 @@ public:
 
 	virtual int MPIX_Deserialize_handles() = 0;
 
-	virtual int MPIX_Deserialize_handler_register(const MPIX_Deserialize_handler) = 0;
+	virtual int MPIX_Deserialize_handler_register(const MPIX_Deserialize_handler) =
+	    0;
 
 	virtual int MPIX_Serialize_handles() = 0;
 

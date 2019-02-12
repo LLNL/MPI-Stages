@@ -47,7 +47,7 @@ int check_rank(int rank, MPI_Comm comm)
 {
 	// TODO valid for communicator check
 
-	if(rank >= 0) 
+	if(rank >= 0)
 		return MPI_SUCCESS;
 	else
 		return MPI_ERR_RANK;

@@ -62,7 +62,7 @@ struct Request
 	void release();
 };
 
-typedef Request* Request_ptr;
+typedef Request *Request_ptr;
 
 }
 

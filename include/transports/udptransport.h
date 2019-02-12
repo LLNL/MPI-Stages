@@ -21,16 +21,16 @@ struct UDPProtocolMessage: public ProtocolMessage
 	{
 		return ProtocolMessage::size() + sizeof(payload);
 	}
-	
+
 	int payload[10];
-	
+
 	int pack(const Request_ptr request) final;
 	int unpack(Request_ptr request) const final;
 };
 
 class UDPTransportCreationException: public std::exception
 {
-	const char* what() const noexcept override
+	const char *what() const noexcept override
 	{
 		return "UDPTransport failed to create socket.";
 	}
@@ -38,7 +38,7 @@ class UDPTransportCreationException: public std::exception
 
 class UDPTransportBindingException: public std::exception
 {
-	const char* what() const noexcept override
+	const char *what() const noexcept override
 	{
 		return "UDPTransport failed to bind socket.";
 	}

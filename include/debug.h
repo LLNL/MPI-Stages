@@ -34,7 +34,7 @@ void debug_function_exit();
                     << msg << std::endl << std::flush; \
                     debug_mutex.unlock();
 
-// TODO debug improvements
+// todo debug improvements
 #define debug_error(msg)
 #define debug_warning(msg)
 #define debug_info(msg)

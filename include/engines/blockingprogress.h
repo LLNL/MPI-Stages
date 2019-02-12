@@ -43,7 +43,8 @@ private:
 
 public:
 	BlockingProgress();
-	BlockingProgress(std::shared_ptr<Matcher> matcher, std::shared_ptr<Transport> transporter);
+	BlockingProgress(std::shared_ptr<Matcher> matcher,
+	                 std::shared_ptr<Transport> transporter);
 	~BlockingProgress();
 
 	int post_request(Request *request);
@@ -51,8 +52,8 @@ public:
 	// mpi stages, figure out how to do this, separate into another progress inheriting?
 	void cleanUp();
 
-	int save(std::ostream&);
-	int load(std::istream&);
+	int save(std::ostream &);
+	int load(std::istream &);
 };
 
 }

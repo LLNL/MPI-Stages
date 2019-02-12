@@ -16,7 +16,7 @@ Request::Request() :
 	;
 }
 
-Request::Request(Operation op, Payload payload, Envelope envelope) : 
+Request::Request(Operation op, Payload payload, Envelope envelope) :
 	Request()
 {
 	operation = op;
@@ -40,7 +40,7 @@ void Request::release()
 		//condition->notify_one();
 		condition->notify_all();
 	}
-	
+
 	debug("released request entirely");
 }
 

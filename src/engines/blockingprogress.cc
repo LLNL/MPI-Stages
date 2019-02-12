@@ -5,14 +5,15 @@ namespace exampi
 
 BlockingProgress::BlockingProgress() :
 	BlockingProgress(
-		std::shared_ptr<Matcher>(new SimpleMatcher()),
-		std::shared_ptr<Transport>(new UDPTransport())
+	    std::shared_ptr<Matcher>(new SimpleMatcher()),
+	    std::shared_ptr<Transport>(new UDPTransport())
 	)
 {
 	;
 }
 
-BlockingProgress::BlockingProgress(std::shared_ptr<Matcher> matcher, std::shared_ptr<Transport> transporter) : 
+BlockingProgress::BlockingProgress(std::shared_ptr<Matcher> matcher,
+                                   std::shared_ptr<Transport> transporter) :
 	shutdown(false),
 	maximum_progress_cycles(10),
 	matcher(matcher),
@@ -36,8 +37,8 @@ BlockingProgress::~BlockingProgress()
 	debug("halting all progress threads");
 	shutdown = true;
 
-	for(auto&& thr : this->progress_threads)
-	{	
+	for(auto &&thr : this->progress_threads)
+	{
 		thr.join();
 	}
 
@@ -54,7 +55,7 @@ BlockingProgress::~BlockingProgress()
 ////	matchList.clear();
 ////	unexpectedList.clear();
 ////	return 0;
-//	
+//
 }
 
 int BlockingProgress::post_request(Request *request)
@@ -73,7 +74,7 @@ int BlockingProgress::post_request(Request *request)
 	{
 		// acquire safety
 		std::lock_guard<std::mutex> lock(outbox_guard);
-	
+
 		// queue for send
 		outbox.push(request);
 
@@ -81,7 +82,7 @@ int BlockingProgress::post_request(Request *request)
 	}
 
 	return MPI_SUCCESS;
-	
+
 	// note later on there will be others here
 	// collectives, rma
 	// allreduce, allgather, reduce, broadcast, ...
@@ -99,7 +100,7 @@ void BlockingProgress::progress()
 	{
 		// note this is actually just a slow poll
 		// 		blocking would be woken up by post_request, transporter ordered_recv()
-		
+
 		// absorb message if any, this is inflow
 		if(ProtocolMessage_uptr msg = transporter->ordered_recv())
 		{
@@ -110,7 +111,7 @@ void BlockingProgress::progress()
 
 		// match message if any, this is inflow
 		else if(Match match; matcher->progress(match))
-		//else if(auto [match, request, msg] = matcher->progress())
+			//else if(auto [match, request, msg] = matcher->progress())
 		{
 			debug("progress thread, matched message -> handling match");
 
@@ -140,11 +141,11 @@ void BlockingProgress::progress()
 		// otherwise go to sleep
 		else
 		{
-			cycles = 0;	
+			cycles = 0;
 			// TODO record number of sleep cycles for debugging since last work
 			std::this_thread::yield();
 		}
-		
+
 		// if we are doing work, check work amount
 		cycles += 1;
 		if(cycles >= maximum_progress_cycles)
@@ -167,7 +168,7 @@ int BlockingProgress::handle_match(Match &match)
 	int err = -1;
 	switch(match.message->stage)
 	{
-	case Protocol::EAGER_ACK:
+		case Protocol::EAGER_ACK:
 		{
 			debug("protocol message: EAGER_ACK");
 
@@ -176,7 +177,7 @@ int BlockingProgress::handle_match(Match &match)
 
 			msg->envelope = match.request->envelope;
 			msg->stage = Protocol::ACK;
-			
+
 			err = transporter->reliable_send(std::move(msg));
 			if(err != MPI_SUCCESS)
 				return err;
@@ -184,7 +185,7 @@ int BlockingProgress::handle_match(Match &match)
 			[[fallthrough]];
 		}
 
-	case Protocol::EAGER:
+		case Protocol::EAGER:
 		{
 			debug("protocol message: EAGER");
 			debug("req: " << match.request << " <-> message: " << match.message.get());
@@ -197,10 +198,10 @@ int BlockingProgress::handle_match(Match &match)
 			match.request->release();
 
 			debug("request completed and released");
-		}	
+		}
 		break;
 
-	case Protocol::ACK:
+		case Protocol::ACK:
 		{
 			debug("protocol message: ACK");
 
@@ -231,7 +232,9 @@ int BlockingProgress::handle_request()
 		lock.unlock();
 
 		// TODO remove this, depends on decider though
-		if(request->operation == Operation::Bsend || request->operation == Operation::Ssend || request->operation == Operation::Rsend)
+		if(request->operation == Operation::Bsend
+		        || request->operation == Operation::Ssend
+		        || request->operation == Operation::Rsend)
 		{
 			return MPI_ERR_SEND_TYPE;
 		}

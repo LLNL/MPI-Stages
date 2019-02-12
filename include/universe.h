@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <unordered_map>
+#include <exception>
 
 #include "abstract/progress.h"
 #include "abstract/transport.h"
@@ -14,13 +15,21 @@
 namespace exampi
 {
 
+class UniverseEnvironmentException: public std::exception
+{
+	const char *what() const noexcept override
+	{
+		return "Universe failed to find required environment variables.";
+	}
+};
+
 // note: make singleton at the moment
 class Universe
 {
 private:
 	// MPI universe owns all request objects
 	MemoryPool<Request> request_pool;
-	
+
 	Universe();
 	~Universe();
 
@@ -44,7 +53,7 @@ public:
 	std::unique_ptr<Checkpoint> checkpoint;
 
 	// todo eventually Interface *interface
-	
+
 	// prevent Universe from being copied
 	Universe(const Universe &u)				= delete;
 	Universe &operator=(const Universe &u)	= delete;

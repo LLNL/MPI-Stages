@@ -13,7 +13,8 @@ struct Comm
 	Comm()
 	{
 	}
-	Comm(bool _isintra, std::shared_ptr<Group> _local, std::shared_ptr<Group> _remote) :
+	Comm(bool _isintra, std::shared_ptr<Group> _local,
+	     std::shared_ptr<Group> _remote) :
 		is_intra(_isintra), local(_local), remote(_remote)
 	{
 	}
@@ -27,7 +28,7 @@ struct Comm
 	int get_next_context(int *pt2pt, int *coll)
 	{
 		int rc;
-		
+
 		if (rank == 0)
 		{
 			//Context::contextLock.lock();
@@ -39,7 +40,7 @@ struct Comm
 
 			//Context::contextLock.unlock();
 		}
-		
+
 		rc = MPI_Bcast(pt2pt, 1, MPI_INT, 0, local_pt2pt);
 		if (rc != MPI_SUCCESS)
 		{

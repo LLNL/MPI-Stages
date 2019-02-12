@@ -13,7 +13,7 @@ namespace exampi
 struct Transport
 {
 	virtual ~Transport() {};
-	
+
 	virtual ProtocolMessage_uptr allocate_protocol_message() = 0;
 
 	// mpi stages

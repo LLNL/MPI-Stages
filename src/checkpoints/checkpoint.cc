@@ -13,8 +13,8 @@ namespace exampi
 
 void BasicCheckpoint::save()
 {
-	Universe& universe = Universe::get_root_universe();
-	
+	Universe &universe = Universe::get_root_universe();
+
 	// get a file.  this is actually nontrivial b/c of shared filesystems; we'll salt for now
 	std::stringstream filename;
 
@@ -67,13 +67,13 @@ void BasicCheckpoint::save()
 int BasicCheckpoint::load()
 {
 	debug("fetching root universe for checkpointing");
-	Universe& universe = Universe::get_root_universe();
+	Universe &universe = Universe::get_root_universe();
 
 	// first time executing
 	if(universe.epoch == 0)
 	{
 		debug("epoch 0, starting BlockingProgress");
-		
+
 		// todo is there any other?
 		universe.progress = std::make_unique<BlockingProgress>();
 
@@ -105,7 +105,7 @@ int BasicCheckpoint::load()
 
 		universe.load(target);
 
-		Daemon& daemon = Daemon::get_instance();
+		Daemon &daemon = Daemon::get_instance();
 		daemon.barrier();
 
 		//universe.interface->save(target);
