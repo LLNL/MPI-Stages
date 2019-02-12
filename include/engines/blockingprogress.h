@@ -28,8 +28,6 @@ private:
 
 	std::vector<std::thread> progress_threads;
 
-	//std::unordered_map<std::string, std::function<ProtocolItem&>> protocol_lookup;
-
 	std::mutex outbox_guard;
 	std::queue<Request *> outbox;
 
@@ -52,8 +50,9 @@ public:
 
 	// mpi stages, figure out how to do this, separate into another progress inheriting?
 	void cleanUp();
-	int load(std::istream&);
+
 	int save(std::ostream&);
+	int load(std::istream&);
 };
 
 }

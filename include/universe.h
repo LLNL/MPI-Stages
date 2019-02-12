@@ -10,7 +10,6 @@
 #include "pool.h"
 #include "request.h"
 #include "comm.h"
-#include "errhandler.h"
 
 namespace exampi
 {
@@ -42,7 +41,8 @@ public:
 
 	Progress *progress;
 	Checkpoint *checkpoint;
-	errHandler *errhandler;
+
+	// todo eventually Interface *interface
 	
 	// prevent Universe from being copied
 	Universe(const Universe &u)				= delete;
@@ -50,6 +50,10 @@ public:
 
 	Request_ptr allocate_request();
 	void deallocate_request(Request_ptr request);
+
+	// mpi stages
+	int save(std::ostream &t);
+	int load(std::istream &t);
 };
 
 }

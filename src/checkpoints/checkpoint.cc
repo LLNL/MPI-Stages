@@ -32,10 +32,13 @@ void BasicCheckpoint::save()
 		//i.save(target);
 	}
 
-	// TODO reintegrate mpi stages into the new classes
+	// this saved groups/communicators
 	//universe.progress->save(target);
 	//universe.transport->save(target);
 	//universe.interface->save(target);
+
+	// save universe
+	universe.save(target);
 
 	long long int end = target.tellp();
 	size = end - begin;
@@ -45,10 +48,12 @@ void BasicCheckpoint::save()
 	target.write(reinterpret_cast<char *>(&size), sizeof(long long int));
 	target.close();
 
-	if (universe.errhandler->isErrSet() != 1)
+	// TODO this is global
+	if(universe.errhandler->isErrSet() != 1)
 	{
-		// needed in case process dies
-		// TODO could also send to daemon
+		// NOTE needed in case process dies
+		// NOTE could also send to daemon
+
 		// write out epoch number
 		universe.epoch++;
 		std::ofstream ef(universe.epoch_config);
@@ -62,15 +67,19 @@ int BasicCheckpoint::load()
 	debug("fetching root universe for checkpointing");
 	Universe& universe = Universe::get_root_universe();
 
+	// first time executing
 	if(universe.epoch == 0)
 	{
 		debug("epoch 0, starting BlockingProgress");
 		
+		// todo is there any other?
 		universe.progress = new BlockingProgress();
 
 		return MPI_SUCCESS;
 	}
-	else   // subsequent init
+
+	// after failure restart
+	else
 	{
 		debug("epoch " << universe.epoch << ", reading checkpoint");
 
@@ -91,6 +100,8 @@ int BasicCheckpoint::load()
 
 		//universe.progress->load(target);
 		//universe.transport->load(target);
+
+		universe.load(target);
 
 		Daemon& daemon = Daemon::get_instance();
 		daemon.barrier();

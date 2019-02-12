@@ -301,119 +301,119 @@ void BlockingProgress::cleanUp()
 ////		exampi::handler->setErrToOne();
 ////	}
 }
-////
+
 int BlockingProgress::save(std::ostream &t)
 {
-////	// save all groups
-////	int group_size = exampi::groups.size();
-////	t.write(reinterpret_cast<char *>(&group_size), sizeof(int));
-////	for (auto &g : exampi::groups)
-////	{
-////		int value = g->get_group_id();
-////		t.write(reinterpret_cast<char *>(&value), sizeof(int));
-////		value = g->get_process_list().size();
-////		t.write(reinterpret_cast<char *>(&value), sizeof(int));
-////		for (auto p : g->get_process_list())
-////		{
-////			t.write(reinterpret_cast<char *>(&p), sizeof(int));
-////		}
-////	}
+//	// save all groups
+//	int group_size = exampi::groups.size();
+//	t.write(reinterpret_cast<char *>(&group_size), sizeof(int));
+//	for (auto &g : exampi::groups)
+//	{
+//		int value = g->get_group_id();
+//		t.write(reinterpret_cast<char *>(&value), sizeof(int));
+//		value = g->get_process_list().size();
+//		t.write(reinterpret_cast<char *>(&value), sizeof(int));
+//		for (auto p : g->get_process_list())
+//		{
+//			t.write(reinterpret_cast<char *>(&p), sizeof(int));
+//		}
+//	}
 //
-////	// save all communicators
-////	int comm_size = exampi::communicators.size();
-////	t.write(reinterpret_cast<char *>(&comm_size), sizeof(int));
-////	for(auto &c : exampi::communicators)
-////	{
-////		int value = c->get_rank();
-////		t.write(reinterpret_cast<char *>(&value), sizeof(int));
-////		value = c->get_context_id_pt2pt();
-////		t.write(reinterpret_cast<char *>(&value), sizeof(int));
-////		value = c->get_context_id_coll();
-////		t.write(reinterpret_cast<char *>(&value), sizeof(int));
-////		bool intra = c->get_is_intra();
-////		t.write(reinterpret_cast<char *>(&intra), sizeof(bool));
-////		value = c->get_local_group()->get_group_id();
-////		t.write(reinterpret_cast<char *>(&value), sizeof(int));
-////		value = c->get_remote_group()->get_group_id();
-////		t.write(reinterpret_cast<char *>(&value), sizeof(int));
-////	}
+//	// save all communicators
+//	int comm_size = exampi::communicators.size();
+//	t.write(reinterpret_cast<char *>(&comm_size), sizeof(int));
+//	for(auto &c : exampi::communicators)
+//	{
+//		int value = c->get_rank();
+//		t.write(reinterpret_cast<char *>(&value), sizeof(int));
+//		value = c->get_context_id_pt2pt();
+//		t.write(reinterpret_cast<char *>(&value), sizeof(int));
+//		value = c->get_context_id_coll();
+//		t.write(reinterpret_cast<char *>(&value), sizeof(int));
+//		bool intra = c->get_is_intra();
+//		t.write(reinterpret_cast<char *>(&intra), sizeof(bool));
+//		value = c->get_local_group()->get_group_id();
+//		t.write(reinterpret_cast<char *>(&value), sizeof(int));
+//		value = c->get_remote_group()->get_group_id();
+//		t.write(reinterpret_cast<char *>(&value), sizeof(int));
+//	}
 //
 	return MPI_SUCCESS;
 }
-//
+
 int BlockingProgress::load(std::istream &t)
 {
-////	alive = true;
-////	sendThread = std::thread { sendThreadProc, &alive, &outbox };
-////	matchThread = std::thread { matchThreadProc, &alive, &matchList, &unexpectedList,
-////	                            &matchLock, &unexpectedLock };
-////
-////	int comm_size, group_size;
-////	int r, p2p, coll, id;
-////	bool intra;
-////	int num_of_processes;
-////	std::list<int> ranks;
-////	int rank;
-////	exampi::Group *grp;
-////	//restore group
-////	t.read(reinterpret_cast<char *>(&group_size), sizeof(int));
-////	while(group_size)
-////	{
-////		// todo heap allocation
-////		grp = new exampi::Group();
-////
-////		t.read(reinterpret_cast<char *>(&id), sizeof(int));
-////		grp->set_group_id(id);
-////		t.read(reinterpret_cast<char *>(&num_of_processes), sizeof(int));
-////		for (int i = 0; i < num_of_processes; i++)
-////		{
-////			t.read(reinterpret_cast<char *>(&rank), sizeof(int));
-////			ranks.push_back(rank);
-////		}
-////		grp->set_process_list(ranks);
-////		exampi::groups.push_back(grp);
-////		group_size--;
-////	}
-////	//restore communicator
-////	t.read(reinterpret_cast<char *>(&comm_size), sizeof(int));
-////
-////	while(comm_size)
-////	{
-////		exampi::Comm *com = new exampi::Comm();
-////		t.read(reinterpret_cast<char *>(&r), sizeof(int));
-////		com->set_rank(r);
-////		t.read(reinterpret_cast<char *>(&p2p), sizeof(int));
-////		t.read(reinterpret_cast<char *>(&coll), sizeof(int));
-////		com->set_context(p2p, coll);
-////		t.read(reinterpret_cast<char *>(&intra), sizeof(bool));
-////		com->set_is_intra(intra);
-////		t.read(reinterpret_cast<char *>(&id), sizeof(int));
-////
-////		auto it = std::find_if(exampi::groups.begin(),
-////		                       exampi::groups.end(),
-////		                       [id](const Group *i) -> bool {return i->get_group_id() == id;});
-////		if (it == exampi::groups.end())
-////		{
-////			return MPIX_TRY_RELOAD;
-////		}
-////		else
-////		{
-////			com->set_local_group(*it);
-////		}
-////		t.read(reinterpret_cast<char *>(&id), sizeof(int));
-////		it = std::find_if(exampi::groups.begin(), exampi::groups.end(),
-////		                  [id](const Group *i) -> bool {return i->get_group_id() == id;});
-////		if (it == exampi::groups.end())
-////		{
-////			return MPIX_TRY_RELOAD;
-////		}
-////		else
-////		{
-////			com->set_remote_group(*it);
-////		}
-////		exampi::communicators.push_back(com);
-////		comm_size--;
-////	}
+//	alive = true;
+//	sendThread = std::thread { sendThreadProc, &alive, &outbox };
+//	matchThread = std::thread { matchThreadProc, &alive, &matchList, &unexpectedList,
+//	                            &matchLock, &unexpectedLock };
+//
+//	int comm_size, group_size;
+//	int r, p2p, coll, id;
+//	bool intra;
+//	int num_of_processes;
+//	std::list<int> ranks;
+//	int rank;
+//	exampi::Group *grp;
+//	//restore group
+//	t.read(reinterpret_cast<char *>(&group_size), sizeof(int));
+//	while(group_size)
+//	{
+//		// todo heap allocation
+//		grp = new exampi::Group();
+//
+//		t.read(reinterpret_cast<char *>(&id), sizeof(int));
+//		grp->set_group_id(id);
+//		t.read(reinterpret_cast<char *>(&num_of_processes), sizeof(int));
+//		for (int i = 0; i < num_of_processes; i++)
+//		{
+//			t.read(reinterpret_cast<char *>(&rank), sizeof(int));
+//			ranks.push_back(rank);
+//		}
+//		grp->set_process_list(ranks);
+//		exampi::groups.push_back(grp);
+//		group_size--;
+//	}
+//	//restore communicator
+//	t.read(reinterpret_cast<char *>(&comm_size), sizeof(int));
+//
+//	while(comm_size)
+//	{
+//		exampi::Comm *com = new exampi::Comm();
+//		t.read(reinterpret_cast<char *>(&r), sizeof(int));
+//		com->set_rank(r);
+//		t.read(reinterpret_cast<char *>(&p2p), sizeof(int));
+//		t.read(reinterpret_cast<char *>(&coll), sizeof(int));
+//		com->set_context(p2p, coll);
+//		t.read(reinterpret_cast<char *>(&intra), sizeof(bool));
+//		com->set_is_intra(intra);
+//		t.read(reinterpret_cast<char *>(&id), sizeof(int));
+//
+//		auto it = std::find_if(exampi::groups.begin(),
+//		                       exampi::groups.end(),
+//		                       [id](const Group *i) -> bool {return i->get_group_id() == id;});
+//		if (it == exampi::groups.end())
+//		{
+//			return MPIX_TRY_RELOAD;
+//		}
+//		else
+//		{
+//			com->set_local_group(*it);
+//		}
+//		t.read(reinterpret_cast<char *>(&id), sizeof(int));
+//		it = std::find_if(exampi::groups.begin(), exampi::groups.end(),
+//		                  [id](const Group *i) -> bool {return i->get_group_id() == id;});
+//		if (it == exampi::groups.end())
+//		{
+//			return MPIX_TRY_RELOAD;
+//		}
+//		else
+//		{
+//			com->set_remote_group(*it);
+//		}
+//		exampi::communicators.push_back(com);
+//		comm_size--;
+//	}
 	return MPI_SUCCESS;
 }
 

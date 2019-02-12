@@ -204,4 +204,14 @@ const std::map<Protocol, size_t> &UDPTransport::provided_protocols() const
 	return available_protocols;
 }
 
+int UDPTransport::save(std::ostream &r)
+{
+	return MPI_SUCCESS;	
+}
+
+int UDPTransport::load(std::istream &r)
+{
+	return MPI_SUCCESS;
+}
+
 }

@@ -8,14 +8,11 @@ namespace exampi
 
 volatile std::sig_atomic_t errHandler::is_errSet = 0;
 
-errHandler::errHandler()
+errHandler &get_instance()
 {
-	;
-}
+	static errHandler errhandler;
 
-errHandler::~errHandler()
-{
-	;
+	return errhandler;
 }
 
 bool errHandler::setErrToHandle(int sig)

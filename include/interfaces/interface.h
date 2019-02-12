@@ -5,7 +5,6 @@
 #include <cstdlib>
 
 #include "funcType.h"
-#include "errhandler.h"
 #include "abstract/interface.h"
 #include "daemon.h"
 #include "config.h"

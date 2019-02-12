@@ -16,6 +16,15 @@ Universe::Universe() : request_pool(128)
 {
 	debug("creating universe");
 
+	// todo migrate check out of MPI_Init
+	// check that exampi-mpiexec was used to launch the application
+	//if(std::getenv("EXAMPI_MONITORED") == NULL)
+	//{
+	//	debug("Application was not launched with mpiexec.");
+	//	return MPI_ERR_MPIEXEC;
+	//}
+	//debug("MPI_Init passed EXAMPI_LAUNCHED check.");
+
 	rank = std::stoi(std::string(std::getenv("EXAMPI_RANK")));
 	epoch_config = std::string(std::getenv("EXAMPI_EPOCH_FILE"));
 	epoch = std::stoi(std::string(std::getenv("EXAMPI_EPOCH")));
@@ -122,6 +131,60 @@ void Universe::deallocate_request(Request_ptr request)
 {
 	debug("freeing request to memory pool");
 	request_pool.deallocate(request);
+}
+
+int Universe::save(std::ostream &t)
+{
+	// save derived datatypes
+	// deferred
+
+	// save requests?
+	
+	
+	// save groups
+	// TODO include world group
+	int group_size = groups.size();
+	t.write(reinterpret_cast<char *>(&group_size), sizeof(int));
+	for (auto &g : groups)
+	{
+		int value = g->get_group_id();
+		t.write(reinterpret_cast<char *>(&value), sizeof(int));
+		value = g->get_process_list().size();
+		t.write(reinterpret_cast<char *>(&value), sizeof(int));
+		for (auto p : g->get_process_list())
+		{
+			t.write(reinterpret_cast<char *>(&p), sizeof(int));
+		}
+	}
+	
+	// save communicators
+	// TODO include world communciator
+	int comm_size = communicators.size();
+	t.write(reinterpret_cast<char *>(&comm_size), sizeof(int));
+	for(auto &c : communicators)
+	{
+		int value = c->get_rank();
+		t.write(reinterpret_cast<char *>(&value), sizeof(int));
+		value = c->get_context_id_pt2pt();
+		t.write(reinterpret_cast<char *>(&value), sizeof(int));
+		value = c->get_context_id_coll();
+		t.write(reinterpret_cast<char *>(&value), sizeof(int));
+		bool intra = c->get_is_intra();
+		t.write(reinterpret_cast<char *>(&intra), sizeof(bool));
+		value = c->get_local_group()->get_group_id();
+		t.write(reinterpret_cast<char *>(&value), sizeof(int));
+		value = c->get_remote_group()->get_group_id();
+		t.write(reinterpret_cast<char *>(&value), sizeof(int));
+	}
+
+	// save composites
+	int err;
+	err = progress->save(t);
+}
+
+int Universe::load(std::istream &t)
+{
+	;
 }
 
 }

@@ -41,13 +41,10 @@ int BasicInterface::MPI_Init(int *argc, char ***argv)
 
 	Universe& universe = Universe::get_root_universe();
 
-	// note this initializes progress and transport
-	// note either loads a previous checkpoint or initializes everything
+	// checkpoint load or initialize for first run
 	recovery_code = universe.checkpoint->load();
 
 	// execute global barrier
-	// this is so that P1 doesn't init and send before P0 is ready to recv
-	debug("checking if it is epoch == 0");
 	if(universe.epoch == 0)
 	{
 		debug("executing daemon barrier " << universe.rank);
@@ -151,12 +148,8 @@ int BasicInterface::MPI_Sendrecv(const void *sendbuf, int sendcount,
                                  MPI_Status *status)
 {
 	// sanitize user input
+	CHECK_STAGES_ERROR();
 	
-//	if (universe.errhandler->isErrSet())
-//	{
-//		return MPIX_TRY_RELOAD;
-//	}
-//
 //	MPI_Request recvreq;
 //	int rc = MPI_Irecv(recvbuf, recvcount, recvtype, source, recvtag, comm,
 //	                   &recvreq);
@@ -551,14 +544,11 @@ int BasicInterface::MPI_Test(MPI_Request *request, int *flag, MPI_Status *status
 
 int BasicInterface::MPI_Comm_rank(MPI_Comm comm, int *r)
 {
+	CHECK_STAGES_ERROR();
+
 	debug("entered MPI_Comm_rank");
 	
 	Universe& universe = Universe::get_root_universe();
-
-	if(universe.errhandler->isErrSet())
-	{
-		return MPIX_TRY_RELOAD;
-	}
 
 	Comm *c = universe.communicators.at(comm);
 
@@ -568,14 +558,11 @@ int BasicInterface::MPI_Comm_rank(MPI_Comm comm, int *r)
 
 int BasicInterface::MPI_Comm_size(MPI_Comm comm, int *size)
 {
+	CHECK_STAGES_ERROR();
+
 	debug("entered MPI_Comm_size");
 
 	Universe& universe = Universe::get_root_universe();
-
-	if (universe.errhandler->isErrSet())
-	{
-		return MPIX_TRY_RELOAD;
-	}
 
 	Comm *c = universe.communicators.at(comm);
 
@@ -586,12 +573,9 @@ int BasicInterface::MPI_Comm_size(MPI_Comm comm, int *size)
 
 int BasicInterface::MPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm)
 {
+	CHECK_STAGES_ERROR();
 
 	Universe& universe = Universe::get_root_universe();
-	if (universe.errhandler->isErrSet())
-	{
-		return MPIX_TRY_RELOAD;
-	}
 
 	int rc;
 	Comm *c = universe.communicators.at(comm);
@@ -627,11 +611,16 @@ int BasicInterface::MPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm)
 
 int BasicInterface::MPI_Comm_set_errhandler(MPI_Comm comm, MPI_Errhandler err)
 {
+
 	debug("entered comm error set");
+
 	Universe& universe = Universe::get_root_universe();
+
 	// This sets the signal handler for SIGUSR2
 	// will call cleanup
+	// TODO this is singleton
 	universe.errhandler->setErrToHandle(SIGUSR2);
+
 	return MPI_SUCCESS;
 }
 
@@ -639,12 +628,9 @@ int BasicInterface::MPI_Comm_set_errhandler(MPI_Comm comm, MPI_Errhandler err)
 
 int BasicInterface::MPIX_Serialize_handles()
 {
-	Universe& universe = Universe::get_root_universe();
+	CHECK_STAGES_ERROR();
 
-	if (universe.errhandler->isErrSet())
-	{
-		return MPIX_TRY_RELOAD;
-	}
+	Universe& universe = Universe::get_root_universe();
 
 	std::stringstream filename;
 	filename << universe.epoch - 1 << "." << universe.rank << ".cp";
@@ -680,11 +666,9 @@ int BasicInterface::MPIX_Serialize_handles()
 
 int BasicInterface::MPIX_Deserialize_handles()
 {
+	CHECK_STAGES_ERROR();
+
 	Universe& universe = Universe::get_root_universe();
-	if (universe.errhandler->isErrSet())
-	{
-		return MPIX_TRY_RELOAD;
-	}
 	std::stringstream filename;
 	filename << universe.epoch - 1 << "." << universe.rank << ".cp";
 	std::ifstream t(filename.str(), std::ifstream::in);
@@ -753,11 +737,9 @@ int BasicInterface::MPIX_Deserialize_handles()
 int BasicInterface::MPIX_Serialize_handler_register(const MPIX_Serialize_handler
         handler)
 {
+	CHECK_STAGES_ERROR();
+	
 	Universe& universe = Universe::get_root_universe();
-	if (universe.errhandler->isErrSet())
-	{
-		return MPIX_TRY_RELOAD;
-	}
 	if (universe.epoch == 0 && recovery_code == MPI_SUCCESS)
 	{
 		serialize_handlers.push_back(handler);
@@ -774,11 +756,9 @@ int BasicInterface::MPIX_Deserialize_handler_register(const
         MPIX_Deserialize_handler
         handler)
 {
+	CHECK_STAGES_ERROR();
+
 	Universe& universe = Universe::get_root_universe();
-	if (universe.errhandler->isErrSet())
-	{
-		return MPIX_TRY_RELOAD;
-	}
 	if (universe.epoch == 0 && recovery_code == MPI_SUCCESS)
 	{
 		deserialize_handlers.push_back(handler);
@@ -793,24 +773,20 @@ int BasicInterface::MPIX_Deserialize_handler_register(const
 
 int BasicInterface::MPIX_Checkpoint_write()
 {
-	Universe& universe = Universe::get_root_universe();
-	if (universe.errhandler->isErrSet())
-	{
-		return MPIX_TRY_RELOAD;
-	}
+	CHECK_STAGES_ERROR();
 
+	Universe& universe = Universe::get_root_universe();
 	universe.checkpoint->save();
+
 	return MPI_SUCCESS;
 }
 
 int BasicInterface::MPIX_Checkpoint_read()
 {
-	Universe& universe = Universe::get_root_universe();
-	if (universe.errhandler->isErrSet())
-	{
-		universe.errhandler->setErrToZero();
-	}
+	CHECK_STAGES_ERROR();
 
+	Universe& universe = Universe::get_root_universe();
+	
 	debug("commit epoch received" << universe.epoch);
 
 	// wait for restarted process
@@ -822,13 +798,11 @@ int BasicInterface::MPIX_Checkpoint_read()
 
 int BasicInterface::MPIX_Get_fault_epoch(int *epoch)
 {
+	CHECK_STAGES_ERROR();
+
 	debug("entered MPIX_Get_fault_epoch");
 
 	Universe& universe = Universe::get_root_universe();
-	if (universe.errhandler->isErrSet())
-	{
-		return MPIX_TRY_RELOAD;
-	}
 
 	*epoch = universe.epoch;
 	return MPI_SUCCESS;
@@ -838,11 +812,9 @@ int BasicInterface::MPIX_Get_fault_epoch(int *epoch)
 
 int BasicInterface::MPI_Barrier(MPI_Comm comm)
 {
+	CHECK_STAGES_ERROR();
+
 	Universe& universe = Universe::get_root_universe();
-	if (universe.errhandler->isErrSet())
-	{
-		return MPIX_TRY_RELOAD;
-	}
 	int rank, size;
 	MPI_Status status;
 	int coll_tag = 0;
@@ -911,11 +883,8 @@ int BasicInterface::MPI_Reduce(const void *s_buf, void *r_buf, int count,
                                MPI_Datatype type, MPI_Op op, int root, MPI_Comm comm)
 {
 
+	CHECK_STAGES_ERROR();
 	Universe& universe = Universe::get_root_universe();
-	if (universe.errhandler->isErrSet())
-	{
-		return MPIX_TRY_RELOAD;
-	}
 	int mask, comm_size, peer, peer_rank, peer_rel_rank, rc;
 	int rank, rel_rank;
 
@@ -974,11 +943,9 @@ int BasicInterface::MPI_Reduce(const void *s_buf, void *r_buf, int count,
 int BasicInterface::MPI_Allreduce(const void *s_buf, void *r_buf, int count,
                                   MPI_Datatype type, MPI_Op op, MPI_Comm comm)
 {
+	CHECK_STAGES_ERROR();
+
 	Universe& universe = Universe::get_root_universe();
-	if (universe.errhandler->isErrSet())
-	{
-		return MPIX_TRY_RELOAD;
-	}
 	int rc = MPI_Reduce(s_buf, r_buf, count, type, op, 0, comm);
 	if (rc != MPI_SUCCESS)
 	{
@@ -993,11 +960,9 @@ int BasicInterface::MPI_Bcast(void *buf, int count, MPI_Datatype datatype,
                               int root,
                               MPI_Comm comm)
 {
+	CHECK_STAGES_ERROR();
+
 	Universe& universe = Universe::get_root_universe();
-	if (universe.errhandler->isErrSet())
-	{
-		return MPIX_TRY_RELOAD;
-	}
 
 	// todo this is an implementation, and therefore should be in progress engine
 	int rc;
@@ -1027,11 +992,9 @@ int BasicInterface::MPI_Bcast(void *buf, int count, MPI_Datatype datatype,
 int BasicInterface::MPI_Get_count(MPI_Status *status, MPI_Datatype datatype,
                                   int *count)
 {
+	CHECK_STAGES_ERROR();
+
 	Universe& universe = Universe::get_root_universe();
-	if (universe.errhandler->isErrSet())
-	{
-		return MPIX_TRY_RELOAD;
-	}
 	Datatype type = universe.datatypes[datatype];
 	if (type.getExtent())
 	{
