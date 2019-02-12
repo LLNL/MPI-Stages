@@ -6,7 +6,7 @@
 namespace exampi
 {
 	
-struct ProtocolDecider
+struct Decider
 {
 	Protocol decide(const Request_ptr request, const Universe& universe) const = 0;
 };

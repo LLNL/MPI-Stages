@@ -230,13 +230,11 @@ int BlockingProgress::handle_request()
 
 		lock.unlock();
 
-		// TODO this could be a decider object
-		// request, universe -> protocol selection
-
-		// handle_send  -> EAGER 
-		// handle_bsend -> EAGER
-		// handle_rsend -> EAGER
-		// handle_ssend -> EAGER_ACK
+		// TODO remove this, depends on decider though
+		if(request->operation == Operation::Bsend || request->operation == Operation::Ssend || request->operation == Operation::Rsend)
+		{
+			return MPI_ERR_SEND_TYPE;
+		}
 
 		// TODO this is temporary, assume everything is MPI_Send
 		return handle_send(request);
@@ -257,13 +255,19 @@ int BlockingProgress::handle_send(Request *request)
 
 	// pack message
 	debug("filling protocol message");
+	// TODO decider object decides here
+	// message->stage = decider->decide_send(request, universe);
 	message->stage = Protocol::EAGER;
+
 	message->envelope = request->envelope;
 
 	// pack protocol message
 	int err = message->pack(request);
 	if(err != MPI_SUCCESS)
+	{
+		debug("error packing message");
 		return err;
+	}
 
 	debug("packed protocol message, sending");
 
@@ -271,8 +275,8 @@ int BlockingProgress::handle_send(Request *request)
 	err = transporter->reliable_send(std::move(message));
 	if(err != MPI_SUCCESS)
 	{
-		// TODO handle error
 		debug("error sending message");
+		return err;
 	}
 
 	// complete request

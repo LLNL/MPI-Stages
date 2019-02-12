@@ -66,17 +66,17 @@ typedef void (*MPIX_Deserialize_handler) (MPIX_Handles handle);
 #define MPI_ERR_BSEND 254
 #define MPI_ERR_RELIABLE_SEND_FAILED 253
 
-#define MPI_ERR_COMM	10
-#define MPI_ERR_COUNT	11
-#define MPI_ERR_TYPE	12
-#define MPI_ERR_TAG 	13
-#define MPI_ERR_RANK 	14
-#define MPI_ERR_INTERN 	15
-#define MPI_ERR_REQUEST 16
-#define MPI_ERR_ARG		17
-#define MPI_ERR_BUFFER	18
-#define MPI_ERR_STATUS  19
-
+#define MPI_ERR_COMM		10
+#define MPI_ERR_COUNT		11
+#define MPI_ERR_TYPE		12
+#define MPI_ERR_TAG 		13
+#define MPI_ERR_RANK 		14
+#define MPI_ERR_INTERN 		15
+#define MPI_ERR_REQUEST 	16
+#define MPI_ERR_ARG			17
+#define MPI_ERR_BUFFER		18
+#define MPI_ERR_STATUS  	19
+#define MPI_ERR_SEND_TYPE	20
 
 /* other error classes not defined yet */
 

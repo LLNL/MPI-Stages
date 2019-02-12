@@ -78,7 +78,8 @@ directories:
 	@mkdir -p $(blddir)/checkpoints
 	@mkdir -p $(blddir)/transports
 	@mkdir -p $(blddir)/matchers
-
+	@mkdir -p $(blddir)/deciders
+	
 ### clean rules
 .PHONY: style
 style:
