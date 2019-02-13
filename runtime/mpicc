@@ -3,10 +3,12 @@
 
 
 # set base and derivative directories
-basedir=$(dirname "$(dirname "$0")")
+#basedir=$(dirname "$(dirname "$0")")
 
-libdir=$basedir/lib
-incdir=$basedir/include
+#libdir=$basedir/lib
+libdir=$MPI_LIB
+#incdir=$basedir/include
+incdir=$MPI_INC
 
 # assign CXX if not defined externally
 if [ -z "$CXX" ]; then

@@ -14,11 +14,11 @@ incpath="$basepath/include"
 runpath="$basepath/runtime"
 
 # PATH
-export PATH=$PATH:$binpath
-export PATH=$PATH:$runpath
+export PATH=$binpath:$PATH
+export PATH=$runpath:$PATH
 
 # LD_LIBRARY_PATH
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$libpath
+export LD_LIBRARY_PATH=$libpath:$LD_LIBRARY_PATH
 
 export MPI_PATH=$binpath
 export MPI_LIB=$libpath
