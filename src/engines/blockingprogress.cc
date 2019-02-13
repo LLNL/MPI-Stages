@@ -5,19 +5,19 @@ namespace exampi
 
 BlockingProgress::BlockingProgress() :
 	BlockingProgress(
-	    std::shared_ptr<Matcher>(new SimpleMatcher()),
-	    std::shared_ptr<Transport>(new UDPTransport())
+	    std::unique_ptr<Matcher>(new SimpleMatcher()),
+	    std::unique_ptr<Transport>(new UDPTransport())
 	)
 {
 	;
 }
 
-BlockingProgress::BlockingProgress(std::shared_ptr<Matcher> matcher,
-                                   std::shared_ptr<Transport> transporter) :
+BlockingProgress::BlockingProgress(std::unique_ptr<Matcher> matcher,
+                                   std::unique_ptr<Transport> transporter) :
 	shutdown(false),
 	maximum_progress_cycles(10),
-	matcher(matcher),
-	transporter(transporter)
+	matcher(std::move(matcher)),
+	transporter(std::move(transporter))
 {
 	// todo fetch progress thread count from config
 	//for(size_t tidx = 0; tidx < thread_num; ++tidx)

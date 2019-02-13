@@ -152,6 +152,7 @@ const ProtocolMessage_uptr UDPTransport::ordered_recv()
 	iovec msg_iov;
 	msg_iov.iov_base = &msg->stage;
 	msg_iov.iov_len = msg->size();
+	debug("iov data " << &msg->stage << " size " << msg->size());
 
 	hdr.msg_iov = &msg_iov;
 	hdr.msg_iovlen = 1;
@@ -167,7 +168,7 @@ const ProtocolMessage_uptr UDPTransport::ordered_recv()
 		debug("socket recv error " << err);
 		return ProtocolMessage_uptr(nullptr);
 	}
-	debug("recv message envelope: { e" << msg->envelope.epoch << " c " << msg->envelope.context << " s " << msg->envelope.source << " d " << msg->envelope.destination << " t " << msg->envelope.tag << "}");
+	debug("recv message envelope: { e " << msg->envelope.epoch << " c " << msg->envelope.context << " s " << msg->envelope.source << " d " << msg->envelope.destination << " t " << msg->envelope.tag << "}");
 	debug("successful receive " << ((UDPProtocolMessage *)msg.get())->payload[0]);
 
 	return std::move(msg);
@@ -185,6 +186,7 @@ int UDPTransport::reliable_send(ProtocolMessage_uptr message)
 	// TODO this is where the size is important
 	//      can be read from request, as long as below that size
 	msg_iov.iov_len = message->size();
+	debug("iov data " << &message->stage << " size " << message->size());
 
 	hdr.msg_iov = &msg_iov;
 	hdr.msg_iovlen = 1;

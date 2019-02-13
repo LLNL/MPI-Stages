@@ -57,7 +57,8 @@ void BasicCheckpoint::save()
 		// NOTE could also send to daemon
 
 		// write out epoch number
-		debug("incrementing and outputting epoch " << universe.epoch << " -> " << (universe.epoch+1));
+		// TODO why would this debug cause a totally different part to break?!!?!
+		//debug("incrementing and outputting epoch " << universe.epoch << " -> " << (universe.epoch+1));
 		universe.epoch++;
 
 		std::ofstream ef(universe.epoch_config);

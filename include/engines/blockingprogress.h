@@ -4,6 +4,7 @@
 #include <thread>
 #include <unordered_map>
 #include <queue>
+#include <memory>
 
 #include "abstract/progress.h"
 #include "abstract/matcher.h"
@@ -31,8 +32,8 @@ private:
 	std::mutex outbox_guard;
 	std::queue<Request *> outbox;
 
-	std::shared_ptr<Matcher> matcher;
-	std::shared_ptr<Transport> transporter;
+	std::unique_ptr<Matcher> matcher;
+	std::unique_ptr<Transport> transporter;
 
 	void progress();
 
@@ -43,8 +44,8 @@ private:
 
 public:
 	BlockingProgress();
-	BlockingProgress(std::shared_ptr<Matcher> matcher,
-	                 std::shared_ptr<Transport> transporter);
+	BlockingProgress(std::unique_ptr<Matcher> matcher,
+	                 std::unique_ptr<Transport> transporter);
 	~BlockingProgress();
 
 	int post_request(Request *request);

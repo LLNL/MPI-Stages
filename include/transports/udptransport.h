@@ -16,13 +16,14 @@ namespace exampi
 
 struct UDPProtocolMessage: public ProtocolMessage
 {
+	int payload[10];
+
 	~UDPProtocolMessage() final {}
 	int size() final
 	{
 		return ProtocolMessage::size() + sizeof(payload);
 	}
 
-	int payload[10];
 
 	int pack(const Request_ptr request) final;
 	int unpack(Request_ptr request) const final;
