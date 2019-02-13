@@ -58,6 +58,7 @@ void BasicCheckpoint::save()
 
 		// write out epoch number
 		universe.epoch++;
+
 		std::ofstream ef(universe.epoch_config);
 		ef << universe.epoch;
 		ef.close();
@@ -75,6 +76,7 @@ int BasicCheckpoint::load()
 		debug("epoch 0, starting BlockingProgress");
 
 		// todo is there any other?
+		// TODO this should be somewhere else.
 		universe.progress = std::make_unique<BlockingProgress>();
 
 		return MPI_SUCCESS;
@@ -84,6 +86,7 @@ int BasicCheckpoint::load()
 	else
 	{
 		debug("epoch " << universe.epoch << ", reading checkpoint");
+		debug("universe restart");
 
 		// get a file.  this is actually nontrivial b/c of shared filesystems; we'll salt for now
 		std::stringstream filename;
@@ -109,10 +112,10 @@ int BasicCheckpoint::load()
 
 		// read in epoch number
 		// TODO is this still required?
-		//target.close();
-		//std::ifstream ef(universe.epoch_config);
-		//ef >> universe.epoch;
-		//ef.close();
+		target.close();
+		std::ifstream ef(universe.epoch_config);
+		ef >> universe.epoch;
+		ef.close();
 	}
 
 	return MPIX_SUCCESS_RESTART;

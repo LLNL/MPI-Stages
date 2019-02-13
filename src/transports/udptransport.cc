@@ -167,6 +167,7 @@ const ProtocolMessage_uptr UDPTransport::ordered_recv()
 		debug("socket recv error " << err);
 		return ProtocolMessage_uptr(nullptr);
 	}
+	debug("recv message envelope: { e" << msg->envelope.epoch << " c " << msg->envelope.context << " s " << msg->envelope.source << " d " << msg->envelope.destination << " t " << msg->envelope.tag << "}");
 	debug("successful receive " << ((UDPProtocolMessage *)msg.get())->payload[0]);
 
 	return std::move(msg);
@@ -175,9 +176,6 @@ const ProtocolMessage_uptr UDPTransport::ordered_recv()
 int UDPTransport::reliable_send(ProtocolMessage_uptr message)
 {
 	std::lock_guard<std::recursive_mutex> lock(guard);
-
-	debug("begin comparison");
-	debug("explicit first " << &(message->stage) << " address " << message.get());
 
 	debug("assembling udp msg");
 
@@ -202,6 +200,7 @@ int UDPTransport::reliable_send(ProtocolMessage_uptr message)
 	if(err <= 0)
 		return MPI_ERR_RELIABLE_SEND_FAILED;
 
+	debug("sent message envelope: { e " << message->envelope.epoch << " c " << message->envelope.context << " s " << message->envelope.source << " d " << message->envelope.destination << " t " << message->envelope.tag << "}");
 	debug("sent message: " << ((UDPProtocolMessage *)message.get())->payload[0]);
 
 	return MPI_SUCCESS;

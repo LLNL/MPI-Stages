@@ -45,6 +45,7 @@ int BasicInterface::MPI_Init(int *argc, char ***argv)
 	Universe &universe = Universe::get_root_universe();
 
 	// checkpoint load or initialize for first run
+	// STAGES
 	recovery_code = universe.checkpoint->load();
 	if(recovery_code != MPI_SUCCESS)
 	{
@@ -351,7 +352,7 @@ int BasicInterface::MPI_Start(MPI_Request *request)
 	{
 		debug("found Bsend");
 		// TODO if Bsend, copy over to buffer, we punish those who screw up
-		// swap out buffer, so it is free to be reused
+		//      swap out buffer, so it is free to be reused
 		return MPI_ERR_BSEND;
 	}
 
@@ -798,6 +799,7 @@ int BasicInterface::MPIX_Checkpoint_write()
 	CHECK_STAGES_ERROR();
 
 	Universe &universe = Universe::get_root_universe();
+	// STAGES
 	universe.checkpoint->save();
 
 	return MPI_SUCCESS;
@@ -808,6 +810,7 @@ int BasicInterface::MPIX_Checkpoint_read()
 	CHECK_STAGES_ERROR();
 
 	Universe &universe = Universe::get_root_universe();
+	debug("surviving process restart " << universe.rank);
 
 	// wait for restarted process
 	Daemon &daemon = Daemon::get_instance();
@@ -828,11 +831,11 @@ int BasicInterface::MPIX_Get_fault_epoch(int *epoch)
 {
 	CHECK_STAGES_ERROR();
 
-	debug("entered MPIX_Get_fault_epoch");
-
+	// fetch universe
 	Universe &universe = Universe::get_root_universe();
-
 	*epoch = universe.epoch;
+	debug("current epoch " << *epoch);
+
 	return MPI_SUCCESS;
 }
 

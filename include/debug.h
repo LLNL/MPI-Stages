@@ -40,6 +40,7 @@ void debug_function_exit();
 #define debug_info(msg)
 #define debug_info_deep(msg)
 #define debug_time(msg)
+#define debug_envelope(envelope)
 
 #else
 

@@ -2,6 +2,7 @@
 
 #include "universe.h"
 #include "checkpoints/checkpoint.h"
+#include "engines/blockingprogress.h"
 #include "daemon.h"
 
 namespace exampi
@@ -59,7 +60,8 @@ Universe::Universe() : request_pool(128)
 
 	debug("creating checkpoint");
 	checkpoint = std::make_unique<BasicCheckpoint>();
-
+	// TODO progress should be created here
+	
 	// MPI WORLD GROUP
 	debug("generating world group");
 
@@ -186,7 +188,9 @@ int Universe::save(std::ostream &t)
 
 int Universe::load(std::istream &t)
 {
-	// TODO
+	// TODO load appropriate engine
+	progress = std::make_unique<BlockingProgress>();
+
 	debug("universe is loading");
 	return MPI_SUCCESS;
 }
@@ -203,6 +207,10 @@ void Universe::halt()
 	// TODO destroy progress
 	Progress *engine = progress.get();
 	progress.release();
+
+	delete engine;
+
+	progress = std::make_unique<BlockingProgress>();
 }
 
 }

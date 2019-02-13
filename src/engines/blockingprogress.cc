@@ -33,13 +33,19 @@ BlockingProgress::BlockingProgress(std::shared_ptr<Matcher> matcher,
 
 BlockingProgress::~BlockingProgress()
 {
-	// join all threads
-	debug("halting all progress threads");
-	shutdown = true;
-
-	for(auto &&thr : this->progress_threads)
+	if(!shutdown)
 	{
-		thr.join();
+		// join all threads
+		debug("halting all progress threads");
+		shutdown = true;
+
+		debug("informed all threads to shutdown");
+		for(auto &&thr : this->progress_threads)
+		{
+			thr.join();
+		}
+
+		debug("joined all threads");
 	}
 }
 
@@ -279,6 +285,14 @@ int BlockingProgress::halt()
 	debug("stopping all progress threads");
 	shutdown = true;
 
+	// TODO unify with deconstruction
+	for(auto &&thr : this->progress_threads)
+	{
+		thr.join();
+	}
+
+	debug("joined all threads");
+	
 	int err = MPI_SUCCESS;
 	// TODO
 	//err = matcher->halt();
