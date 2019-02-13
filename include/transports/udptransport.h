@@ -75,7 +75,7 @@ public:
 	// mpi stages
 	int save(std::ostream &r);
 	int load(std::istream &r);
-	int halt();	
+	int halt();
 };
 
 }

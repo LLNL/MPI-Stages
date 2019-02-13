@@ -27,7 +27,7 @@ Universe::Universe() : request_pool(128)
 	//}
 	//debug("MPI_Init passed EXAMPI_LAUNCHED check.");
 
-	char* variable;
+	char *variable;
 
 	// parse EXAMPI_RANK environment variable
 	variable = std::getenv("EXAMPI_RANK");
@@ -39,21 +39,21 @@ Universe::Universe() : request_pool(128)
 	// parse EXAMPI_EPOCH_FILE environment variable
 	variable = std::getenv("EXAMPI_EPOCH_FILE");
 	if(variable == nullptr)
-		throw UniverseEnvironmentException();		
+		throw UniverseEnvironmentException();
 	epoch_config = std::string(variable);
 	debug("epoch file " << epoch_config);
 
 	// parse EXAMPI_EPOCH environment variable
 	variable = std::getenv("EXAMPI_EPOCH");
 	if(variable == nullptr)
-		throw UniverseEnvironmentException();		
+		throw UniverseEnvironmentException();
 	epoch = std::stoi(std::string(variable));
 	debug("epoch " << epoch);
 
 	// parse EXAMPI_WORLD_SIZE environment variable
 	variable = std::getenv("EXAMPI_WORLD_SIZE");
 	if(variable == nullptr)
-		throw UniverseEnvironmentException();		
+		throw UniverseEnvironmentException();
 	world_size = std::stoi(std::string(variable));
 	debug("world size " << world_size);
 
@@ -186,7 +186,7 @@ int Universe::save(std::ostream &t)
 
 int Universe::load(std::istream &t)
 {
-	// TODO 
+	// TODO
 	debug("universe is loading");
 	return MPI_SUCCESS;
 }

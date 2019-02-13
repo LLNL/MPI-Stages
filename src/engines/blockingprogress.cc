@@ -280,7 +280,7 @@ int BlockingProgress::halt()
 	shutdown = true;
 
 	int err = MPI_SUCCESS;
-	// TODO 
+	// TODO
 	//err = matcher->halt();
 	matcher->halt();
 	if(err != MPI_SUCCESS)
@@ -295,7 +295,7 @@ int BlockingProgress::halt()
 		debug("failed to halt transporter");
 		return err;
 	}
-	
+
 	return err;
 }
 

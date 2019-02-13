@@ -14,6 +14,10 @@ int UDPProtocolMessage::pack(const Request_ptr request)
 {
 	debug("packing message " << payload[0])
 
+	// todo avoid this copy by pointing to request buffer, datatype dependent, count dependent
+	//      assemble via iov
+	//
+	//      options: copying, pointing
 	memcpy(&payload[0], request->payload.buffer, sizeof(payload));
 
 	debug("packed message");
@@ -110,7 +114,7 @@ ProtocolMessage_uptr UDPTransport::allocate_protocol_message()
 	ProtocolMessage *ptr = dynamic_cast<ProtocolMessage *>(message_pool.allocate());
 
 	return std::unique_ptr<ProtocolMessage, std::function<void(ProtocolMessage *)>>
-	       (ptr, 
+	       (ptr,
 	        [this](ProtocolMessage *ptr)
 	{
 		debug("UDPProtocolMessage deallocation called");
@@ -143,6 +147,7 @@ const ProtocolMessage_uptr UDPTransport::ordered_recv()
 	ProtocolMessage_uptr msg = allocate_protocol_message();
 
 	// fill iov
+	// TODO this is where protocolmessage size is important
 	debug("iov processing");
 	iovec msg_iov;
 	msg_iov.iov_base = &msg->stage;
@@ -179,6 +184,8 @@ int UDPTransport::reliable_send(ProtocolMessage_uptr message)
 	// fill iov
 	iovec msg_iov;
 	msg_iov.iov_base = &message->stage;
+	// TODO this is where the size is important
+	//      can be read from request, as long as below that size
 	msg_iov.iov_len = message->size();
 
 	hdr.msg_iov = &msg_iov;
@@ -243,7 +250,7 @@ int UDPTransport::halt()
 //	recvmsg(recvSocket.getFd(), &message, MSG_WAITALL);
 //	//std::cout << debug() << "basic::Transport::udp::recv exiting\n";
 //	//std::cout << debug() << "basic::Transport::receive returning" << std::endl;
-	return MPI_SUCCESS;	
+	return MPI_SUCCESS;
 }
 
 }
