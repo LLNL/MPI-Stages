@@ -1,7 +1,8 @@
-#include "universe.h"
-
-#include "checkpoints/checkpoint.h"
 #include <memory>
+
+#include "universe.h"
+#include "checkpoints/checkpoint.h"
+#include "daemon.h"
 
 namespace exampi
 {
@@ -31,26 +32,30 @@ Universe::Universe() : request_pool(128)
 	// parse EXAMPI_RANK environment variable
 	variable = std::getenv("EXAMPI_RANK");
 	if(variable == nullptr)
-		throw UniverseCreationException();
+		throw UniverseEnvironmentException();
 	rank = std::stoi(std::string(variable));
+	debug("rank " << rank);
 
 	// parse EXAMPI_EPOCH_FILE environment variable
 	variable = std::getenv("EXAMPI_EPOCH_FILE");
 	if(variable == nullptr)
-		throw UniverseCreationException();		
+		throw UniverseEnvironmentException();		
 	epoch_config = std::string(variable);
+	debug("epoch file " << epoch_config);
 
 	// parse EXAMPI_EPOCH environment variable
 	variable = std::getenv("EXAMPI_EPOCH");
 	if(variable == nullptr)
-		throw UniverseCreationException();		
+		throw UniverseEnvironmentException();		
 	epoch = std::stoi(std::string(variable));
+	debug("epoch " << epoch);
 
 	// parse EXAMPI_WORLD_SIZE environment variable
 	variable = std::getenv("EXAMPI_WORLD_SIZE");
 	if(variable == nullptr)
-		throw UniverseCreationException();		
+		throw UniverseEnvironmentException();		
 	world_size = std::stoi(std::string(variable));
+	debug("world size " << world_size);
 
 	debug("creating checkpoint");
 	checkpoint = std::make_unique<BasicCheckpoint>();
@@ -136,13 +141,9 @@ void Universe::deallocate_request(Request_ptr request)
 int Universe::save(std::ostream &t)
 {
 	// save derived datatypes
-	// deferred
-
-	// save requests?
-
+	// todo deferred
 
 	// save groups
-	// TODO include world group
 	int group_size = groups.size();
 	t.write(reinterpret_cast<char *>(&group_size), sizeof(int));
 	for (auto &g : groups)
@@ -158,7 +159,6 @@ int Universe::save(std::ostream &t)
 	}
 
 	// save communicators
-	// TODO include world communciator
 	int comm_size = communicators.size();
 	t.write(reinterpret_cast<char *>(&comm_size), sizeof(int));
 	for(auto &c : communicators)
@@ -181,12 +181,28 @@ int Universe::save(std::ostream &t)
 	int err;
 	err = progress->save(t);
 
-	return MPI_SUCCESS;
+	return err;
 }
 
 int Universe::load(std::istream &t)
 {
+	// TODO 
+	debug("universe is loading");
 	return MPI_SUCCESS;
+}
+
+void Universe::halt()
+{
+	Daemon &daemon = Daemon::get_instance();
+	int err = daemon.send_clean_up();
+	// TODO handle error
+
+	// propagate halt
+	progress->halt();
+
+	// TODO destroy progress
+	Progress *engine = progress.get();
+	progress.release();
 }
 
 }

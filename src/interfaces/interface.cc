@@ -46,6 +46,11 @@ int BasicInterface::MPI_Init(int *argc, char ***argv)
 
 	// checkpoint load or initialize for first run
 	recovery_code = universe.checkpoint->load();
+	if(recovery_code != MPI_SUCCESS)
+	{
+		debug("unsuccessful checkpoint load");
+		return recovery_code;
+	}
 
 	// execute global barrier
 	if(universe.epoch == 0)
@@ -386,26 +391,8 @@ int BasicInterface::finalize_request(MPI_Request *request, Request *req,
 		*request = MPI_REQUEST_NULL;
 	}
 
-// TODO mpi stages error detection
-//	if (st.MPI_ERROR == MPIX_TRY_RELOAD)
-//	{
-//		debug("MPIX_TRY_RELOAD FOUND");
-//
-//		if(status != MPI_STATUS_IGNORE)
-//			memmove(status, &st, sizeof(MPI_Status));
-//
-//		return MPIX_TRY_RELOAD;
-//	}
-//	else
-//	{
-//		if(status != MPI_STATUS_IGNORE)
-//			memmove(status, &st, sizeof(MPI_Status));
-//
-//		return 0;
-//	}
-
-
-	return MPI_SUCCESS;
+	debug("returning with error: " << req->error);
+	return req->error;
 }
 
 int BasicInterface::MPI_Wait(MPI_Request *request, MPI_Status *status)
@@ -819,8 +806,9 @@ int BasicInterface::MPIX_Checkpoint_read()
 
 	daemon.wait_commit();
 
-	debug("commit epoch received" << universe.epoch);
+	debug("commit epoch received " << universe.epoch);
 
+	debug("entering daemon barrier for restart");
 	daemon.barrier();
 
 	return MPI_SUCCESS;

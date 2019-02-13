@@ -31,6 +31,8 @@ public:
 	bool progress(Match &match);
 
 	//std::tuple<bool, Request_ptr, ProtocolMessage_uptr> progress();
+
+	void halt();
 };
 
 }

@@ -16,9 +16,11 @@ struct Transport
 
 	virtual ProtocolMessage_uptr allocate_protocol_message() = 0;
 
+	// TODO separate MPI Stages from core definitions
 	// mpi stages
 	virtual int save(std::ostream &r) = 0;
 	virtual int load(std::istream &r) = 0;
+	virtual int halt() = 0;
 
 	// never called
 	//virtual int cleanUp(MPI_Comm comm) = 0;

@@ -25,7 +25,7 @@ void FaultHandler::setErr(int unused)
 	is_errSet = 1;
 
 	Universe &universe = Universe::get_root_universe();
-	universe.progress->cleanUp();
+	universe.halt();
 }
 
 void FaultHandler::setErrToZero()

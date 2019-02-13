@@ -41,21 +41,6 @@ BlockingProgress::~BlockingProgress()
 	{
 		thr.join();
 	}
-
-	// this is in progress::stop
-//	// this is done when we are cleaning up?
-//	// nullifying match list
-////	for (auto &r : matchList)
-////	{
-////		(r)->unpack();
-////		(r)->completionPromise.set_value( { .count = 0, .cancelled = 0,
-////		                                    .MPI_SOURCE = (r)->source, .MPI_TAG = (r)->tag, .MPI_ERROR =
-////		                                        MPIX_TRY_RELOAD });
-////	}
-////	matchList.clear();
-////	unexpectedList.clear();
-////	return 0;
-//
 }
 
 int BlockingProgress::post_request(Request *request)
@@ -288,73 +273,47 @@ int BlockingProgress::handle_send(Request *request)
 	return MPI_SUCCESS;
 }
 
-void BlockingProgress::cleanUp()
+int BlockingProgress::halt()
 {
-//	sigHandler handler;
-//	handler.setSignalToHandle(SIGUSR1);
-//
-//	Daemon &daemon = Daemon::get_instance();
-//	daemon.send_clean_up();
-//
-//		// todo what is this?
-////	matchLock.lock();
-////	int size = matchList.size();
-////	matchLock.unlock();
-////	if (size > 0)
-////	{
-////		exampi::handler->setErrToZero();
-////		exampi::BasicInterface::get_instance()->MPI_Send((void *) 0, 0, MPI_INT,
-////		        exampi::rank, MPIX_CLEANUP_TAG, MPI_COMM_WORLD);
-////		exampi::handler->setErrToOne();
-////	}
+	// stop all progress threads
+	debug("stopping all progress threads");
+	shutdown = true;
+
+	int err = MPI_SUCCESS;
+	// TODO 
+	//err = matcher->halt();
+	matcher->halt();
+	if(err != MPI_SUCCESS)
+	{
+		debug("failed to halt matcher");
+		return err;
+	}
+
+	err = transporter->halt();
+	if(err != MPI_SUCCESS)
+	{
+		debug("failed to halt transporter");
+		return err;
+	}
+	
+	return err;
 }
 
 int BlockingProgress::save(std::ostream &t)
 {
-//	// save all groups
-//	int group_size = exampi::groups.size();
-//	t.write(reinterpret_cast<char *>(&group_size), sizeof(int));
-//	for (auto &g : exampi::groups)
-//	{
-//		int value = g->get_group_id();
-//		t.write(reinterpret_cast<char *>(&value), sizeof(int));
-//		value = g->get_process_list().size();
-//		t.write(reinterpret_cast<char *>(&value), sizeof(int));
-//		for (auto p : g->get_process_list())
-//		{
-//			t.write(reinterpret_cast<char *>(&p), sizeof(int));
-//		}
-//	}
-//
-//	// save all communicators
-//	int comm_size = exampi::communicators.size();
-//	t.write(reinterpret_cast<char *>(&comm_size), sizeof(int));
-//	for(auto &c : exampi::communicators)
-//	{
-//		int value = c->get_rank();
-//		t.write(reinterpret_cast<char *>(&value), sizeof(int));
-//		value = c->get_context_id_pt2pt();
-//		t.write(reinterpret_cast<char *>(&value), sizeof(int));
-//		value = c->get_context_id_coll();
-//		t.write(reinterpret_cast<char *>(&value), sizeof(int));
-//		bool intra = c->get_is_intra();
-//		t.write(reinterpret_cast<char *>(&intra), sizeof(bool));
-//		value = c->get_local_group()->get_group_id();
-//		t.write(reinterpret_cast<char *>(&value), sizeof(int));
-//		value = c->get_remote_group()->get_group_id();
-//		t.write(reinterpret_cast<char *>(&value), sizeof(int));
-//	}
-//
-	return MPI_SUCCESS;
+	// delegate further
+	int err = MPI_SUCCESS;
+
+	// TODO save endpoints?
+	//err = transporter->save(t);
+
+	//err = matcher->save(t);
+
+	return err;
 }
 
 int BlockingProgress::load(std::istream &t)
 {
-//	alive = true;
-//	sendThread = std::thread { sendThreadProc, &alive, &outbox };
-//	matchThread = std::thread { matchThreadProc, &alive, &matchList, &unexpectedList,
-//	                            &matchLock, &unexpectedLock };
-//
 //	int comm_size, group_size;
 //	int r, p2p, coll, id;
 //	bool intra;

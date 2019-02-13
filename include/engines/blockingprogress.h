@@ -50,8 +50,8 @@ public:
 	int post_request(Request *request);
 
 	// mpi stages, figure out how to do this, separate into another progress inheriting?
-	void cleanUp();
-
+	//void cleanup();
+	int halt();
 	int save(std::ostream &);
 	int load(std::istream &);
 };

@@ -154,6 +154,7 @@ int Daemon::send_clean_up()
 	std::stringstream packet;
 	packet << "cleanup ";
 	packet << universe.rank << " ";
+	// TODO is pid still required?
 	packet << getpid() << " ";
 	packet << universe.epoch;
 

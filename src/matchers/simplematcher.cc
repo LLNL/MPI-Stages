@@ -97,11 +97,30 @@ bool SimpleMatcher::progress(Match &match)
 				debug("no match with request");
 			}
 		}
-
 	}
 
 	//return std::make_tuple(false, nullptr, ProtocolMessage_uptr*(nullptr));
 	return false;
+}
+
+void SimpleMatcher::halt()
+{
+	std::lock_guard<std::mutex> lock(guard);
+
+	// invalidate all requests
+	for(auto req: posted_request_queue)
+	{
+		// todo do we need this? is what was given not good enough?
+		//req->payload.count = 0;
+		req->error = MPIX_TRY_RELOAD;
+
+		// finalize request
+		req->release();
+	}
+
+	// clear all queues
+	posted_request_queue.clear();
+	received_message_queue.clear();
 }
 
 }

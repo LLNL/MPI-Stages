@@ -95,26 +95,22 @@ int BasicCheckpoint::load()
 
 		// save the global datatype map
 		//target.write(&typecount, sizeof(uint32_t));
-		for(auto i : universe.datatypes)
-		{
-			// i.save(target);
-		}
-
-		//universe.progress->load(target);
-		//universe.transport->load(target);
+		//for(auto i : universe.datatypes)
+		//{
+		//	// i.save(target);
+		//}
 
 		universe.load(target);
 
 		Daemon &daemon = Daemon::get_instance();
+		debug("daemon barrier after restart");
 		daemon.barrier();
 
-		//universe.interface->save(target);
-
 		// read in epoch number
-		target.close();
-		std::ifstream ef(universe.epoch_config);
-		ef >> universe.epoch;
-		ef.close();
+		//target.close();
+		//std::ifstream ef(universe.epoch_config);
+		//ef >> universe.epoch;
+		//ef.close();
 	}
 
 	return MPIX_SUCCESS_RESTART;

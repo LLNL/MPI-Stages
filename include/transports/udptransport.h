@@ -62,19 +62,20 @@ private:
 
 public:
 	UDPTransport();
-	~UDPTransport() final;
+	~UDPTransport();
 
-	ProtocolMessage_uptr allocate_protocol_message() final;
+	ProtocolMessage_uptr allocate_protocol_message();
 
-	const ProtocolMessage_uptr ordered_recv() final;
+	const ProtocolMessage_uptr ordered_recv();
 
-	int reliable_send(const ProtocolMessage_uptr message) final;
+	int reliable_send(const ProtocolMessage_uptr message);
 
-	const std::map<Protocol, size_t> &provided_protocols() const final;
+	const std::map<Protocol, size_t> &provided_protocols() const;
 
 	// mpi stages
-	int save(std::ostream &r) final;
-	int load(std::istream &r) final;
+	int save(std::ostream &r);
+	int load(std::istream &r);
+	int halt();	
 };
 
 }

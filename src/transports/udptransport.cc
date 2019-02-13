@@ -93,6 +93,7 @@ UDPTransport::UDPTransport() : message_pool(128)
 		cache.insert({rank, addr});
 	}
 
+	// setting available protocols for UDPTransport
 	available_protocols[Protocol::EAGER] = sizeof(UDPProtocolMessage::payload);
 	available_protocols[Protocol::EAGER_ACK] = sizeof(UDPProtocolMessage::payload);
 }
@@ -106,16 +107,15 @@ ProtocolMessage_uptr UDPTransport::allocate_protocol_message()
 {
 	std::lock_guard<std::recursive_mutex> lock(guard);
 
-	UDPProtocolMessage *ptr = message_pool.allocate();
-
-	ProtocolMessage *ptr2 = dynamic_cast<ProtocolMessage *>(ptr);
+	ProtocolMessage *ptr = dynamic_cast<ProtocolMessage *>(message_pool.allocate());
 
 	return std::unique_ptr<ProtocolMessage, std::function<void(ProtocolMessage *)>>
-	       (ptr2, [this](ProtocolMessage *ptr)
+	       (ptr, 
+	        [this](ProtocolMessage *ptr)
 	{
 		debug("UDPProtocolMessage deallocation called");
 		this->message_pool.deallocate(dynamic_cast<UDPProtocolMessage *>(ptr));
-	});
+	} );
 }
 
 const ProtocolMessage_uptr UDPTransport::ordered_recv()
@@ -185,7 +185,7 @@ int UDPTransport::reliable_send(ProtocolMessage_uptr message)
 	hdr.msg_iovlen = 1;
 
 	// fill destination
-	// TODO need world rank not communicator rank
+	// TODO translate (context, rank) -> (world_context, world_rank) -> addr
 	sockaddr_in &addr = cache[message->envelope.destination];
 	hdr.msg_name = &addr;
 	hdr.msg_namelen = sizeof(sockaddr_in);
@@ -200,7 +200,6 @@ int UDPTransport::reliable_send(ProtocolMessage_uptr message)
 	return MPI_SUCCESS;
 }
 
-
 const std::map<Protocol, size_t> &UDPTransport::provided_protocols() const
 {
 	return available_protocols;
@@ -214,6 +213,37 @@ int UDPTransport::save(std::ostream &r)
 int UDPTransport::load(std::istream &r)
 {
 	return MPI_SUCCESS;
+}
+
+int UDPTransport::halt()
+{
+	// TODO no idea what this does, from original udp transport
+//	//std::cout << debug() << "basic::Transport::receive(...)" << std::endl;
+//	char buffer[2];
+//	struct sockaddr_storage src_addr;
+//
+//	struct iovec iov[1];
+//	iov[0].iov_base=buffer;
+//	iov[0].iov_len=sizeof(buffer);
+//
+//	struct msghdr message;
+//	message.msg_name=&src_addr;
+//	message.msg_namelen=sizeof(src_addr);
+//	message.msg_iov=iov;
+//	message.msg_iovlen=1;
+//	message.msg_control=0;
+//	message.msg_controllen=0;
+//
+//
+//	//std::cout << debug() <<
+//	//          "basic::Transport::receive, constructed msg, calling msg.receive" << std::endl;
+//
+//	//std::cout << debug() << "basic::Transport::udp::recv\n";
+//
+//	recvmsg(recvSocket.getFd(), &message, MSG_WAITALL);
+//	//std::cout << debug() << "basic::Transport::udp::recv exiting\n";
+//	//std::cout << debug() << "basic::Transport::receive returning" << std::endl;
+	return MPI_SUCCESS;	
 }
 
 }

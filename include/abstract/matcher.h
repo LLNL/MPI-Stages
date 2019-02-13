@@ -21,6 +21,8 @@ public:
 
 	virtual bool progress(Match &match) = 0;
 	//virtual std::tuple<bool, Request_ptr, ProtocolMessage_uptr> progress() = 0;
+
+	virtual void halt() = 0;
 };
 
 }
