@@ -53,12 +53,15 @@ int BasicInterface::MPI_Init(int *argc, char ***argv)
 	}
 
 	// execute global barrier
+	// TODO move to checkpoint
 	if(universe.epoch == 0)
 	{
 		debug("executing daemon barrier " << universe.rank);
 
 		Daemon &daemon = Daemon::get_instance();
 		daemon.barrier();
+		// todo if done for udp non-recv reason, then this should live in udp transport
+		//      not all transports require a barrier
 	}
 
 	// todo Nawrin?
@@ -554,11 +557,14 @@ int BasicInterface::MPI_Comm_rank(MPI_Comm comm, int *r)
 {
 	CHECK_STAGES_ERROR();
 
-	debug("entered MPI_Comm_rank");
-
+	// fetch root universe
 	Universe &universe = Universe::get_root_universe();
+
+	// communicator handle -> communicator object
 	std::shared_ptr<Comm> c = universe.communicators.at(comm);
 	*r = c->get_rank();
+
+	debug("called MPI_Comm_rank: " << *r);
 
 	return MPI_SUCCESS;
 }
@@ -567,12 +573,14 @@ int BasicInterface::MPI_Comm_size(MPI_Comm comm, int *size)
 {
 	CHECK_STAGES_ERROR();
 
-	debug("entered MPI_Comm_size");
-
+	// fetch root universe
 	Universe &universe = Universe::get_root_universe();
 
+	// communicator handle -> communicator object
 	std::shared_ptr<Comm> c = universe.communicators.at(comm);
 	*size = c->get_local_group()->get_process_list().size();
+	
+	debug("called MPI_Comm_size: " << *size);
 
 	return MPI_SUCCESS;
 }
@@ -805,9 +813,11 @@ int BasicInterface::MPIX_Checkpoint_read()
 	Daemon &daemon = Daemon::get_instance();
 
 	daemon.wait_commit();
-
 	debug("commit epoch received " << universe.epoch);
 
+	// todo again why is there a barrier, due to transport? then should live in transport
+	//      otherwise clarify and put in corrrect place instead of in interface, because
+	//      the interface does not require it fundementally.
 	debug("entering daemon barrier for restart");
 	daemon.barrier();
 

@@ -94,6 +94,7 @@ int BasicCheckpoint::load()
 		target.read(reinterpret_cast<char *>(&pos), sizeof(long long int));
 
 		// save the global datatype map
+		// TODO this will be done in universe
 		//target.write(&typecount, sizeof(uint32_t));
 		//for(auto i : universe.datatypes)
 		//{
@@ -107,6 +108,7 @@ int BasicCheckpoint::load()
 		daemon.barrier();
 
 		// read in epoch number
+		// TODO is this still required?
 		//target.close();
 		//std::ifstream ef(universe.epoch_config);
 		//ef >> universe.epoch;
