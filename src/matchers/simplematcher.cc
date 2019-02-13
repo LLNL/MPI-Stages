@@ -34,6 +34,8 @@ bool SimpleMatcher::progress(Match &match)
 {
 	std::lock_guard<std::mutex> lock(guard);
 
+	// TODO remove messages from old epoch
+
 	// check if work is actually available
 	if(change && (posted_request_queue.size() > 0)
 	        && (received_message_queue.size() > 0))
