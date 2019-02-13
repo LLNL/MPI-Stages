@@ -29,10 +29,10 @@ void BasicCheckpoint::save()
 	// save the global datatype map
 	//uint32_t typecount = universe.datatypes.size();
 	//target.write(reinterpret_cast<char *>(&typecount), sizeof(uint32_t));
-	for(auto i : universe.datatypes)
-	{
-		//i.save(target);
-	}
+	//for(auto i : universe.datatypes)
+	//{
+	//	//i.save(target);
+	//}
 
 	// this saved groups/communicators
 	//universe.progress->save(target);

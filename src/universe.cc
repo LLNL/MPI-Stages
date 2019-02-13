@@ -180,8 +180,8 @@ int Universe::save(std::ostream &t)
 	}
 
 	// save composites
-	int err;
-	err = progress->save(t);
+	int err = MPI_SUCCESS;
+	//err = progress->save(t);
 
 	return err;
 }
