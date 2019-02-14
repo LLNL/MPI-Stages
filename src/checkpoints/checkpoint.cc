@@ -58,8 +58,7 @@ void BasicCheckpoint::save()
 
 		// write out epoch number
 		// TODO why would this debug cause a totally different part to break?!!?!
-		//debug("incrementing and outputting epoch " << universe.epoch << " -> " << (universe.epoch+1));
-		debug("test");
+		debug("incrementing and outputting epoch " << universe.epoch << " -> " << (universe.epoch+1));
 		universe.epoch++;
 
 		std::ofstream ef(universe.epoch_config);
@@ -74,6 +73,7 @@ int BasicCheckpoint::load()
 	Universe &universe = Universe::get_root_universe();
 
 	// first time executing
+	debug("checkpoint load for epoch " << universe.epoch);
 	if(universe.epoch == 0)
 	{
 		debug("epoch 0, starting BlockingProgress");
@@ -113,12 +113,16 @@ int BasicCheckpoint::load()
 		debug("daemon barrier after restart");
 		daemon.barrier();
 
+		debug("loaded epoch " << universe.epoch);
+
 		// read in epoch number
 		// TODO is this still required?
 		target.close();
 		std::ifstream ef(universe.epoch_config);
 		ef >> universe.epoch;
 		ef.close();
+
+		debug("loaded epoch " << universe.epoch);
 	}
 
 	return MPIX_SUCCESS_RESTART;

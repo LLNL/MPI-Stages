@@ -425,6 +425,9 @@ class HeadDaemon(object):
 
 		else:
 			self.log.error('unknown errorcode received %s', contents)
+
+			# TODO shut everything down
+
 			raise ValueError
 
 	def process_shutdown(self, sokt, contents):

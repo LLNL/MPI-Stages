@@ -18,6 +18,7 @@ int UDPProtocolMessage::pack(const Request_ptr request)
 	//      assemble via iov
 	//
 	//      options: copying, pointing
+
 	memcpy(&payload[0], request->payload.buffer, sizeof(payload));
 
 	debug("packed message");
@@ -204,8 +205,6 @@ int UDPTransport::reliable_send(ProtocolMessage_uptr message)
 	iovs[2].iov_base = &msg->payload;
 	iovs[2].iov_len = sizeof(msg->payload);
 
-	//msg_iov.iov_base = &message->stage;
-	//msg_iov.iov_len = message->size();
 	//debug("iov data " << &message->stage << " size " << message->size());
 
 	hdr.msg_iov = iovs;
@@ -216,12 +215,15 @@ int UDPTransport::reliable_send(ProtocolMessage_uptr message)
 	// TODO translate (context, rank) -> (world_context, world_rank) -> addr
 	sockaddr_in &addr = cache[message->envelope.destination];
 	hdr.msg_name = &addr;
-	hdr.msg_namelen = sizeof(sockaddr_in);
+	hdr.msg_namelen = sizeof(addr);
 
 	debug("sending message");
 	int err = sendmsg(socket_recv, &hdr, 0);
 	if(err <= 0)
+	{
+		debug("ERROR: sendmsg " << err);
 		return MPI_ERR_RELIABLE_SEND_FAILED;
+	}
 
 	debug("sent message envelope: { e " << message->envelope.epoch << " c " << message->envelope.context << " s " << message->envelope.source << " d " << message->envelope.destination << " t " << message->envelope.tag << "}");
 	debug("sent message: " << ((UDPProtocolMessage *)message.get())->payload[0]);

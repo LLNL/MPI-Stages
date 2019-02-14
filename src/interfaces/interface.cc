@@ -807,7 +807,15 @@ int BasicInterface::MPIX_Checkpoint_write()
 
 int BasicInterface::MPIX_Checkpoint_read()
 {
-	CHECK_STAGES_ERROR();
+	// note no check since we are already in a fault
+	//CHECK_STAGES_ERROR();
+	
+	// note instead reset
+	FaultHandler &faulthandler = FaultHandler::get_instance();
+	if(faulthandler.isErrSet())
+	{
+		faulthandler.setErrToZero();
+	}
 
 	Universe &universe = Universe::get_root_universe();
 	debug("surviving process restart " << universe.rank);

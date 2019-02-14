@@ -252,14 +252,14 @@ int BlockingProgress::handle_send(Request *request)
 	// TODO decider object decides here
 	// message->stage = decider->decide_send(request, universe);
 	message->stage = Protocol::EAGER;
-
 	message->envelope = request->envelope;
 
 	// pack protocol message
-	int err = message->pack(request);
+	int err = -1;
+	err = message->pack(request);
 	if(err != MPI_SUCCESS)
 	{
-		debug("error packing message");
+		debug("ERROR: packing message");
 		return err;
 	}
 
@@ -269,7 +269,7 @@ int BlockingProgress::handle_send(Request *request)
 	err = transporter->reliable_send(std::move(message));
 	if(err != MPI_SUCCESS)
 	{
-		debug("error sending message");
+		debug("ERROR: sending message");
 		return err;
 	}
 

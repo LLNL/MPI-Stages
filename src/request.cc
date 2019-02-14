@@ -7,6 +7,7 @@ namespace exampi
 thread_local std::condition_variable thr_request_condition;
 
 Request::Request() :
+	condition(nullptr),
 	complete(false),
 	cancelled(false),
 	persistent(false),
@@ -37,8 +38,8 @@ void Request::release()
 	{
 		// lock is already acquired
 		debug("notifying waiting thread");
-		//condition->notify_one();
-		condition->notify_all();
+		condition->notify_one();
+		//condition->notify_all();
 	}
 
 	debug("released request entirely");
