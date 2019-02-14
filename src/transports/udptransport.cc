@@ -153,7 +153,7 @@ const ProtocolMessage_uptr UDPTransport::ordered_recv()
 	// TODO this is where protocolmessage size is important
 	debug("iov processing");
 	iovec iovs[3];
-	
+
 	iovs[0].iov_base = &umsg->stage;
 	iovs[0].iov_len = sizeof(umsg->stage);
 
@@ -179,7 +179,9 @@ const ProtocolMessage_uptr UDPTransport::ordered_recv()
 		debug("socket recv error " << err);
 		return ProtocolMessage_uptr(nullptr);
 	}
-	debug("recv message envelope: { e " << msg->envelope.epoch << " c " << msg->envelope.context << " s " << msg->envelope.source << " d " << msg->envelope.destination << " t " << msg->envelope.tag << "}");
+	debug("recv message envelope: { e " << msg->envelope.epoch << " c " <<
+	      msg->envelope.context << " s " << msg->envelope.source << " d " <<
+	      msg->envelope.destination << " t " << msg->envelope.tag << "}");
 	debug("successful receive " << ((UDPProtocolMessage *)msg.get())->payload[0]);
 
 	return std::move(msg);
@@ -195,7 +197,7 @@ int UDPTransport::reliable_send(ProtocolMessage_uptr message)
 
 	// fill iov
 	iovec iovs[3];
-	
+
 	iovs[0].iov_base = &msg->stage;
 	iovs[0].iov_len = sizeof(msg->stage);
 
@@ -225,7 +227,9 @@ int UDPTransport::reliable_send(ProtocolMessage_uptr message)
 		return MPI_ERR_RELIABLE_SEND_FAILED;
 	}
 
-	debug("sent message envelope: { e " << message->envelope.epoch << " c " << message->envelope.context << " s " << message->envelope.source << " d " << message->envelope.destination << " t " << message->envelope.tag << "}");
+	debug("sent message envelope: { e " << message->envelope.epoch << " c " <<
+	      message->envelope.context << " s " << message->envelope.source << " d " <<
+	      message->envelope.destination << " t " << message->envelope.tag << "}");
 	debug("sent message: " << ((UDPProtocolMessage *)message.get())->payload[0]);
 
 	return MPI_SUCCESS;

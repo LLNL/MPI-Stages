@@ -292,7 +292,7 @@ int BlockingProgress::halt()
 	}
 
 	debug("joined all threads");
-	
+
 	int err = MPI_SUCCESS;
 	// TODO
 	//err = matcher->halt();

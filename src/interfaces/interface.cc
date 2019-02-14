@@ -580,7 +580,7 @@ int BasicInterface::MPI_Comm_size(MPI_Comm comm, int *size)
 	// communicator handle -> communicator object
 	std::shared_ptr<Comm> c = universe.communicators.at(comm);
 	*size = c->get_local_group()->get_process_list().size();
-	
+
 	debug("called MPI_Comm_size: " << *size);
 
 	return MPI_SUCCESS;
@@ -809,7 +809,7 @@ int BasicInterface::MPIX_Checkpoint_read()
 {
 	// note no check since we are already in a fault
 	//CHECK_STAGES_ERROR();
-	
+
 	// note instead reset
 	FaultHandler &faulthandler = FaultHandler::get_instance();
 	if(faulthandler.isErrSet())
