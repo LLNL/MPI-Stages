@@ -2,6 +2,7 @@
 
 #include "matchers/simplematcher.h"
 #include "debug.h"
+#include "universe.h"
 
 namespace exampi
 {
@@ -25,6 +26,14 @@ void SimpleMatcher::post_message(ProtocolMessage_uptr message)
 	std::lock_guard<std::mutex> lock(guard);
 	debug("posting message in matcher");
 
+	Universe &universe = Universe::get_root_universe();
+
+	if(message->envelope.epoch != universe.epoch)
+	{
+		debug("silently dropping message from wrong epoch");
+		return;
+	}
+
 	received_message_queue.push_back(std::move(message));
 	change = true;
 }
@@ -34,8 +43,6 @@ bool SimpleMatcher::progress(Match &match)
 {
 	std::lock_guard<std::mutex> lock(guard);
 
-	// TODO remove messages from old epoch
-
 	// check if work is actually available
 	if(change && (posted_request_queue.size() > 0)
 	        && (received_message_queue.size() > 0))
@@ -43,9 +50,6 @@ bool SimpleMatcher::progress(Match &match)
 		change = false;
 
 		debug("found requests and messages to match");
-
-		// TODO this is an inefficient implementation, O(n^2)
-		// but atleast logically separated receive and match
 
 		typedef std::list<ProtocolMessage_uptr>::iterator msg_iter;
 
@@ -64,12 +68,20 @@ bool SimpleMatcher::progress(Match &match)
 			{
 				debug("testing match between request and protocol message: epoch " << req->envelope.epoch << " == " << msg->envelope.epoch << ", comm " << req->envelope.context << " == " << msg->envelope.context << ", source " << req->envelope.source << " == " << msg->envelope.source << ", dest " << req->envelope.destination << " == " << msg->envelope.destination << ", tag " << req->envelope.tag << " == " << msg->envelope.tag);
 
-				// TODO support WILD CARD ANY_TAG AND ANY_SOURCE
-				return (req->envelope.epoch			== msg->envelope.epoch) &&
-				(req->envelope.context 		== msg->envelope.context) &&
-				(req->envelope.source		== msg->envelope.source) &&
-				(req->envelope.destination	== msg->envelope.destination) &&
-				(req->envelope.tag			== msg->envelope.tag);
+				// minimal matching condition set
+				bool condition = (req->envelope.epoch			== msg->envelope.epoch) &&
+				                 (req->envelope.context 		== msg->envelope.context) &&
+                                 (req->envelope.destination		== msg->envelope.destination);
+
+				// check for MPI_ANY_SOURCE
+				if(req->envelope.source != MPI_ANY_SOURCE)
+					condition = condition && (req->envelope.source == msg->envelope.source);
+			
+				// check for MPI_ANY_TAG
+				if(req->envelope.tag != MPI_ANY_TAG)
+					condition = condition && (req->envelope.tag == msg->envelope.tag);
+				
+				return condition;
 			});
 
 			// if matched
