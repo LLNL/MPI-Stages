@@ -109,7 +109,9 @@ int Daemon::abort()
 
 	debug("send_abort:" << packet.str() << " " << packet.str().length());
 
-	return send(packet.str());
+	int err = send(packet.str());
+
+	return MPI_SUCCESS;
 }
 
 int Daemon::send_barrier_ready()
