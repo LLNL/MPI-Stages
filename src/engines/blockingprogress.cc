@@ -96,11 +96,13 @@ void BlockingProgress::progress()
 		// 		blocking would be woken up by post_request, transporter ordered_recv()
 
 		// absorb message if any, this is inflow
-		if(ProtocolMessage_uptr msg = transporter->ordered_recv())
+		//if(ProtocolMessage_uptr msg = transporter->ordered_recv())
+		if(Header *header = transporter->ordered_recv())
 		{
 			debug("progress thread, receiving message");
 
-			matcher->post_message(std::move(msg));
+			//matcher->post_message(std::move(msg));
+			matcher->post_header(header);
 		}
 
 		// match message if any, this is inflow
@@ -160,19 +162,21 @@ int BlockingProgress::handle_match(Match &match)
 
 	// TODO put this into a dictionary
 	int err = -1;
-	switch(match.message->stage)
+	//switch(match.message->stage)
+	switch(match.header->protocol)
 	{
 		case Protocol::EAGER_ACK:
 		{
 			debug("protocol message: EAGER_ACK");
 
 			// return ACK message
-			ProtocolMessage_uptr msg(transporter->allocate_protocol_message());
+			//ProtocolMessage_uptr msg(transporter->allocate_protocol_message());
+			//msg->envelope = match.request->envelope;
+			//msg->stage = Protocol::ACK;
 
-			msg->envelope = match.request->envelope;
-			msg->stage = Protocol::ACK;
+			//err = transporter->reliable_send(std::move(msg));
 
-			err = transporter->reliable_send(std::move(msg));
+			err = transporter->reliable_send(Protocol::ACK, match.request);
 			if(err != MPI_SUCCESS)
 				return err;
 
@@ -182,9 +186,12 @@ int BlockingProgress::handle_match(Match &match)
 		case Protocol::EAGER:
 		{
 			debug("protocol message: EAGER");
-			debug("req: " << match.request << " <-> message: " << match.message.get());
+			//debug("req: " << match.request << " <-> message: " << match.message.get());
 
-			err = match.message->unpack(match.request);
+			//err = match.message->unpack(match.request);
+
+			int err = transporter->fill(match.header, match.request);
+			// todo handle error
 
 			debug("protocol message unpacked");
 
@@ -248,33 +255,35 @@ int BlockingProgress::handle_send(Request *request)
 {
 	// request -> ProtocolMessage
 	debug("allocating protocol message from transport");
-	ProtocolMessage_uptr message = transporter->allocate_protocol_message();
+	//ProtocolMessage_uptr message = transporter->allocate_protocol_message();
 
 	// pack message
-	debug("filling protocol message");
-	// TODO decider object decides here
-	// message->stage = decider->decide_send(request, universe);
+	//debug("filling protocol message");
 	
 	Universe& universe = Universe::get_root_universe();
-	message->stage = decider->decide(request, universe);
+	//message->stage = decider->decide(request, universe);
 	//message->stage = Protocol::EAGER;
 
 
-	message->envelope = request->envelope;
+	//message->envelope = request->envelope;
 
 	// pack protocol message
-	int err = -1;
-	err = message->pack(request);
-	if(err != MPI_SUCCESS)
-	{
-		debug("ERROR: packing message");
-		return err;
-	}
+	//int err = -1;
+	//err = message->pack(request);
+	//if(err != MPI_SUCCESS)
+	//{
+	//	debug("ERROR: packing message");
+	//	return err;
+	//}
 
-	debug("packed protocol message, sending");
+	//debug("packed protocol message, sending");
 
 	// send protocol message
-	err = transporter->reliable_send(std::move(message));
+	//err = transporter->reliable_send(std::move(message));
+
+	Protocol protocol = decider->decide(request, universe);
+
+	int err = transporter->reliable_send(protocol, request);
 	if(err != MPI_SUCCESS)
 	{
 		debug("ERROR: sending message");

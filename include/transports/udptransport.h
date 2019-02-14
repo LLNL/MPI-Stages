@@ -7,27 +7,27 @@
 #include <mutex>
 #include <unordered_map>
 #include <exception>
+#include <map>
 
 #include "abstract/transport.h"
-#include "protocol.h"
 
 namespace exampi
 {
 
-struct UDPProtocolMessage: public ProtocolMessage
-{
-	int payload[10];
-
-	~UDPProtocolMessage() final {}
-	int size() final
-	{
-		return ProtocolMessage::size() + sizeof(payload);
-	}
-
-
-	int pack(const Request_ptr request) final;
-	int unpack(Request_ptr request) const final;
-};
+//struct UDPProtocolMessage: public ProtocolMessage
+//{
+//	int payload[10];
+//
+//	~UDPProtocolMessage() final {}
+//	int size() final
+//	{
+//		return ProtocolMessage::size() + sizeof(payload);
+//	}
+//
+//
+//	int pack(const Request_ptr request) final;
+//	int unpack(Request_ptr request) const final;
+//};
 
 class UDPTransportCreationException: public std::exception
 {
@@ -52,7 +52,9 @@ private:
 
 	int socket_recv;
 
-	MemoryPool<UDPProtocolMessage> message_pool;
+	//MemoryPool<UDPProtocolMessage> message_pool;
+	MemoryPool<Header> header_pool;
+	std::unordered_map<const Header *, void*> data_buffer;
 
 	msghdr hdr;
 
@@ -65,11 +67,16 @@ public:
 	UDPTransport();
 	~UDPTransport();
 
-	ProtocolMessage_uptr allocate_protocol_message();
+	//ProtocolMessage_uptr allocate_protocol_message();
 
-	const ProtocolMessage_uptr ordered_recv();
+	//const ProtocolMessage_uptr ordered_recv();
 
-	int reliable_send(const ProtocolMessage_uptr message);
+	Header *ordered_recv();
+
+	int fill(const Header*, Request*);
+	
+	//int reliable_send(const ProtocolMessage_uptr message);
+	int reliable_send(const Protocol, const Request *);
 
 	const std::map<Protocol, size_t> &provided_protocols() const;
 

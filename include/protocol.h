@@ -33,23 +33,23 @@ enum class Protocol: int
 	//RENDEVOUZ_ACK,	// recv buffer is packed, requesting putting into receiver, follow by ack
 };
 
-struct ProtocolMessage
-{
-	Protocol stage;
-	Envelope envelope;
+//struct ProtocolMessage
+//{
+//	Protocol stage;
+//	Envelope envelope;
+//
+//	virtual ~ProtocolMessage() {}
+//	virtual int size()
+//	{
+//		return sizeof(stage) + sizeof(envelope);
+//	}
+//
+//	virtual int pack(const Request_ptr request) = 0;
+//	virtual int unpack(Request_ptr request) const = 0;
+//};
 
-	virtual ~ProtocolMessage() {}
-	virtual int size()
-	{
-		return sizeof(stage) + sizeof(envelope);
-	}
-
-	virtual int pack(const Request_ptr request) = 0;
-	virtual int unpack(Request_ptr request) const = 0;
-};
-
-typedef std::unique_ptr<ProtocolMessage, std::function<void(ProtocolMessage *)>>
-        ProtocolMessage_uptr;
+//typedef std::unique_ptr<ProtocolMessage, std::function<void(ProtocolMessage *)>>
+//        ProtocolMessage_uptr;
 
 //class ProtocolQueue
 //{
