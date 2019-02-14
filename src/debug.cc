@@ -55,7 +55,7 @@ std::string debug_init(const char *file, int line, const char *func)
 
 	std::stringstream stream;
 
-	// TODO prepend symbol string for each thread, easier than text name
+	// todo prepend symbol string for each thread, easier than text name
 	// ####
 	// ****
 	// &&&&

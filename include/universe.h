@@ -50,6 +50,8 @@ public:
 	std::string epoch_config;
 
 	std::unique_ptr<Progress> progress;
+
+	// TODO this will be removed for Stages Consolidation
 	std::unique_ptr<Checkpoint> checkpoint;
 
 	// todo eventually Interface *interface

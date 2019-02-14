@@ -60,7 +60,7 @@ Universe::Universe() : request_pool(128)
 
 	debug("creating checkpoint");
 	checkpoint = std::make_unique<BasicCheckpoint>();
-	// TODO progress should be created here
+	// TODO MPI STAGES progress should be created here
 
 	// MPI WORLD GROUP
 	debug("generating world group");

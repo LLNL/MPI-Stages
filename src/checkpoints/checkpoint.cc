@@ -34,11 +34,6 @@ void BasicCheckpoint::save()
 	//	//i.save(target);
 	//}
 
-	// this saved groups/communicators
-	//universe.progress->save(target);
-	//universe.transport->save(target);
-	//universe.interface->save(target);
-
 	// save universe
 	universe.save(target);
 
@@ -57,7 +52,6 @@ void BasicCheckpoint::save()
 		// NOTE could also send to daemon
 
 		// write out epoch number
-		// TODO why would this debug cause a totally different part to break?!!?!
 		debug("incrementing and outputting epoch " << universe.epoch << " -> " <<
 		      (universe.epoch+1));
 		universe.epoch++;

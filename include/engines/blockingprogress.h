@@ -9,9 +9,11 @@
 #include "abstract/progress.h"
 #include "abstract/matcher.h"
 #include "abstract/transport.h"
+#include "abstract/decider.h"
 
 #include "matchers/simplematcher.h"
 #include "transports/udptransport.h"
+#include "deciders/simpledecider.h"
 
 #include "daemon.h"
 #include "request.h"
@@ -34,6 +36,7 @@ private:
 
 	std::unique_ptr<Matcher> matcher;
 	std::unique_ptr<Transport> transporter;
+	std::unique_ptr<Decider> decider;
 
 	void progress();
 
@@ -45,7 +48,8 @@ private:
 public:
 	BlockingProgress();
 	BlockingProgress(std::unique_ptr<Matcher> matcher,
-	                 std::unique_ptr<Transport> transporter);
+	                 std::unique_ptr<Transport> transporter,
+	                 std::unique_ptr<Decider> decider);
 	~BlockingProgress();
 
 	int post_request(Request *request);

@@ -6,18 +6,21 @@ namespace exampi
 BlockingProgress::BlockingProgress() :
 	BlockingProgress(
 	    std::unique_ptr<Matcher>(new SimpleMatcher()),
-	    std::unique_ptr<Transport>(new UDPTransport())
+	    std::unique_ptr<Transport>(new UDPTransport()),
+	    std::unique_ptr<Decider>(new SimpleDecider())
 	)
 {
 	;
 }
 
 BlockingProgress::BlockingProgress(std::unique_ptr<Matcher> matcher,
-                                   std::unique_ptr<Transport> transporter) :
+                                   std::unique_ptr<Transport> transporter,
+								   std::unique_ptr<Decider> decider) :
 	shutdown(false),
 	maximum_progress_cycles(10),
 	matcher(std::move(matcher)),
-	transporter(std::move(transporter))
+	transporter(std::move(transporter)),
+	decider(std::move(decider))
 {
 	// todo fetch progress thread count from config
 	//for(size_t tidx = 0; tidx < thread_num; ++tidx)
@@ -109,8 +112,8 @@ void BlockingProgress::progress()
 			int err = handle_match(match);
 			if(err != MPI_SUCCESS)
 			{
-				// TODO handle error
-				debug("error receiving message");
+				debug("ERROR receiving message");
+				// todo handle via mpi error handler?
 			}
 		}
 
@@ -122,8 +125,8 @@ void BlockingProgress::progress()
 			int err = handle_request();
 			if(err != MPI_SUCCESS)
 			{
-				// TODO handle error
-				debug("error sending message");
+				debug("ERROR sending message");
+				// todo handle via mpi error handler?
 			}
 
 			debug("sent message");
@@ -133,7 +136,7 @@ void BlockingProgress::progress()
 		else
 		{
 			cycles = 0;
-			// TODO record number of sleep cycles for debugging since last work
+			// todo debug record number of sleep cycles for debugging since last work
 			std::this_thread::yield();
 		}
 
@@ -251,7 +254,12 @@ int BlockingProgress::handle_send(Request *request)
 	debug("filling protocol message");
 	// TODO decider object decides here
 	// message->stage = decider->decide_send(request, universe);
-	message->stage = Protocol::EAGER;
+	
+	Universe& universe = Universe::get_root_universe();
+	message->stage = decider->decide(request, universe);
+	//message->stage = Protocol::EAGER;
+
+
 	message->envelope = request->envelope;
 
 	// pack protocol message

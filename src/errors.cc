@@ -17,7 +17,7 @@ int check_comm(MPI_Comm comm)
 {
 	Universe &universe = Universe::get_root_universe();
 
-	// TODO return MPI_ERR_COMM
+	// todo return MPI_ERR_COMM
 	return MPI_SUCCESS;
 }
 
@@ -39,13 +39,13 @@ int check_tag(int tag)
 
 int check_datatype(MPI_Datatype datatype)
 {
-	// TODO return MPI_ERR_DATATYPE
+	// todo return MPI_ERR_DATATYPE
 	return MPI_SUCCESS;
 }
 
 int check_rank(int rank, MPI_Comm comm)
 {
-	// TODO valid for communicator check
+	// todo valid for communicator check
 
 	if(rank >= 0)
 		return MPI_SUCCESS;
