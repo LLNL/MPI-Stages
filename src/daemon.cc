@@ -94,9 +94,22 @@ int Daemon::barrier()
 
 int Daemon::abort()
 {
-	// TODO send abort early warning to head daemon
+	Universe &universe = Universe::get_root_universe();
 
-	return -1;
+	std::stringstream packet;
+	packet << "abort ";
+	packet << universe.rank << " ";
+	packet << universe.epoch;
+
+	// add padding
+	while(packet.str().length() < 64)
+	{
+		packet << ' ';
+	}
+
+	debug("send_abort:" << packet.str() << " " << packet.str().length());
+
+	return send(packet.str());
 }
 
 int Daemon::send_barrier_ready()
