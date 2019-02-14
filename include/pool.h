@@ -146,6 +146,7 @@ public:
 		debug("freeing item, now at " << this->allocated_items << " : " <<
 		      this->allocated_arenas);
 
+		// avoid nullptr freeing
 		if(t == nullptr)
 			return;
 

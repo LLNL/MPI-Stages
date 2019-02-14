@@ -146,16 +146,26 @@ const ProtocolMessage_uptr UDPTransport::ordered_recv()
 	debug("allocating protocol message");
 	ProtocolMessage_uptr msg = allocate_protocol_message();
 
+	UDPProtocolMessage *umsg = dynamic_cast<UDPProtocolMessage *>(msg.get());
+
 	// fill iov
 	// TODO this is where protocolmessage size is important
 	debug("iov processing");
-	iovec msg_iov;
-	msg_iov.iov_base = &msg->stage;
-	msg_iov.iov_len = msg->size();
+	iovec iovs[3];
+	
+	iovs[0].iov_base = &umsg->stage;
+	iovs[0].iov_len = sizeof(umsg->stage);
+
+	iovs[1].iov_base = &umsg->envelope;
+	iovs[1].iov_len = sizeof(umsg->envelope);
+
+	iovs[2].iov_base = &umsg->payload;
+	iovs[2].iov_len = sizeof(umsg->payload);
+
 	debug("iov data " << &msg->stage << " size " << msg->size());
 
-	hdr.msg_iov = &msg_iov;
-	hdr.msg_iovlen = 1;
+	hdr.msg_iov = iovs;
+	hdr.msg_iovlen = 3;
 
 	// clear source
 	hdr.msg_name = NULL;
@@ -180,18 +190,29 @@ int UDPTransport::reliable_send(ProtocolMessage_uptr message)
 
 	debug("assembling udp msg");
 
-	// fill iov
-	iovec msg_iov;
-	msg_iov.iov_base = &message->stage;
-	// TODO this is where the size is important
-	//      can be read from request, as long as below that size
-	msg_iov.iov_len = message->size();
-	debug("iov data " << &message->stage << " size " << message->size());
+	UDPProtocolMessage *msg = dynamic_cast<UDPProtocolMessage *>(message.get());
 
-	hdr.msg_iov = &msg_iov;
-	hdr.msg_iovlen = 1;
+	// fill iov
+	iovec iovs[3];
+	
+	iovs[0].iov_base = &msg->stage;
+	iovs[0].iov_len = sizeof(msg->stage);
+
+	iovs[1].iov_base = &msg->envelope;
+	iovs[1].iov_len = sizeof(msg->envelope);
+
+	iovs[2].iov_base = &msg->payload;
+	iovs[2].iov_len = sizeof(msg->payload);
+
+	//msg_iov.iov_base = &message->stage;
+	//msg_iov.iov_len = message->size();
+	//debug("iov data " << &message->stage << " size " << message->size());
+
+	hdr.msg_iov = iovs;
+	hdr.msg_iovlen = 3;
 
 	// fill destination
+	// TODO this needs to be a facility given by communicator
 	// TODO translate (context, rank) -> (world_context, world_rank) -> addr
 	sockaddr_in &addr = cache[message->envelope.destination];
 	hdr.msg_name = &addr;
