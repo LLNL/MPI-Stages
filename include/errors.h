@@ -8,6 +8,14 @@
 namespace exampi
 {
 
+class PersistentOffloadOperationError: public std::exception
+{
+	const char *what() const noexcept override
+	{
+		return "An operation which is not persistent offload was given.";
+	}
+};
+
 class BsendCopyError: public std::exception
 {
 	const char *what() const noexcept override

@@ -24,13 +24,9 @@ public:
 
 	virtual int MPI_Wait(MPI_Request *request, MPI_Status *status) = 0;
 
-	virtual int MPI_Waitall(int count, MPI_Request array_of_requests[],
-	                        MPI_Status array_of_statuses[]) = 0;
-
 	virtual double MPI_Wtime(void) = 0;
 
 	virtual int MPI_Request_free(MPI_Request *request) = 0;
-
 
 	// communicator
 	virtual int MPI_Comm_set_errhandler(MPI_Comm comm, MPI_Errhandler err) = 0;

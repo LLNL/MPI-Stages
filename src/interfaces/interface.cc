@@ -88,74 +88,131 @@ int BasicInterface::MPI_Finalize()
 
 int BasicInterface::MPI_Request_free(MPI_Request *request)
 {
-	// TODO implement request freeing
-	return -1;
+	// sanitize user input
+	debug("sanitizing user input");
+	CHECK_REQUEST(request);
+	CHECK_STAGES_ERROR();
+
+	// TODO garuntees
+	// active can be freed, but no longer used in Wait or Test
+	// active allowed to complete
+
+	Request_ptr req = reinterpret_cast<Request_ptr>(*request);
+	
+	Universe &universe = Universe::get_root_universe();
+	universe.deallocate_request(req);
+
+	// invalidate user MPI_Request handle
+	*request = MPI_REQUEST_NULL;
+
+	return MPI_SUCCESS;
+}
+
+void BasicInterface::mark_hidden_persistent(MPI_Request *request)
+{
+	// mark as hidden persistence, delete on MPI_Wait 
+	Request_ptr req = reinterpret_cast<Request_ptr>(*request);
+	req->hidden_persistent = true;
+}
+
+int BasicInterface::offload_persistent(const void *buf, int count, MPI_Datatype datatype, int rank, int tag, MPI_Comm comm, Operation operation, MPI_Request *request)
+{
+	// offload into persistent path
+	debug("initiating persistent send path");
+	int err;
+
+	switch (operation)
+	{
+		case Operation::Send:
+		{
+			err = MPI_Send_init(buf, count, datatype, rank, tag, comm, request);
+			break;
+		}
+		case Operation::Bsend:
+		{
+			err = MPI_Bsend_init(buf, count, datatype, rank, tag, comm, request);
+			break;
+		}
+		case Operation::Ssend:
+		{
+			err = MPI_Ssend_init(buf, count, datatype, rank, tag, comm, request);
+			break;
+		}
+		case Operation::Rsend:
+		{
+			err = MPI_Rsend_init(buf, count, datatype, rank, tag, comm, request);
+			break;
+		}
+		case Operation::Receive:
+		{
+			err = MPI_Recv_init(buf, count, datatype, rank, tag, comm, request);
+			break;
+		}
+		default:
+		{
+			throw PersistentOffloadOperationError();
+			break;
+		}
+	}
+	
+	if(err != MPI_SUCCESS) return err;
+
+	mark_hidden_persistent(request);
+
+	debug("starting request");
+	err = MPI_Start(request);
+	if(err != MPI_SUCCESS)
+	{
+		int terr = MPI_Request_free(request);
+	}
+
+	return err;
+}
+
+int BasicInterface::offload_persistent_wait(const void *buf, int count, MPI_Datatype datatype, int rank, int tag, MPI_Comm comm, Operation operation)
+{
+	MPI_Request request;
+	int err = offload_persistent(buf, count, datatype, rank, tag, comm, operation, &request);
+	if(err != MPI_SUCCESS) return err;
+	// request is garunteed to be cleaned up
+
+	debug("waiting for request");
+	err = MPI_Wait(&request, MPI_STATUS_IGNORE);
+	// request hidden persistent is freed
+
+	if(err != MPI_SUCCESS)
+	{
+		MPI_Request_free(&request);
+	}
+
+	return err;
 }
 
 int BasicInterface::MPI_Send(const void *buf, int count, MPI_Datatype datatype,
                              int dest, int tag, MPI_Comm comm)
 {
-	// offload into persistent path
-	debug("initiating persistent send path");
-	int err;
-	MPI_Request request;
-	err = MPI_Send_init(buf, count, datatype, dest, tag, comm, &request);
-	if(err != MPI_SUCCESS) return err;
+	return offload_persistent_wait(buf, count, datatype, dest, tag, comm, Operation::Send);
+}
 
-	debug("starting request");
-	err = MPI_Start(&request);
-	if(err != MPI_SUCCESS) return err;
+int BasicInterface::MPI_Bsend(const void *buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm)
+{	
+	return offload_persistent_wait(buf, count, datatype, dest, tag, comm, Operation::Bsend);
+}
 
-	debug("waiting for request");
-	err = MPI_Wait(&request, MPI_STATUS_IGNORE);
-	return err;
+int BasicInterface::MPI_Ssend(const void *buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm)
+{	
+	return offload_persistent_wait(buf, count, datatype, dest, tag, comm, Operation::Ssend);
+}
+
+int BasicInterface::MPI_Rsend(const void *buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm)
+{	
+	return offload_persistent_wait(buf, count, datatype, dest, tag, comm, Operation::Rsend);
 }
 
 int BasicInterface::MPI_Recv(void *buf, int count, MPI_Datatype datatype,
                              int source, int tag, MPI_Comm comm, MPI_Status *status)
 {
-	// offload into persistent path
-	debug("initiating persistent recv path");
-	int err;
-	MPI_Request request;
-	err = MPI_Recv_init(buf, count, datatype, source, tag, comm, &request);
-	if(err != MPI_SUCCESS) return err;
-
-	debug("starting request");
-	err = MPI_Start(&request);
-	if(err != MPI_SUCCESS) return err;
-
-	debug("waiting for request");
-	err = MPI_Wait(&request, status);
-	return err;
-}
-
-int BasicInterface::MPI_Isend(const void *buf, int count, MPI_Datatype datatype,
-                              int dest, int tag, MPI_Comm comm, MPI_Request *request)
-{
-	// offload into persistent path
-	debug("initiating persistent send path");
-	int err;
-	err = MPI_Send_init(buf, count, datatype, dest, tag, comm, request);
-	if(err != MPI_SUCCESS) return err;
-
-	debug("starting request");
-	err = MPI_Start(request);
-	return err;
-}
-
-int BasicInterface::MPI_Irecv(void *buf, int count, MPI_Datatype datatype,
-                              int source, int tag, MPI_Comm comm, MPI_Request *request)
-{
-	// offload into persistent path
-	debug("initiating persistent recv path");
-	int err;
-	err = MPI_Recv_init(buf, count, datatype, source, tag, comm, request);
-	if(err != MPI_SUCCESS) return err;
-
-	debug("starting request");
-	err = MPI_Start(request);
-	return err;
+	return offload_persistent_wait(buf, count, datatype, source, tag, comm, Operation::Receive);
 }
 
 int BasicInterface::MPI_Sendrecv(const void *sendbuf, int sendcount,
@@ -163,29 +220,44 @@ int BasicInterface::MPI_Sendrecv(const void *sendbuf, int sendcount,
                                  MPI_Datatype recvtype, int source, int recvtag, MPI_Comm comm,
                                  MPI_Status *status)
 {
-	// sanitize user input
-	CHECK_STAGES_ERROR();
+	MPI_Request recvreq;
 
-//	MPI_Request recvreq;
-//	int rc = MPI_Irecv(recvbuf, recvcount, recvtype, source, recvtag, comm,
-//	                   &recvreq);
-//	if (rc != MPI_SUCCESS)
-//	{
-//		return MPIX_TRY_RELOAD;
-//	}
-//
-//	rc = MPI_Send(sendbuf, sendcount, sendtype, dest, sendtag, comm);
-//
-//	if (rc != MPI_SUCCESS)
-//	{
-//		return MPIX_TRY_RELOAD;
-//	}
-//
-//	MPI_Wait(&recvreq, status);
-//
-//	return MPI_SUCCESS;
+	int rc = MPI_Irecv(recvbuf, recvcount, recvtype, source, recvtag, comm, &recvreq);
+	rc = MPI_Send(sendbuf, sendcount, sendtype, dest, sendtag, comm);
 
-	return -1;
+	MPI_Wait(&recvreq, status);
+
+	return MPI_SUCCESS;
+}
+
+int BasicInterface::MPI_Isend(const void *buf, int count, MPI_Datatype datatype,
+                              int dest, int tag, MPI_Comm comm, MPI_Request *request)
+{
+	return offload_persistent(buf, count, datatype, dest, tag, comm, Operation::Send, request);
+}
+
+int BasicInterface::MPI_Ibsend(const void *buf, int count, MPI_Datatype datatype, int dest, int tag,
+           MPI_Comm comm, MPI_Request *request)
+{
+	return offload_persistent(buf, count, datatype, dest, tag, comm, Operation::Bsend, request);
+}
+
+int BasicInterface::MPI_Issend(const void *buf, int count, MPI_Datatype datatype, int dest, int tag,
+           MPI_Comm comm, MPI_Request *request)
+{
+	return offload_persistent(buf, count, datatype, dest, tag, comm, Operation::Ssend, request);
+}
+
+int BasicInterface::MPI_Irsend(const void *buf, int count, MPI_Datatype datatype, int dest, int tag,
+           MPI_Comm comm, MPI_Request *request)
+{
+	return offload_persistent(buf, count, datatype, dest, tag, comm, Operation::Rsend, request);
+}
+
+int BasicInterface::MPI_Irecv(void *buf, int count, MPI_Datatype datatype,
+                              int source, int tag, MPI_Comm comm, MPI_Request *request)
+{
+	return offload_persistent(buf, count, datatype, source, tag, comm, Operation::Receive, request);
 }
 
 //#############################################################################
@@ -230,7 +302,29 @@ int BasicInterface::construct_request(const void *buf, int count,
 	req->payload.count = count;
 	req->payload.buffer = buf;
 
+	// persistent
+	req->persistent = true;
+	req->active = false;
+
 	return MPI_SUCCESS;
+}
+
+int BasicInterface::MPI_Send_init(const void *buf, int count,
+                                  MPI_Datatype datatype, int dest, int tag, MPI_Comm comm, MPI_Request *request)
+{
+	// sanitize user input
+	CHECK_BUFFER(buf);
+	CHECK_COUNT(count);
+	CHECK_DATATYPE(datatype);
+	CHECK_COMM(comm);
+	CHECK_RANK(dest, comm);
+	CHECK_TAG(tag);
+	CHECK_STAGES_ERROR();
+
+	Universe &universe = Universe::get_root_universe();
+
+	return construct_request(buf, count, datatype, universe.rank, dest, tag, comm,
+	                         request, Operation::Send);
 }
 
 int BasicInterface::MPI_Bsend_init(const void *buf, int count,
@@ -266,7 +360,7 @@ int BasicInterface::MPI_Rsend_init(const void *buf, int count,
 	Universe &universe = Universe::get_root_universe();
 
 	return construct_request(buf, count, datatype, universe.rank, dest, tag, comm,
-	                         request, Operation::Bsend);
+	                         request, Operation::Rsend);
 }
 
 int BasicInterface::MPI_Ssend_init(const void *buf, int count,
@@ -285,24 +379,6 @@ int BasicInterface::MPI_Ssend_init(const void *buf, int count,
 
 	return construct_request(buf, count, datatype, universe.rank, dest, tag, comm,
 	                         request, Operation::Ssend);
-}
-
-int BasicInterface::MPI_Send_init(const void *buf, int count,
-                                  MPI_Datatype datatype, int dest, int tag, MPI_Comm comm, MPI_Request *request)
-{
-	// sanitize user input
-	CHECK_BUFFER(buf);
-	CHECK_COUNT(count);
-	CHECK_DATATYPE(datatype);
-	CHECK_COMM(comm);
-	CHECK_RANK(dest, comm);
-	CHECK_TAG(tag);
-	CHECK_STAGES_ERROR();
-
-	Universe &universe = Universe::get_root_universe();
-
-	return construct_request(buf, count, datatype, universe.rank, dest, tag, comm,
-	                         request, Operation::Send);
 }
 
 int BasicInterface::MPI_Recv_init(const void *buf, int count,
@@ -375,18 +451,14 @@ int BasicInterface::finalize_request(MPI_Request *request, Request *req,
 	}
 
 	// for persistent request
-	if(req->persistent)
+	if(req->persistent && !req->hidden_persistent)
 	{
 		req->active = false;
 	}
 	// otherwise deallocate and set to REQUEST_NULL
 	else
 	{
-		Universe &universe = Universe::get_root_universe();
-		universe.deallocate_request(req);
-
-		// invalidate user MPI_Request handle
-		*request = MPI_REQUEST_NULL;
+		MPI_Request_free(request);
 	}
 
 	debug("returning with error: " << req->error);
@@ -456,9 +528,9 @@ int BasicInterface::MPI_Wait(MPI_Request *request, MPI_Status *status)
 	return finalize_request(request, req, status);
 }
 
-int BasicInterface::MPI_Waitall(int count, MPI_Request array_of_requests[],
-                                MPI_Status array_of_statuses[])
-{
+//int BasicInterface::MPI_Waitall(int count, MPI_Request array_of_requests[],
+//                                MPI_Status array_of_statuses[])
+//{
 //	// sanitize user input
 //	CHECK_REQUEST(request);
 //	CHECK_STATUS(status);//	// mpi stages error check
@@ -487,8 +559,8 @@ int BasicInterface::MPI_Waitall(int count, MPI_Request array_of_requests[],
 //		}
 //	}
 //	return MPI_SUCCESS;
-	return -1;
-}
+//	return -1;
+//}
 
 //int BasicInterface::MPI_Waitany()
 //{

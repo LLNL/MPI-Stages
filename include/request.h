@@ -39,6 +39,7 @@ struct Request
 	bool cancelled;
 
 	bool persistent;
+	bool hidden_persistent;
 	bool active;
 
 	int error;

@@ -34,6 +34,10 @@ private:
 	                      Operation operation);
 	int finalize_request(MPI_Request *request, Request *req, MPI_Status *status);
 
+	void mark_hidden_persistent(MPI_Request *);
+	int offload_persistent(const void *, int, MPI_Datatype, int, int, MPI_Comm, Operation, MPI_Request *);
+	int offload_persistent_wait(const void *, int, MPI_Datatype, int, int, MPI_Comm, Operation);
+
 public:
 	//BasicInterface();
 	static BasicInterface &get_instance();
@@ -42,20 +46,35 @@ public:
 	BasicInterface &operator=(const BasicInterface &c) = delete;
 
 	int MPI_Init(int *argc, char ***argv);
-
+	//int MPI_Init_thread(int *argc, char ***argv, int required, int *provided);
 	int MPI_Finalize();
 
+	// blocking
 	int MPI_Send(const void *buf, int count, MPI_Datatype datatype,
 	             int dest, int tag, MPI_Comm comm);
-
+	int MPI_Bsend(const void *buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm);
+	int MPI_Ssend(const void *buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm);
+	int MPI_Rsend(const void *buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm);
 	int MPI_Recv(void *buf, int count, MPI_Datatype datatype,
 	             int source, int tag, MPI_Comm comm, MPI_Status *status);
+	int MPI_Sendrecv(const void *sendbuf, int sendcount,
+	                 MPI_Datatype sendtype, int dest, int sendtag, void *recvbuf, int recvcount,
+	                 MPI_Datatype recvtype, int source, int recvtag, MPI_Comm comm,
+	                 MPI_Status *status);
 
+	// non-blocking
 	int MPI_Isend(const void *buf, int count, MPI_Datatype datatype,
 	              int dest, int tag, MPI_Comm comm, MPI_Request *request);
+	int MPI_Ibsend(const void *buf, int count, MPI_Datatype datatype, int dest, int tag,
+               MPI_Comm comm, MPI_Request *request);
+	int MPI_Issend(const void *buf, int count, MPI_Datatype datatype, int dest, int tag,
+               MPI_Comm comm, MPI_Request *request);
+	int MPI_Irsend(const void *buf, int count, MPI_Datatype datatype, int dest, int tag,
+               MPI_Comm comm, MPI_Request *request);
 	int MPI_Irecv(void *buf, int count, MPI_Datatype datatype,
 	              int source, int tag, MPI_Comm comm, MPI_Request *request);
 
+	// persistent
 	int MPI_Send_init(const void *buf, int count, MPI_Datatype datatype, int dest,
 	                  int tag, MPI_Comm comm, MPI_Request *request);
 	int MPI_Ssend_init(const void *buf, int count, MPI_Datatype datatype, int dest,
@@ -67,19 +86,14 @@ public:
 	int MPI_Recv_init(const void *buf, int count, MPI_Datatype datatype, int source,
 	                  int tag, MPI_Comm comm, MPI_Request *request);
 
-	int MPI_Sendrecv(const void *sendbuf, int sendcount,
-	                 MPI_Datatype sendtype, int dest, int sendtag, void *recvbuf, int recvcount,
-	                 MPI_Datatype recvtype, int source, int recvtag, MPI_Comm comm,
-	                 MPI_Status *status);
-
+	
+	// ...
 	int MPI_Start(MPI_Request *request);
 
 	int MPI_Wait(MPI_Request *request, MPI_Status *status);
 	int MPI_Test(MPI_Request *request, int *flag, MPI_Status *status);
 
-	int MPI_Waitall(int count, MPI_Request array_of_requests[],
-	                MPI_Status array_of_statuses[]);
-
+	int MPI_Barrier(MPI_Comm comm);
 	int MPI_Request_free(MPI_Request *request);
 
 	int MPI_Bcast(void *buf, int count, MPI_Datatype datatype, int root,
@@ -91,6 +105,7 @@ public:
 
 	int MPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm);
 
+	// todo mpi stages
 	int MPIX_Serialize_handles();
 	int MPIX_Deserialize_handles();
 	int MPIX_Serialize_handler_register(const MPIX_Serialize_handler
@@ -100,9 +115,8 @@ public:
 	int MPIX_Checkpoint_write();
 	int MPIX_Checkpoint_read();
 	int MPIX_Get_fault_epoch(int *epoch);
-	int MPI_Barrier(MPI_Comm comm);
 
-
+	// ...
 	double MPI_Wtime();
 
 	int MPI_Comm_set_errhandler(MPI_Comm comm, MPI_Errhandler err);
