@@ -39,11 +39,9 @@ private:
 	std::unique_ptr<Decider> decider;
 
 	void progress();
-
-	int handle_match(Match &match);
-	int handle_request();
-
-	int handle_send(Request *request);
+	void handle_match(Match &match);
+	void handle_request();
+	void handle_send(Request *request);
 
 public:
 	BlockingProgress();

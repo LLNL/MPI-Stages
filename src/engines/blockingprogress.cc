@@ -57,14 +57,13 @@ BlockingProgress::~BlockingProgress()
 
 void BlockingProgress::post_request(Request *request)
 {
-	debug("posting request");
 	// user threads relinquishes control here
 	if(request->operation == Operation::Receive)
 	{
 		// insert into matching mechanism
 		matcher->post_request(request);
 
-		debug("handed off to matcher");
+		debug("handed request Receive to matcher");
 
 		return;
 	}
@@ -96,7 +95,7 @@ void BlockingProgress::post_request(Request *request)
 	// queue for send
 	outbox.push(request);
 
-	debug("pushed into outbox");
+	debug("put *send request into outbox");
 }
 
 void BlockingProgress::progress()
@@ -121,16 +120,11 @@ void BlockingProgress::progress()
 
 		// match message if any, this is inflow
 		else if(Match match; matcher->progress(match))
-			//else if(auto [match, request, msg] = matcher->progress())
+		//else if(auto [match, request, msg] = matcher->progress())
 		{
 			debug("progress thread, matched message -> handling match");
 
-			int err = handle_match(match);
-			if(err != MPI_SUCCESS)
-			{
-				debug("ERROR receiving message");
-				// todo handle via mpi error handler?
-			}
+			handle_match(match);
 		}
 
 		// emit message if any, this is outflow
@@ -138,12 +132,7 @@ void BlockingProgress::progress()
 		{
 			debug("progress thread, handling request");
 
-			int err = handle_request();
-			if(err != MPI_SUCCESS)
-			{
-				debug("ERROR sending message");
-				// todo handle via mpi error handler?
-			}
+			handle_request();
 
 			debug("sent message");
 		}
@@ -168,7 +157,7 @@ void BlockingProgress::progress()
 	}
 }
 
-int BlockingProgress::handle_match(Match &match)
+void BlockingProgress::handle_match(Match &match)
 {
 	// note this is the big switch or dictionary protocol handling
 
@@ -192,13 +181,9 @@ int BlockingProgress::handle_match(Match &match)
 		case Protocol::EAGER:
 		{
 			debug("protocol message: EAGER");
-			//debug("req: " << match.request << " <-> message: " << match.message.get());
 
 			transporter->fill(match.header, match.request);
 
-			debug("protocol message unpacked");
-
-			// inform mpi user
 			match.request->release();
 
 			debug("request completed and released");
@@ -211,16 +196,13 @@ int BlockingProgress::handle_match(Match &match)
 
 			match.request->release();
 
-			// protocol message will be automagically deallocated
 			debug("request completed and released");
 			break;
 		}
 	}
-
-	return err;
 }
 
-int BlockingProgress::handle_request()
+void BlockingProgress::handle_request()
 {
 	std::unique_lock<std::mutex> lock(outbox_guard);
 
@@ -237,17 +219,15 @@ int BlockingProgress::handle_request()
 
 		// todo currently only sends are implemented here
 		//      will require a switch statement on type of operation
-		return handle_send(request);
+		handle_send(request);
 	}
 	else
 	{
 		debug("false handle request");
-
-		return MPI_SUCCESS;
 	}
 }
 
-int BlockingProgress::handle_send(Request *request)
+void BlockingProgress::handle_send(Request *request)
 {
 	// request -> ProtocolMessage
 	Universe &universe = Universe::get_root_universe();
@@ -258,8 +238,6 @@ int BlockingProgress::handle_send(Request *request)
 
 	// complete request
 	request->release();
-
-	return MPI_SUCCESS;
 }
 
 int BlockingProgress::halt()

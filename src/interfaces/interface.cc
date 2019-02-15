@@ -118,33 +118,38 @@ void BasicInterface::mark_hidden_persistent(MPI_Request *request)
 int BasicInterface::offload_persistent(const void *buf, int count, MPI_Datatype datatype, int rank, int tag, MPI_Comm comm, Operation operation, MPI_Request *request)
 {
 	// offload into persistent path
-	debug("initiating persistent send path");
+	debug("persistent send path");
 	int err;
 
 	switch (operation)
 	{
 		case Operation::Send:
 		{
+			debug("MPI_Send_init");
 			err = MPI_Send_init(buf, count, datatype, rank, tag, comm, request);
 			break;
 		}
 		case Operation::Bsend:
 		{
+			debug("MPI_Bsend_init");
 			err = MPI_Bsend_init(buf, count, datatype, rank, tag, comm, request);
 			break;
 		}
 		case Operation::Ssend:
 		{
+			debug("MPI_Ssend_init");
 			err = MPI_Ssend_init(buf, count, datatype, rank, tag, comm, request);
 			break;
 		}
 		case Operation::Rsend:
 		{
+			debug("MPI_Rsend_init");
 			err = MPI_Rsend_init(buf, count, datatype, rank, tag, comm, request);
 			break;
 		}
 		case Operation::Receive:
 		{
+			debug("MPI_Recv_init");
 			err = MPI_Recv_init(buf, count, datatype, rank, tag, comm, request);
 			break;
 		}
@@ -171,6 +176,8 @@ int BasicInterface::offload_persistent(const void *buf, int count, MPI_Datatype 
 
 int BasicInterface::offload_persistent_wait(const void *buf, int count, MPI_Datatype datatype, int rank, int tag, MPI_Comm comm, Operation operation)
 {
+	debug("offloading persistent path with wait");
+
 	MPI_Request request;
 	int err = offload_persistent(buf, count, datatype, rank, tag, comm, operation, &request);
 	if(err != MPI_SUCCESS) return err;
@@ -305,6 +312,8 @@ int BasicInterface::construct_request(const void *buf, int count,
 	// persistent
 	req->persistent = true;
 	req->active = false;
+
+	debug("request object instantiated");
 
 	return MPI_SUCCESS;
 }
@@ -705,6 +714,8 @@ int BasicInterface::MPI_Comm_set_errhandler(MPI_Comm comm, MPI_Errhandler err)
 	FaultHandler &faulthandler = FaultHandler::get_instance();
 	// TODO should this be per Comm
 	faulthandler.setErrToHandle(SIGUSR2);
+	
+	debug("set error handler");
 
 	return MPI_SUCCESS;
 }
@@ -876,10 +887,13 @@ int BasicInterface::MPIX_Checkpoint_read()
 	// note no check since we are already in a fault
 	//CHECK_STAGES_ERROR();
 
+	debug("checkpoint_read");
+
 	// note instead reset
 	FaultHandler &faulthandler = FaultHandler::get_instance();
 	if(faulthandler.isErrSet())
 	{
+		debug("resetting fault handler");
 		faulthandler.setErrToZero();
 	}
 
