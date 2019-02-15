@@ -15,12 +15,12 @@ TCPTransport::~TCPTransport()
 
 const std::map<Protocol, size_t> &TCPTransport::provided_protocols() const
 {
-	;
+	return std::map<Protocol, size_t>();
 }
 
 Header *TCPTransport::ordered_recv()
 {
-	;
+	return nullptr;
 }
 
 void TCPTransport::fill(const Header *header, Request *request)
