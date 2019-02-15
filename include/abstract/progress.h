@@ -16,9 +16,7 @@ public:
 	// handle user request object
 	virtual void post_request(Request *request) = 0;
 
-
-	// TODO separate mpi stages away from the core definitions
-	// mpi stages
+	// todo mpi stages
 	virtual int save(std::ostream &t) = 0;
 	virtual int load(std::istream &t) = 0;
 	virtual int halt() = 0;

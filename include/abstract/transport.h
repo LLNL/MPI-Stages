@@ -16,8 +16,7 @@ struct Transport
 {
 	virtual ~Transport() {};
 
-	// TODO separate MPI Stages from core definitions
-	// mpi stages
+	// todo mpi stages
 	virtual int save(std::ostream &r) = 0;
 	virtual int load(std::istream &r) = 0;
 	virtual int halt() = 0;

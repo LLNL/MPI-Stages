@@ -98,7 +98,7 @@ public:
 
 	const std::map<Protocol, size_t> &provided_protocols() const;
 
-	// TODO remove mpi stages
+	// todo isolate mpi stages
 	int save(std::ostream &r);
 	int load(std::istream &r);
 	int halt();

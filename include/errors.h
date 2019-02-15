@@ -1,10 +1,20 @@
 #ifndef __EXAMPI_ERRORS_H
 #define __EXAMPI_ERRORS_H
 
+#include <exception>
+
 #include "mpi.h"
 
 namespace exampi
 {
+
+class BsendCopyError: public std::exception
+{
+	const char *what() const noexcept override
+	{
+		return "std::memcpy failed to copy Bsend user buffer.";
+	}
+};
 
 // todo consolidate error definitions
 //enum mpi_error

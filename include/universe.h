@@ -51,7 +51,7 @@ public:
 
 	std::unique_ptr<Progress> progress;
 
-	// TODO this will be removed for Stages Consolidation
+	// todo mpi stages
 	std::unique_ptr<Checkpoint> checkpoint;
 
 	// todo eventually Interface *interface

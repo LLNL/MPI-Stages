@@ -13,7 +13,7 @@ TCPTransport::~TCPTransport()
 	;
 }
 
-std::map<Protocol, size_t> &TCPTransport::provided_protocols()
+const std::map<Protocol, size_t> &TCPTransport::provided_protocols() const
 {
 	;
 }

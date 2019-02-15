@@ -14,7 +14,7 @@ namespace exampi
 
 BasicInterface &BasicInterface::get_instance()
 {
-	// TODO get rid of interface singleton, should be part of universe
+	// todo get rid of interface singleton, should be part of universe
 	static BasicInterface instance;
 
 	return instance;
@@ -54,7 +54,7 @@ int BasicInterface::MPI_Init(int *argc, char ***argv)
 	}
 
 	// execute global barrier
-	// TODO move to checkpoint
+	// todo mpi stages move to checkpoint
 	if(universe.epoch == 0)
 	{
 		debug("executing daemon barrier " << universe.rank);
@@ -79,7 +79,7 @@ int BasicInterface::MPI_Finalize()
 {
 	debug("MPI_Finalize");
 
-	// TODO mpi stages shut down?
+	// todo mpi stages shut down?
 	serialize_handlers.clear();
 	deserialize_handlers.clear();
 
@@ -346,20 +346,10 @@ int BasicInterface::MPI_Start(MPI_Request *request)
 		return MPI_ERR_REQUEST;
 	}
 
-	// bsend check
-	debug("checking Bsend operation");
-	if(req->operation == Operation::Bsend)
-	{
-		debug("found Bsend");
-		// TODO if Bsend, copy over to buffer, we punish those who screw up
-		//      swap out buffer, so it is free to be reused
-		return MPI_ERR_BSEND;
-	}
-
 	debug("posting request to progress");
 	Universe &universe = Universe::get_root_universe();
 
-	// TODO try catch
+	// todo try catch as preprocessors for safe vs unsafe
 	universe.progress->post_request(req);
 
 	return MPI_SUCCESS;

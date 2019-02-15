@@ -1,4 +1,7 @@
+#include <cstring>
+
 #include "engines/blockingprogress.h"
+#include "errors.h"
 
 namespace exampi
 {
@@ -55,6 +58,10 @@ BlockingProgress::~BlockingProgress()
 void BlockingProgress::post_request(Request *request)
 {
 	debug("posting request");
+	// note later on there will be others here
+	// collectives, rma
+	// allreduce, allgather, reduce, broadcast, ...
+	// put, get, atomic
 
 	// user threads relinquishes control here
 	if(request->operation == Operation::Receive)
@@ -64,21 +71,35 @@ void BlockingProgress::post_request(Request *request)
 
 		debug("handed off to matcher");
 	}
-	else // *sends
+	else if(request->operation == Operation::Bsend)
 	{
-		// acquire safety
-		std::lock_guard<std::mutex> lock(outbox_guard);
+		// note a bsend forces packing
+		// note we do this in the user thread to ensure correctness
 
-		// queue for send
-		outbox.push(request);
+		// copy user buffer
+		// todo size_t size = request->payload.datatype.size() * request->payload.count;
+		size_t size = sizeof(int) * request->payload.count;
+		void *tmp_buffer = malloc(size);
 
-		debug("pushed into outbox");
+		void *err = std::memcpy(tmp_buffer, request->payload.buffer, size);
+		if(err == nullptr)
+		{
+			throw BsendCopyError();
+		}
+
+		// replace request payload
+		request->payload.buffer = tmp_buffer;
+		// todo request->payload.datatype = ;
+		// todo request->payload.count = ;	
 	}
+		
+	// acquire safety
+	std::lock_guard<std::mutex> lock(outbox_guard);
 
-	// note later on there will be others here
-	// collectives, rma
-	// allreduce, allgather, reduce, broadcast, ...
-	// put, get, atomic
+	// queue for send
+	outbox.push(request);
+
+	debug("pushed into outbox");
 }
 
 void BlockingProgress::progress()
@@ -156,7 +177,7 @@ int BlockingProgress::handle_match(Match &match)
 
 	debug("handling matched request <-> protocol message");
 
-	// TODO put this into a dictionary
+	// todo put this into a dictionary/map
 	int err = -1;
 	//switch(match.message->stage)
 	switch(match.header->protocol)
@@ -217,15 +238,8 @@ int BlockingProgress::handle_request()
 
 		lock.unlock();
 
-		// TODO remove this, depends on decider though
-		if(request->operation == Operation::Bsend
-		        || request->operation == Operation::Ssend
-		        || request->operation == Operation::Rsend)
-		{
-			return MPI_ERR_SEND_TYPE;
-		}
-
-		// TODO this is temporary, assume everything is MPI_Send
+		// todo currently only sends are implemented here
+		//      will require a switch statement on type of operation
 		return handle_send(request);
 	}
 	else
@@ -240,31 +254,8 @@ int BlockingProgress::handle_send(Request *request)
 {
 	// request -> ProtocolMessage
 	debug("allocating protocol message from transport");
-	//ProtocolMessage_uptr message = transporter->allocate_protocol_message();
 
-	// pack message
-	//debug("filling protocol message");
-	
 	Universe& universe = Universe::get_root_universe();
-	//message->stage = decider->decide(request, universe);
-	//message->stage = Protocol::EAGER;
-
-
-	//message->envelope = request->envelope;
-
-	// pack protocol message
-	//int err = -1;
-	//err = message->pack(request);
-	//if(err != MPI_SUCCESS)
-	//{
-	//	debug("ERROR: packing message");
-	//	return err;
-	//}
-
-	//debug("packed protocol message, sending");
-
-	// send protocol message
-	//err = transporter->reliable_send(std::move(message));
 
 	Protocol protocol = decider->decide(request, universe);
 
@@ -282,7 +273,7 @@ int BlockingProgress::halt()
 	debug("stopping all progress threads");
 	shutdown = true;
 
-	// TODO unify with deconstruction
+	// todo mpi stages unify with deconstruction
 	for(auto &&thr : this->progress_threads)
 	{
 		thr.join();
@@ -291,7 +282,7 @@ int BlockingProgress::halt()
 	debug("joined all threads");
 
 	int err = MPI_SUCCESS;
-	// TODO
+	// todo mpi stages
 	//err = matcher->halt();
 	matcher->halt();
 	if(err != MPI_SUCCESS)
@@ -315,7 +306,7 @@ int BlockingProgress::save(std::ostream &t)
 	// delegate further
 	int err = MPI_SUCCESS;
 
-	// TODO save endpoints?
+	// todo mpi stages save endpoints?
 	//err = transporter->save(t);
 
 	//err = matcher->save(t);

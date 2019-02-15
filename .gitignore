@@ -1,6 +1,7 @@
 bin/
 build/
 lib/
+
 **/*.pyc
 **/*.nfs*
 **/*.swp

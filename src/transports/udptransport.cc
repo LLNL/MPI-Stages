@@ -260,7 +260,7 @@ int UDPTransport::load(std::istream &r)
 
 int UDPTransport::halt()
 {
-	// TODO no idea what this does, from original udp transport
+	// todo mpi stages no idea what this does, from original udp transport
 //	//std::cout << debug() << "basic::Transport::receive(...)" << std::endl;
 //	char buffer[2];
 //	struct sockaddr_storage src_addr;

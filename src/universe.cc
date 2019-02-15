@@ -60,7 +60,7 @@ Universe::Universe() : request_pool(128)
 
 	debug("creating checkpoint");
 	checkpoint = std::make_unique<BasicCheckpoint>();
-	// TODO MPI STAGES progress should be created here
+	// todo mpi stages progress should be created here
 
 	// MPI WORLD GROUP
 	debug("generating world group");
@@ -188,7 +188,7 @@ int Universe::save(std::ostream &t)
 
 int Universe::load(std::istream &t)
 {
-	// TODO load appropriate engine
+	// todo mpi stages load appropriate engine
 	progress = std::make_unique<BlockingProgress>();
 
 	debug("universe is loading");
@@ -199,12 +199,12 @@ void Universe::halt()
 {
 	Daemon &daemon = Daemon::get_instance();
 	int err = daemon.send_clean_up();
-	// TODO handle error
+	// todo handle error
 
 	// propagate halt
 	progress->halt();
 
-	// TODO destroy progress
+	// destroy progress
 	Progress *engine = progress.get();
 	progress.release();
 

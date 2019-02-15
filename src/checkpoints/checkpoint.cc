@@ -74,7 +74,7 @@ int BasicCheckpoint::load()
 		debug("epoch 0, starting BlockingProgress");
 
 		// todo is there any other?
-		// TODO this should be somewhere else.
+		// todo this should be somewhere else.
 		universe.progress = std::make_unique<BlockingProgress>();
 
 		return MPI_SUCCESS;
@@ -94,14 +94,6 @@ int BasicCheckpoint::load()
 		long long int pos;
 		target.read(reinterpret_cast<char *>(&pos), sizeof(long long int));
 
-		// save the global datatype map
-		// TODO this will be done in universe
-		//target.write(&typecount, sizeof(uint32_t));
-		//for(auto i : universe.datatypes)
-		//{
-		//	// i.save(target);
-		//}
-
 		universe.load(target);
 
 		Daemon &daemon = Daemon::get_instance();
@@ -111,7 +103,7 @@ int BasicCheckpoint::load()
 		debug("loaded epoch " << universe.epoch);
 
 		// read in epoch number
-		// TODO is this still required?
+		// todo is this still required?
 		target.close();
 		std::ifstream ef(universe.epoch_config);
 		ef >> universe.epoch;

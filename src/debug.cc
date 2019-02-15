@@ -63,7 +63,7 @@ std::string debug_init(const char *file, int line, const char *func)
 	// %%%%
 	// !!!!
 	// ????
-	// TODO register threads that we create, progress threads for example
+	// todo register threads that we create, progress threads for example
 	// ## 01 internal
 	// ## 02 internal
 	// ## 03 internal
