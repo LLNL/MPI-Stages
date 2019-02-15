@@ -10,7 +10,7 @@
 namespace exampi
 {
 
-UDPTransport::UDPTransport() : header_pool(32)
+UDPTransport::UDPTransport() : header_pool(32), payload_pool(32)
 {
 	// create
 	socket_recv = socket(AF_INET, SOCK_DGRAM, 0);
@@ -22,6 +22,7 @@ UDPTransport::UDPTransport() : header_pool(32)
 	}
 
 	// setsockopt to reuse address
+	// todo
 	//int opt = 1;
 	//if(setsockopt(server_recv, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt)))
 
@@ -77,8 +78,8 @@ UDPTransport::UDPTransport() : header_pool(32)
 	//available_protocols[Protocol::EAGER] = 65507;
 	//available_protocols[Protocol::EAGER_ACK] = 65507;
 
-	available_protocols[Protocol::EAGER] = 128;
-	available_protocols[Protocol::EAGER_ACK] = 128;
+	available_protocols[Protocol::EAGER] = 1024 - sizeof(Header);
+	available_protocols[Protocol::EAGER_ACK] = 1024 - sizeof(Header);
 }
 
 UDPTransport::~UDPTransport()
@@ -109,20 +110,17 @@ Header *UDPTransport::ordered_recv()
 		return nullptr;
 	}
 
+	// definite receive
+
 	debug("receive from underlying socket available");
 	Header *header = header_pool.allocate();
 
-	// TODO obviously don't do this, this is temporary
-	void *data = malloc(sizeof(int));
-
-	iovec iovs[2];
+	iovec iovs[3];
 	iovs[0].iov_base = header;
 	iovs[0].iov_len = sizeof(Header);
 
-	// todo this is where we would need to either have a fixed size message
-	//      or read it in after reading the header
-
-	iovs[1].iov_base = data;
+	int payload_length;
+	iovs[1].iov_base = &payload_length;
 	iovs[1].iov_len = sizeof(int);
 
 	hdr.msg_iov = iovs;
@@ -130,50 +128,74 @@ Header *UDPTransport::ordered_recv()
 	hdr.msg_name = NULL;
 	hdr.msg_namelen = 0;
 
-	debug("receiving msg from socket");
-	int err = recvmsg(socket_recv, &hdr, 0);
+	int err = recvmsg(socket_recv, &hdr, MSG_PEEK);
 	if(err <= 0)
 	{
-		header_pool.deallocate(header);
-		free(data);
-		
-		debug("failed receive");
-	
-		return nullptr;
+		//header_pool.deallocate(header);
+		throw UDPTransportHeaderReceiveError();
 	}
 	else
 	{
-		debug("header: e " << header->envelope.epoch << " c " << header->envelope.context << " s " << header->envelope.source << " d " << header->envelope.destination << " t " << header->envelope.tag);
+		debug("received header + size of size " << err);
+		debug("header: e " << header->envelope.epoch <<
+		             " c " << header->envelope.context << 
+		             " s " << header->envelope.source <<
+		             " d " << header->envelope.destination <<
+		             " t " << header->envelope.tag);
+		debug("payload length " << payload_length);
 
-		data_buffer[(const Header*)header] = data;
-		debug("data received " << *((int*)data));
+		UDPTransportPayload *payload = payload_pool.allocate();
 
-		return header;
+		// receive payload
+		iovs[2].iov_base = payload;
+		iovs[2].iov_len = payload_length;
+	
+		hdr.msg_iov = iovs;
+		hdr.msg_iovlen = 3;
+		hdr.msg_name = NULL;
+		hdr.msg_namelen = 0;
+
+		int err = recvmsg(socket_recv, &hdr, 0);
+		if(err <= 0)
+		{
+			// payload_pool.deallocate(payload);
+			debug("throwing UDPTransportPayloadReceiveError");
+			throw UDPTransportPayloadReceiveError();
+		}
+		else
+		{
+			debug("received payload of size " << err);
+		}
+
+		payload_buffer[(const Header*)header] = payload;
 	}
+
+	return header;
 }
 
-int UDPTransport::fill(const Header *header, Request *request)
+void UDPTransport::fill(const Header *header, Request *request)
 {
 	// look up payload with respect to header
+	UDPTransportPayload *payload = payload_buffer[header];
 
-	// TODO improve this
-	void *data = data_buffer[header];
-	//size int
-
-	void* err = std::memcpy((void*)request->payload.buffer, data, sizeof(int));
+	void* err = std::memcpy((void*)request->payload.buffer, payload, sizeof(int));
 	if(err == nullptr)
 	{
 		throw UDPTransportFillError();
 	}
+	else
+	{
+		payload_pool.deallocate(payload);
+	}
 }
 
-int UDPTransport::reliable_send(const Protocol protocol, const Request *request)
+void UDPTransport::reliable_send(const Protocol protocol, const Request *request)
 {
 	std::lock_guard<std::recursive_mutex> lock(guard);
 
 	// todo depends on datatype
 	//      we currently only support vector/block
-	iovec iovs[3];
+	iovec iovs[4];
 
 	// protocol
 	iovs[0].iov_base = (void*)&protocol;
@@ -183,18 +205,27 @@ int UDPTransport::reliable_send(const Protocol protocol, const Request *request)
 	iovs[1].iov_base = (void*)&request->envelope;
 	iovs[1].iov_len = sizeof(Envelope);
 
-	debug("envelope to send: e " << request->envelope.epoch << " c " << request->envelope.context << " s " << request->envelope.source << " d " << request->envelope.destination << " t " << request->envelope.tag);
+	debug("envelope to send: e " << request->envelope.epoch <<
+	                       " c " << request->envelope.context << 
+	                       " s " << request->envelope.source <<
+	                       " d " << request->envelope.destination <<
+	                       " t " << request->envelope.tag);
+
+	// payload length
+	// todo datatype packing, gather
+	int payload_size = request->payload.count * sizeof(int);
+	iovs[2].iov_base = (void*)&payload_size;
+	iovs[2].iov_len = sizeof(int);
 
 	// request->buffer;
-	// todo assume no packing due to datatype, single int
-	iovs[2].iov_base = (void*)request->payload.buffer;
-	iovs[2].iov_len = sizeof(int) * request->payload.count;
+	iovs[3].iov_base = (void*)request->payload.buffer;
+	iovs[3].iov_len = sizeof(int) * request->payload.count;
 
-	// rank -> root commmunicator -> address
+	// todo rank -> root commmunicator -> address
 	sockaddr_in &addr = cache[request->envelope.destination];
 
 	hdr.msg_iov = iovs;
-	hdr.msg_iovlen = 3;
+	hdr.msg_iovlen = 4;
 	hdr.msg_name = &addr;
 	hdr.msg_namelen = sizeof(addr);
 

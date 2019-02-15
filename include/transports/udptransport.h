@@ -34,7 +34,7 @@ class UDPTransportSendError: public std::exception
 {
 	const char *what() const noexcept override
 	{
-		return "UDPTransport reliable send failed."
+		return "UDPTransport reliable send failed.";
 	}
 };
 
@@ -46,6 +46,28 @@ class UDPTransportFillError: public std::exception
 	}
 };
 
+class UDPTransportHeaderReceiveError: public std::exception
+{
+	const char *what() const noexcept override
+	{
+		return "UDPTransport failed to receive header.";
+	}
+};
+
+
+class UDPTransportPayloadReceiveError: public std::exception
+{
+	const char *what() const noexcept override
+	{
+		return "UDPTransport failed to receive payload.";
+	}
+};
+
+struct UDPTransportPayload
+{
+	int payload[(1024 - sizeof(Header))/sizeof(int)];
+};
+
 class UDPTransport: public Transport
 {
 private:
@@ -54,8 +76,10 @@ private:
 	int socket_recv;
 
 	MemoryPool<Header> header_pool;
-	std::unordered_map<const Header *, void*> data_buffer;
+	MemoryPool<UDPTransportPayload> payload_pool;
 
+	std::unordered_map<const Header *, UDPTransportPayload *> payload_buffer;
+	
 	msghdr hdr;
 
 	// TODO caching per rank does not work, needs per communicator...
