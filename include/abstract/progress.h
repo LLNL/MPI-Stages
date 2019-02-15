@@ -14,7 +14,7 @@ public:
 	virtual ~Progress() {}
 
 	// handle user request object
-	virtual int post_request(Request *request) = 0;
+	virtual void post_request(Request *request) = 0;
 
 
 	// TODO separate mpi stages away from the core definitions

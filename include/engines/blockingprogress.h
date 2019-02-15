@@ -52,7 +52,7 @@ public:
 	                 std::unique_ptr<Decider> decider);
 	~BlockingProgress();
 
-	int post_request(Request *request);
+	void post_request(Request *request);
 
 	// mpi stages, figure out how to do this, separate into another progress inheriting?
 	//void cleanup();

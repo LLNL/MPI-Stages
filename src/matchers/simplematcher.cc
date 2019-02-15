@@ -60,7 +60,7 @@ bool SimpleMatcher::progress(Match &match)
 
 		// iterate all posted receives
 		for(auto riter = posted_request_queue.begin();
-		        riter != posted_request_queue.end(); ++riter)
+		         riter != posted_request_queue.end(); ++riter)
 		
 {
 			Request_ptr req = *riter;
@@ -76,7 +76,7 @@ bool SimpleMatcher::progress(Match &match)
 			                             [&](Header *header) -> bool
 			{
 				// todo make convience debug_print_header(header)
-				//debug("testing match between request and protocol message: epoch " << req->envelope.epoch << " == " << msg->envelope.epoch << ", comm " << req->envelope.context << " == " << msg->envelope.context << ", source " << req->envelope.source << " == " << msg->envelope.source << ", dest " << req->envelope.destination << " == " << msg->envelope.destination << ", tag " << req->envelope.tag << " == " << msg->envelope.tag);
+				debug("testing match between request <-> header: epoch " << req->envelope.epoch << " == " << header->envelope.epoch << ", comm " << req->envelope.context << " == " << header->envelope.context << ", source " << req->envelope.source << " == " << header->envelope.source << ", dest " << req->envelope.destination << " == " << header->envelope.destination << ", tag " << req->envelope.tag << " == " << header->envelope.tag);
 
 				// minimal matching condition set
 				bool condition = (req->envelope.epoch			== header->envelope.epoch) &&

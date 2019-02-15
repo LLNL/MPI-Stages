@@ -52,7 +52,7 @@ BlockingProgress::~BlockingProgress()
 	}
 }
 
-int BlockingProgress::post_request(Request *request)
+void BlockingProgress::post_request(Request *request)
 {
 	debug("posting request");
 
@@ -75,8 +75,6 @@ int BlockingProgress::post_request(Request *request)
 		debug("pushed into outbox");
 	}
 
-	return MPI_SUCCESS;
-
 	// note later on there will be others here
 	// collectives, rma
 	// allreduce, allgather, reduce, broadcast, ...
@@ -96,12 +94,10 @@ void BlockingProgress::progress()
 		// 		blocking would be woken up by post_request, transporter ordered_recv()
 
 		// absorb message if any, this is inflow
-		//if(ProtocolMessage_uptr msg = transporter->ordered_recv())
 		if(Header *header = transporter->ordered_recv())
 		{
 			debug("progress thread, receiving message");
 
-			//matcher->post_message(std::move(msg));
 			matcher->post_header(header);
 		}
 
@@ -170,15 +166,7 @@ int BlockingProgress::handle_match(Match &match)
 			debug("protocol message: EAGER_ACK");
 
 			// return ACK message
-			//ProtocolMessage_uptr msg(transporter->allocate_protocol_message());
-			//msg->envelope = match.request->envelope;
-			//msg->stage = Protocol::ACK;
-
-			//err = transporter->reliable_send(std::move(msg));
-
-			err = transporter->reliable_send(Protocol::ACK, match.request);
-			if(err != MPI_SUCCESS)
-				return err;
+			transporter->reliable_send(Protocol::ACK, match.request);
 
 			[[fallthrough]];
 		}
@@ -188,10 +176,7 @@ int BlockingProgress::handle_match(Match &match)
 			debug("protocol message: EAGER");
 			//debug("req: " << match.request << " <-> message: " << match.message.get());
 
-			//err = match.message->unpack(match.request);
-
-			int err = transporter->fill(match.header, match.request);
-			// todo handle error
+			transporter->fill(match.header, match.request);
 
 			debug("protocol message unpacked");
 
@@ -199,8 +184,8 @@ int BlockingProgress::handle_match(Match &match)
 			match.request->release();
 
 			debug("request completed and released");
+			break;
 		}
-		break;
 
 		case Protocol::ACK:
 		{
@@ -210,8 +195,8 @@ int BlockingProgress::handle_match(Match &match)
 
 			// protocol message will be automagically deallocated
 			debug("request completed and released");
+			break;
 		}
-		break;
 	}
 
 	return err;
@@ -283,12 +268,7 @@ int BlockingProgress::handle_send(Request *request)
 
 	Protocol protocol = decider->decide(request, universe);
 
-	int err = transporter->reliable_send(protocol, request);
-	if(err != MPI_SUCCESS)
-	{
-		debug("ERROR: sending message");
-		return err;
-	}
+	transporter->reliable_send(protocol, request);
 
 	// complete request
 	request->release();

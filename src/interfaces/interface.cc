@@ -358,7 +358,11 @@ int BasicInterface::MPI_Start(MPI_Request *request)
 
 	debug("posting request to progress");
 	Universe &universe = Universe::get_root_universe();
-	return universe.progress->post_request(req);
+
+	// TODO try catch
+	universe.progress->post_request(req);
+
+	return MPI_SUCCESS;
 }
 
 //int BasicInterface::MPI_Startall()
