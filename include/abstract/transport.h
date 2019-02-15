@@ -42,10 +42,10 @@ struct Transport
 	virtual Header* ordered_recv() = 0;
 
 	// fill header into matching request
-	virtual int fill(const Header*, Request*) = 0;
+	virtual void fill(const Header*, Request*) = 0;
 
 	// send request with protocol
-	virtual int reliable_send(const Protocol, const Request*) = 0;
+	virtual void reliable_send(const Protocol, const Request*) = 0;
 };
 
 } // ::exampi

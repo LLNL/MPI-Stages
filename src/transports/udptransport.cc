@@ -155,18 +155,18 @@ Header *UDPTransport::ordered_recv()
 int UDPTransport::fill(const Header *header, Request *request)
 {
 	// look up payload with respect to header
-	//return -1;
 
+	// TODO improve this
 	void *data = data_buffer[header];
 	//size int
 
-	std::memcpy((void*)request->payload.buffer, data, sizeof(int));
-
-	// TODO replace with throw
-	return MPI_SUCCESS;
+	void* err = std::memcpy((void*)request->payload.buffer, data, sizeof(int));
+	if(err == nullptr)
+	{
+		throw UDPTransportFillError();
+	}
 }
 
-//int UDPTransport::reliable_send(ProtocolMessage_uptr message)
 int UDPTransport::reliable_send(const Protocol protocol, const Request *request)
 {
 	std::lock_guard<std::recursive_mutex> lock(guard);
@@ -201,14 +201,11 @@ int UDPTransport::reliable_send(const Protocol protocol, const Request *request)
 	int err = sendmsg(socket_recv, &hdr, 0);
 	if(err <= 0)
 	{
-		// TODO convert to throw
-		return MPI_ERR_RELIABLE_SEND_FAILED;
+		throw UDPTransportSendError();
 	}
 	else
 	{
-		// TODO convert to throw
 		debug("sent " << err << " bytes");
-		return MPI_SUCCESS;
 	}
 }
 

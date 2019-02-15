@@ -30,6 +30,22 @@ class UDPTransportBindingException: public std::exception
 	}
 };
 
+class UDPTransportSendError: public std::exception
+{
+	const char *what() const noexcept override
+	{
+		return "UDPTransport reliable send failed."
+	}
+};
+
+class UDPTransportFillError: public std::exception
+{
+	const char *what() const noexcept override
+	{
+		return "UDPTransport failed to fill payload of request with message.";
+	}
+};
+
 class UDPTransport: public Transport
 {
 private:
