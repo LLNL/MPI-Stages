@@ -10,7 +10,8 @@ namespace exampi
 
 struct Decider
 {
-	virtual Protocol decide(const Request_ptr request, const Universe &universe) const = 0;
+	virtual Protocol decide(const Request_ptr request,
+	                        const Universe &universe) const = 0;
 };
 
 }

@@ -3,7 +3,8 @@
 namespace exampi
 {
 
-Protocol SimpleDecider::decide(const Request_ptr request, const Universe &universe) const
+Protocol SimpleDecider::decide(const Request_ptr request,
+                               const Universe &universe) const
 {
 	switch(request->operation)
 	{
@@ -12,7 +13,7 @@ Protocol SimpleDecider::decide(const Request_ptr request, const Universe &univer
 
 		case Operation::Send:
 			[[fallthrough]]
-		
+
 		case Operation::Bsend:
 			[[fallthrough]]
 

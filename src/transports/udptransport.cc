@@ -23,7 +23,8 @@ UDPTransport::UDPTransport() : header_pool(32), payload_pool(32)
 
 	// setsockopt to reuse address/port
 	int opt = 1;
-	setsockopt(socket_recv, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt));
+	setsockopt(socket_recv, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt,
+	           sizeof(opt));
 
 	// garuntees no local collision
 	Universe &universe = Universe::get_root_universe();
@@ -125,7 +126,7 @@ Header *UDPTransport::ordered_recv()
 	if(err <= 0)
 	{
 		header_pool.deallocate(header);
-		
+
 		debug("false receive operation, another thread stole work");
 		return nullptr;
 	}
@@ -133,10 +134,10 @@ Header *UDPTransport::ordered_recv()
 	{
 		debug("received header + size of size " << err);
 		debug("header: e " << header->envelope.epoch <<
-		             " c " << header->envelope.context << 
-		             " s " << header->envelope.source <<
-		             " d " << header->envelope.destination <<
-		             " t " << header->envelope.tag);
+		      " c " << header->envelope.context <<
+		      " s " << header->envelope.source <<
+		      " d " << header->envelope.destination <<
+		      " t " << header->envelope.tag);
 		debug("payload length " << payload_length);
 
 		UDPTransportPayload *payload = nullptr;
@@ -147,7 +148,7 @@ Header *UDPTransport::ordered_recv()
 			// prepare receive payload
 			iovs[2].iov_base = payload;
 			iovs[2].iov_len = payload_length;
-		
+
 			hdr.msg_iovlen = 3;
 		}
 
@@ -170,7 +171,7 @@ Header *UDPTransport::ordered_recv()
 
 		// store the data for later fill
 		if(payload_length > 0)
-			payload_buffer[(const Header*)header] = payload;
+			payload_buffer[(const Header *)header] = payload;
 	}
 
 	return header;
@@ -181,7 +182,7 @@ void UDPTransport::fill(const Header *header, Request *request)
 	// look up payload with respect to header
 	UDPTransportPayload *payload = payload_buffer[header];
 
-	void* err = std::memcpy((void*)request->payload.buffer, payload, sizeof(int));
+	void *err = std::memcpy((void *)request->payload.buffer, payload, sizeof(int));
 	if(err == nullptr)
 	{
 		throw UDPTransportFillError();
@@ -192,7 +193,8 @@ void UDPTransport::fill(const Header *header, Request *request)
 	}
 }
 
-void UDPTransport::reliable_send(const Protocol protocol, const Request *request)
+void UDPTransport::reliable_send(const Protocol protocol,
+                                 const Request *request)
 {
 	std::lock_guard<std::mutex> lock(guard);
 
@@ -201,27 +203,27 @@ void UDPTransport::reliable_send(const Protocol protocol, const Request *request
 	iovec iovs[4];
 
 	// protocol
-	iovs[0].iov_base = (void*)&protocol;
+	iovs[0].iov_base = (void *)&protocol;
 	iovs[0].iov_len = sizeof(Protocol);
 
 	// request->envelope
-	iovs[1].iov_base = (void*)&request->envelope;
+	iovs[1].iov_base = (void *)&request->envelope;
 	iovs[1].iov_len = sizeof(Envelope);
 
 	debug("envelope to send: e " << request->envelope.epoch <<
-	                       " c " << request->envelope.context << 
-	                       " s " << request->envelope.source <<
-	                       " d " << request->envelope.destination <<
-	                       " t " << request->envelope.tag);
+	      " c " << request->envelope.context <<
+	      " s " << request->envelope.source <<
+	      " d " << request->envelope.destination <<
+	      " t " << request->envelope.tag);
 
 	// payload length
 	// todo datatype packing, gather
 	int payload_size = request->payload.count * sizeof(int);
-	iovs[2].iov_base = (void*)&payload_size;
+	iovs[2].iov_base = (void *)&payload_size;
 	iovs[2].iov_len = sizeof(int);
 
 	// request->buffer;
-	iovs[3].iov_base = (void*)request->payload.buffer;
+	iovs[3].iov_base = (void *)request->payload.buffer;
 	iovs[3].iov_len = sizeof(int) * request->payload.count;
 
 	// todo rank -> root commmunicator -> address

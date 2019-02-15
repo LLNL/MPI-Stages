@@ -10,7 +10,7 @@ namespace exampi
 
 class SimpleDeciderUnknownException: public std::exception
 {
-	const char* what() const noexcept override
+	const char *what() const noexcept override
 	{
 		return "Operation is not recognized.";
 	}
@@ -18,10 +18,10 @@ class SimpleDeciderUnknownException: public std::exception
 
 class SimpleDeciderReceiveDecisionException: public std::exception
 {
-	const char* what() const noexcept override
+	const char *what() const noexcept override
 	{
 		return "Receive operation is not implemented.";
-	}	
+	}
 };
 
 class SimpleDecider: public Decider

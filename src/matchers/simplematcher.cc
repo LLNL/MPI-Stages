@@ -49,7 +49,7 @@ bool SimpleMatcher::progress(Match &match)
 
 	// check if work is actually available
 	if(change && (posted_request_queue.size() > 0)
-	          && (received_header_queue.size() > 0))
+	        && (received_header_queue.size() > 0))
 	{
 		change = false;
 
@@ -60,9 +60,9 @@ bool SimpleMatcher::progress(Match &match)
 
 		// iterate all posted receives
 		for(auto riter = posted_request_queue.begin();
-		         riter != posted_request_queue.end(); ++riter)
-		
-{
+		        riter != posted_request_queue.end(); ++riter)
+
+		{
 			Request_ptr req = *riter;
 
 			debug("picked up request: " << req);
@@ -80,23 +80,23 @@ bool SimpleMatcher::progress(Match &match)
 
 				// minimal matching condition set
 				bool condition = (req->envelope.epoch			== header->envelope.epoch) &&
-				                 (req->envelope.context 		== header->envelope.context) &&
-                                 (req->envelope.destination		== header->envelope.destination);
+				(req->envelope.context 		== header->envelope.context) &&
+				(req->envelope.destination		== header->envelope.destination);
 
 				// check for MPI_ANY_SOURCE
 				if(req->envelope.source != MPI_ANY_SOURCE)
 					condition = condition && (req->envelope.source == header->envelope.source);
-			
+
 				// check for MPI_ANY_TAG
 				if(req->envelope.tag != MPI_ANY_TAG)
 					condition = condition && (req->envelope.tag == header->envelope.tag);
-				
+
 				return condition;
 			});
 
 			// if matched
 			//if(iterator != received_message_queue.end())
-			if(iterator != received_header_queue.end())	
+			if(iterator != received_header_queue.end())
 			{
 				debug("found match, generating match object");
 

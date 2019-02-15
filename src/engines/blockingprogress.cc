@@ -18,7 +18,7 @@ BlockingProgress::BlockingProgress() :
 
 BlockingProgress::BlockingProgress(std::unique_ptr<Matcher> matcher,
                                    std::unique_ptr<Transport> transporter,
-								   std::unique_ptr<Decider> decider) :
+                                   std::unique_ptr<Decider> decider) :
 	shutdown(false),
 	maximum_progress_cycles(10),
 	matcher(std::move(matcher)),
@@ -90,9 +90,9 @@ void BlockingProgress::post_request(Request *request)
 		// replace request payload
 		request->payload.buffer = tmp_buffer;
 		// todo request->payload.datatype = ;
-		// todo request->payload.count = ;	
+		// todo request->payload.count = ;
 	}
-		
+
 	// acquire safety
 	std::lock_guard<std::mutex> lock(outbox_guard);
 
@@ -255,7 +255,7 @@ int BlockingProgress::handle_send(Request *request)
 	// request -> ProtocolMessage
 	debug("allocating protocol message from transport");
 
-	Universe& universe = Universe::get_root_universe();
+	Universe &universe = Universe::get_root_universe();
 
 	Protocol protocol = decider->decide(request, universe);
 

@@ -79,7 +79,7 @@ private:
 	MemoryPool<UDPTransportPayload> payload_pool;
 
 	std::unordered_map<const Header *, UDPTransportPayload *> payload_buffer;
-	
+
 	msghdr hdr;
 
 	// TODO caching per rank does not work, needs per communicator...
@@ -92,7 +92,7 @@ public:
 	~UDPTransport();
 
 	Header *ordered_recv();
-	void fill(const Header*, Request*);
+	void fill(const Header *, Request *);
 
 	void reliable_send(const Protocol, const Request *);
 
