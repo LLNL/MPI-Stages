@@ -14,21 +14,6 @@
 namespace exampi
 {
 
-//struct UDPProtocolMessage: public ProtocolMessage
-//{
-//	int payload[10];
-//
-//	~UDPProtocolMessage() final {}
-//	int size() final
-//	{
-//		return ProtocolMessage::size() + sizeof(payload);
-//	}
-//
-//
-//	int pack(const Request_ptr request) final;
-//	int unpack(Request_ptr request) const final;
-//};
-
 class UDPTransportCreationException: public std::exception
 {
 	const char *what() const noexcept override
@@ -52,7 +37,6 @@ private:
 
 	int socket_recv;
 
-	//MemoryPool<UDPProtocolMessage> message_pool;
 	MemoryPool<Header> header_pool;
 	std::unordered_map<const Header *, void*> data_buffer;
 
@@ -67,20 +51,14 @@ public:
 	UDPTransport();
 	~UDPTransport();
 
-	//ProtocolMessage_uptr allocate_protocol_message();
-
-	//const ProtocolMessage_uptr ordered_recv();
-
 	Header *ordered_recv();
+	void fill(const Header*, Request*);
 
-	int fill(const Header*, Request*);
-	
-	//int reliable_send(const ProtocolMessage_uptr message);
-	int reliable_send(const Protocol, const Request *);
+	void reliable_send(const Protocol, const Request *);
 
 	const std::map<Protocol, size_t> &provided_protocols() const;
 
-	// mpi stages
+	// TODO remove mpi stages
 	int save(std::ostream &r);
 	int load(std::istream &r);
 	int halt();

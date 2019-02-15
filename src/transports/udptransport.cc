@@ -10,34 +10,6 @@
 namespace exampi
 {
 
-//int UDPProtocolMessage::pack(const Request_ptr request)
-//{
-//	debug("packing message " << payload[0])
-//
-//	// todo avoid this copy by pointing to request buffer, datatype dependent, count dependent
-//	//      assemble via iov
-//	//
-//	//      options: copying, pointing
-//
-//	memcpy(&payload[0], request->payload.buffer, sizeof(payload));
-//
-//	debug("packed message");
-//
-//	return MPI_SUCCESS;
-//}
-//
-//int UDPProtocolMessage::unpack(Request_ptr request) const
-//{
-//	debug("unpacking called");
-//
-//	memcpy((void *)request->payload.buffer, &payload[0], sizeof(payload));
-//
-//	debug("request buffer " << ((int *)request->payload.buffer)[0]);
-//
-//	return MPI_SUCCESS;
-//}
-
-//UDPTransport::UDPTransport() : message_pool(128)
 UDPTransport::UDPTransport() : header_pool(32)
 {
 	// create
@@ -114,22 +86,6 @@ UDPTransport::~UDPTransport()
 	close(socket_recv);
 }
 
-//ProtocolMessage_uptr UDPTransport::allocate_protocol_message()
-//{
-//	std::lock_guard<std::recursive_mutex> lock(guard);
-//
-//	ProtocolMessage *ptr = dynamic_cast<ProtocolMessage *>(message_pool.allocate());
-//
-//	return std::unique_ptr<ProtocolMessage, std::function<void(ProtocolMessage *)>>
-//	       (ptr,
-//	        [this](ProtocolMessage *ptr)
-//	{
-//		debug("UDPProtocolMessage deallocation called");
-//		this->message_pool.deallocate(dynamic_cast<UDPProtocolMessage *>(ptr));
-//	} );
-//}
-
-//const ProtocolMessage_uptr UDPTransport::ordered_recv()
 Header *UDPTransport::ordered_recv()
 {
 	// early exit test
@@ -137,11 +93,10 @@ Header *UDPTransport::ordered_recv()
 	ssize_t size = recv(socket_recv, &test, sizeof(test), MSG_PEEK | MSG_DONTWAIT);
 	if(size <= 0)
 	{
-		//return ProtocolMessage_uptr(nullptr);
 		return nullptr;
 	}
 
-	// then commit
+	// commit to do receive operation
 	std::lock_guard<std::recursive_mutex> lock(guard);
 
 	// check again, that the data has not been taken by another thread
@@ -150,19 +105,22 @@ Header *UDPTransport::ordered_recv()
 	size = recv(socket_recv, &test, sizeof(test), MSG_PEEK | MSG_DONTWAIT);
 	if(size <= 0)
 	{
-		debug("failed recheck for work");
-		//return ProtocolMessage_uptr(nullptr);
+		debug("receive was done before the thread got here");
 		return nullptr;
 	}
 
 	debug("receive from underlying socket available");
 	Header *header = header_pool.allocate();
+
 	// TODO obviously don't do this, this is temporary
 	void *data = malloc(sizeof(int));
 
 	iovec iovs[2];
 	iovs[0].iov_base = header;
-	iovs[0].iov_len = sizeof(header);
+	iovs[0].iov_len = sizeof(Header);
+
+	// todo this is where we would need to either have a fixed size message
+	//      or read it in after reading the header
 
 	iovs[1].iov_base = data;
 	iovs[1].iov_len = sizeof(int);
@@ -185,54 +143,14 @@ Header *UDPTransport::ordered_recv()
 	}
 	else
 	{
+		debug("header: e " << header->envelope.epoch << " c " << header->envelope.context << " s " << header->envelope.source << " d " << header->envelope.destination << " t " << header->envelope.tag);
+
 		data_buffer[(const Header*)header] = data;
 		debug("data received " << *((int*)data));
 
 		return header;
 	}
 }
-
-//	debug("allocating protocol message");
-//	//ProtocolMessage_uptr msg = allocate_protocol_message();
-//
-//	//UDPProtocolMessage *umsg = dynamic_cast<UDPProtocolMessage *>(msg.get());
-//
-//	// fill iov
-//	// TODO this is where protocolmessage size is important
-//	debug("iov processing");
-//	iovec iovs[3];
-//
-//	iovs[0].iov_base = &umsg->stage;
-//	iovs[0].iov_len = sizeof(umsg->stage);
-//
-//	iovs[1].iov_base = &umsg->envelope;
-//	iovs[1].iov_len = sizeof(umsg->envelope);
-//
-//	iovs[2].iov_base = &umsg->payload;
-//	iovs[2].iov_len = sizeof(umsg->payload);
-//
-//	debug("iov data " << &msg->stage << " size " << msg->size());
-//
-//	hdr.msg_iov = iovs;
-//	hdr.msg_iovlen = 3;
-//
-//	// clear source
-//	hdr.msg_name = NULL;
-//	hdr.msg_namelen = 0;
-//
-//	debug("receiving message");
-//	int err = recvmsg(socket_recv, &hdr, 0);
-//	if(err <= 0)
-//	{
-//		debug("socket recv error " << err);
-//		return ProtocolMessage_uptr(nullptr);
-//	}
-//	debug("recv message envelope: { e " << msg->envelope.epoch << " c " <<
-//	      msg->envelope.context << " s " << msg->envelope.source << " d " <<
-//	      msg->envelope.destination << " t " << msg->envelope.tag << "}");
-//	debug("successful receive " << ((UDPProtocolMessage *)msg.get())->payload[0]);
-//
-//	return std::move(msg);
 
 int UDPTransport::fill(const Header *header, Request *request)
 {
@@ -244,6 +162,7 @@ int UDPTransport::fill(const Header *header, Request *request)
 
 	std::memcpy((void*)request->payload.buffer, data, sizeof(int));
 
+	// TODO replace with throw
 	return MPI_SUCCESS;
 }
 
@@ -263,6 +182,8 @@ int UDPTransport::reliable_send(const Protocol protocol, const Request *request)
 	// request->envelope
 	iovs[1].iov_base = (void*)&request->envelope;
 	iovs[1].iov_len = sizeof(Envelope);
+
+	debug("envelope to send: e " << request->envelope.epoch << " c " << request->envelope.context << " s " << request->envelope.source << " d " << request->envelope.destination << " t " << request->envelope.tag);
 
 	// request->buffer;
 	// todo assume no packing due to datatype, single int
@@ -285,52 +206,11 @@ int UDPTransport::reliable_send(const Protocol protocol, const Request *request)
 	}
 	else
 	{
+		// TODO convert to throw
+		debug("sent " << err << " bytes");
 		return MPI_SUCCESS;
 	}
 }
-
-//	debug("assembling udp msg");
-//
-//	UDPProtocolMessage *msg = dynamic_cast<UDPProtocolMessage *>(message.get());
-//
-//	// fill iov
-//	iovec iovs[3];
-//
-//	iovs[0].iov_base = &msg->stage;
-//	iovs[0].iov_len = sizeof(msg->stage);
-//
-//	iovs[1].iov_base = &msg->envelope;
-//	iovs[1].iov_len = sizeof(msg->envelope);
-//
-//	iovs[2].iov_base = &msg->payload;
-//	iovs[2].iov_len = sizeof(msg->payload);
-//
-//	//debug("iov data " << &message->stage << " size " << message->size());
-//
-//	hdr.msg_iov = iovs;
-//	hdr.msg_iovlen = 3;
-//
-//	// fill destination
-//	// TODO this needs to be a facility given by communicator
-//	// TODO translate (context, rank) -> (world_context, world_rank) -> addr
-//	sockaddr_in &addr = cache[message->envelope.destination];
-//	hdr.msg_name = &addr;
-//	hdr.msg_namelen = sizeof(addr);
-//
-//	debug("sending message");
-//	int err = sendmsg(socket_recv, &hdr, 0);
-//	if(err <= 0)
-//	{
-//		debug("ERROR: sendmsg " << err);
-//		return MPI_ERR_RELIABLE_SEND_FAILED;
-//	}
-//
-//	debug("sent message envelope: { e " << message->envelope.epoch << " c " <<
-//	      message->envelope.context << " s " << message->envelope.source << " d " <<
-//	      message->envelope.destination << " t " << message->envelope.tag << "}");
-//	debug("sent message: " << ((UDPProtocolMessage *)message.get())->payload[0]);
-//
-//	return MPI_SUCCESS;
 
 const std::map<Protocol, size_t> &UDPTransport::provided_protocols() const
 {
