@@ -71,7 +71,7 @@ struct UDPTransportPayload
 class UDPTransport: public Transport
 {
 private:
-	std::recursive_mutex guard;
+	std::mutex guard;
 
 	int socket_recv;
 

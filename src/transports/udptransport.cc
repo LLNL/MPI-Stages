@@ -21,19 +21,17 @@ UDPTransport::UDPTransport() : header_pool(32), payload_pool(32)
 		throw UDPTransportCreationException();
 	}
 
-	// setsockopt to reuse address
-	// todo
-	//int opt = 1;
-	//if(setsockopt(server_recv, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt)))
-
-	// bind
-	Universe &universe = Universe::get_root_universe();
+	// setsockopt to reuse address/port
+	int opt = 1;
+	setsockopt(socket_recv, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt));
 
 	// garuntees no local collision
+	Universe &universe = Universe::get_root_universe();
 	int port = std::stoi(std::string(std::getenv("EXAMPI_UDP_TRANSPORT_BASE"))) +
 	           universe.rank;
 	debug("udp transport port: " << port);
 
+	// bind locally
 	struct sockaddr_in address_local;
 	address_local.sin_family = AF_INET;
 	address_local.sin_addr.s_addr = INADDR_ANY;
@@ -55,6 +53,7 @@ UDPTransport::UDPTransport() : header_pool(32), payload_pool(32)
 	hdr.msg_flags = 0;
 
 	// cache remote addresses
+	// todo static connection building, don't do this forever
 	Config &config = Config::get_instance();
 
 	for(long int rank = 0; rank < universe.world_size; ++rank)
@@ -98,19 +97,11 @@ Header *UDPTransport::ordered_recv()
 	}
 
 	// commit to do receive operation
-	std::lock_guard<std::recursive_mutex> lock(guard);
+	std::lock_guard<std::mutex> lock(guard);
 
-	// check again, that the data has not been taken by another thread
-	debug("double checking work availability");
-
-	size = recv(socket_recv, &test, sizeof(test), MSG_PEEK | MSG_DONTWAIT);
-	if(size <= 0)
-	{
-		debug("receive was done before the thread got here");
-		return nullptr;
-	}
-
-	// definite receive
+	// todo is it possible to reduce this to less recvmsgs?
+	//      - not if we want to have variable length messages
+	//      - other solution is fixed size messages, always needs to send/recv fixed size
 
 	debug("receive from underlying socket available");
 	Header *header = header_pool.allocate();
@@ -128,11 +119,15 @@ Header *UDPTransport::ordered_recv()
 	hdr.msg_name = NULL;
 	hdr.msg_namelen = 0;
 
-	int err = recvmsg(socket_recv, &hdr, MSG_PEEK);
+	// peek receive and gain information if available
+	// if not then exit gracefully
+	int err = recvmsg(socket_recv, &hdr, MSG_PEEK | MSG_DONTWAIT);
 	if(err <= 0)
 	{
-		//header_pool.deallocate(header);
-		throw UDPTransportHeaderReceiveError();
+		header_pool.deallocate(header);
+		
+		debug("false receive operation, another thread stole work");
+		return nullptr;
 	}
 	else
 	{
@@ -144,21 +139,27 @@ Header *UDPTransport::ordered_recv()
 		             " t " << header->envelope.tag);
 		debug("payload length " << payload_length);
 
-		UDPTransportPayload *payload = payload_pool.allocate();
+		UDPTransportPayload *payload = nullptr;
+		if(payload_length > 0)
+		{
+			payload = payload_pool.allocate();
 
-		// receive payload
-		iovs[2].iov_base = payload;
-		iovs[2].iov_len = payload_length;
-	
-		hdr.msg_iov = iovs;
-		hdr.msg_iovlen = 3;
-		hdr.msg_name = NULL;
-		hdr.msg_namelen = 0;
+			// prepare receive payload
+			iovs[2].iov_base = payload;
+			iovs[2].iov_len = payload_length;
+		
+			hdr.msg_iovlen = 3;
+		}
 
+		// properly receive the message from the kernel
+		// TODO this is really copying it twice, how can we avoid that?
+		//      can optimize, partial reading in of header + payload - only copy once
 		int err = recvmsg(socket_recv, &hdr, 0);
 		if(err <= 0)
 		{
-			// payload_pool.deallocate(payload);
+			if(payload_length > 0)
+				payload_pool.deallocate(payload);
+
 			debug("throwing UDPTransportPayloadReceiveError");
 			throw UDPTransportPayloadReceiveError();
 		}
@@ -167,7 +168,9 @@ Header *UDPTransport::ordered_recv()
 			debug("received payload of size " << err);
 		}
 
-		payload_buffer[(const Header*)header] = payload;
+		// store the data for later fill
+		if(payload_length > 0)
+			payload_buffer[(const Header*)header] = payload;
 	}
 
 	return header;
@@ -191,7 +194,7 @@ void UDPTransport::fill(const Header *header, Request *request)
 
 void UDPTransport::reliable_send(const Protocol protocol, const Request *request)
 {
-	std::lock_guard<std::recursive_mutex> lock(guard);
+	std::lock_guard<std::mutex> lock(guard);
 
 	// todo depends on datatype
 	//      we currently only support vector/block
