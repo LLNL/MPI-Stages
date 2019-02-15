@@ -58,11 +58,6 @@ BlockingProgress::~BlockingProgress()
 void BlockingProgress::post_request(Request *request)
 {
 	debug("posting request");
-	// note later on there will be others here
-	// collectives, rma
-	// allreduce, allgather, reduce, broadcast, ...
-	// put, get, atomic
-
 	// user threads relinquishes control here
 	if(request->operation == Operation::Receive)
 	{
@@ -70,6 +65,8 @@ void BlockingProgress::post_request(Request *request)
 		matcher->post_request(request);
 
 		debug("handed off to matcher");
+
+		return;
 	}
 	else if(request->operation == Operation::Bsend)
 	{
@@ -253,12 +250,10 @@ int BlockingProgress::handle_request()
 int BlockingProgress::handle_send(Request *request)
 {
 	// request -> ProtocolMessage
-	debug("allocating protocol message from transport");
-
 	Universe &universe = Universe::get_root_universe();
-
 	Protocol protocol = decider->decide(request, universe);
 
+	// send message
 	transporter->reliable_send(protocol, request);
 
 	// complete request
