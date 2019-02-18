@@ -15,7 +15,7 @@ Universe &Universe::get_root_universe()
 	return root;
 }
 
-Universe::Universe() : request_pool(128)
+Universe::Universe() : request_pool(128), initialized(false)
 {
 	debug("creating universe");
 
@@ -128,6 +128,10 @@ Universe::~Universe()
 	debug("terminating universe");
 }
 
+void Universe::initialize()
+{
+	initialized = true;
+}
 Request_ptr Universe::allocate_request()
 {
 	debug("allocating request from memory pool");

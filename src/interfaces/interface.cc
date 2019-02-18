@@ -43,6 +43,7 @@ int BasicInterface::MPI_Init(int *argc, char ***argv)
 	debug("MPI_Init passed EXAMPI_LAUNCHED check.");
 
 	Universe &universe = Universe::get_root_universe();
+	universe.initialize();
 
 	// checkpoint load or initialize for first run
 	// STAGES
@@ -73,6 +74,15 @@ int BasicInterface::MPI_Init(int *argc, char ***argv)
 
 	debug("Finished MPI_Init with code: " << recovery_code);
 	return recovery_code;
+}
+
+int BasicInterface::MPI_Initialized(int *flag)
+{
+	Universe &universe = Universe::get_root_universe();	
+
+	*flag = static_cast<int>(universe.initialized);
+
+	return MPI_SUCCESS;
 }
 
 int BasicInterface::MPI_Finalize()

@@ -36,6 +36,8 @@ private:
 public:
 	static Universe &get_root_universe();
 
+	void initialize();
+
 	std::shared_ptr<Group>	world_group;
 	std::shared_ptr<Comm>	world_comm;
 
@@ -44,6 +46,7 @@ public:
 
 	std::unordered_map<MPI_Datatype, Datatype> datatypes;
 
+	bool initialized;
 	int rank;
 	int world_size;
 	int epoch;
