@@ -533,7 +533,7 @@ class HeadDaemon(object):
 		"""Handle clean up packet from application."""
 
 		rank = int(contents[0])
-		epoch = int(contents[2])
+		epoch = int(contents[1])
 
 		self.ranks[rank]['epoch'] = epoch
 		if self.node_minimum_epoch is None:

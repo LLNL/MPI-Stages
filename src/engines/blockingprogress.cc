@@ -223,7 +223,7 @@ void BlockingProgress::handle_request()
 	}
 	else
 	{
-		debug("false handle request");
+		debug("false handle_request");
 	}
 }
 

@@ -197,27 +197,37 @@ int BasicInterface::offload_persistent_wait(const void *buf, int count, MPI_Data
 int BasicInterface::MPI_Send(const void *buf, int count, MPI_Datatype datatype,
                              int dest, int tag, MPI_Comm comm)
 {
+	debug("entry MPI_Send with buf " << buf << " count " << count << " dest " << dest << " tag " << tag); 	
+
 	return offload_persistent_wait(buf, count, datatype, dest, tag, comm, Operation::Send);
 }
 
 int BasicInterface::MPI_Bsend(const void *buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm)
 {	
+	debug("entry MPI_Bsend with buf " << buf << " count " << count << " dest " << dest << " tag " << tag); 	
+
 	return offload_persistent_wait(buf, count, datatype, dest, tag, comm, Operation::Bsend);
 }
 
 int BasicInterface::MPI_Ssend(const void *buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm)
 {	
+	debug("entry MPI_Ssend with buf " << buf << " count " << count << " dest " << dest << " tag " << tag); 	
+
 	return offload_persistent_wait(buf, count, datatype, dest, tag, comm, Operation::Ssend);
 }
 
 int BasicInterface::MPI_Rsend(const void *buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm)
 {	
+	debug("entry MPI_Rsend with buf " << buf << " count " << count << " dest " << dest << " tag " << tag); 	
+
 	return offload_persistent_wait(buf, count, datatype, dest, tag, comm, Operation::Rsend);
 }
 
 int BasicInterface::MPI_Recv(void *buf, int count, MPI_Datatype datatype,
                              int source, int tag, MPI_Comm comm, MPI_Status *status)
 {
+	debug("entry MPI_Recv with buf " << buf << " count " << count << " src " << source << " tag " << tag); 	
+
 	return offload_persistent_wait(buf, count, datatype, source, tag, comm, Operation::Receive);
 }
 
@@ -496,9 +506,9 @@ int BasicInterface::MPI_Wait(MPI_Request *request, MPI_Status *status)
 	// inactive persistent request chec
 	debug("checking persistent " << req->persistent << " and inactive " <<
 	      req->active);
-	if(req->persistent && !req->active)
+	if(req->persistent && !req->hidden_persistent && !req->active)
 	{
-		debug("persitent and inactive request found");
+		debug("persistent and inactive request found");
 		return MPI_SUCCESS;
 	}
 

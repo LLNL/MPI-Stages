@@ -88,32 +88,32 @@ std::string debug_init(const char *file, int line, const char *func)
 	//}
 	// todo broken at the moment
 
-	if(last_function.empty())
-	{
-		last_function = function;
-		stream << "\t[" << function << "]" << std::endl;
-	}
-	else if(last_function.compare(function) != 0)
-	{
-		// either decrement or increment
-		// note does not support recursion
-		if((function_stack.size() > 0) && (function_stack.top().compare(function) == 0))
-		{
-			// returned
-			last_function = function_stack.top();
-			function_stack.pop();
-			func_depth--;
-		}
-		else
-		{
-			// called next
-			function_stack.push(last_function);
-			last_function = function;
-			func_depth++;
-		}
+	//if(last_function.empty())
+	//{
+	//	last_function = function;
+	//	stream << "\t[" << function << "]" << std::endl;
+	//}
+	//else if(last_function.compare(function) != 0)
+	//{
+	//	// either decrement or increment
+	//	// note does not support recursion
+	//	if((function_stack.size() > 0) && (function_stack.top().compare(function) == 0))
+	//	{
+	//		// returned
+	//		last_function = function_stack.top();
+	//		function_stack.pop();
+	//		func_depth--;
+	//	}
+	//	else
+	//	{
+	//		// called next
+	//		function_stack.push(last_function);
+	//		last_function = function;
+	//		func_depth++;
+	//	}
 
-		stream << "\t[" << function << "]" << std::endl;
-	}
+	//	stream << "\t[" << function << "]" << std::endl;
+	//}
 
 	//stream << "\t\t" << func_depth << " " << std::setw(4) << line << ": ";
 	stream << "\t\t" << std::setw(4) << line << ": ";
