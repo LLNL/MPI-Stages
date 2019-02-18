@@ -118,7 +118,6 @@ void BasicInterface::mark_hidden_persistent(MPI_Request *request)
 int BasicInterface::offload_persistent(const void *buf, int count, MPI_Datatype datatype, int rank, int tag, MPI_Comm comm, Operation operation, MPI_Request *request)
 {
 	// offload into persistent path
-	debug("persistent send path");
 	int err;
 
 	switch (operation)
