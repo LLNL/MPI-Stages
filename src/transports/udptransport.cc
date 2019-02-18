@@ -134,10 +134,10 @@ Header *UDPTransport::ordered_recv()
 	{
 		debug("received header + size of size " << err);
 		debug("header: e " << header->envelope.epoch <<
-		      " c " << header->envelope.context <<
-		      " s " << header->envelope.source <<
-		      " d " << header->envelope.destination <<
-		      " t " << header->envelope.tag);
+		      			" c " << header->envelope.context <<
+		      			" s " << header->envelope.source <<
+		      			" d " << header->envelope.destination <<
+		      			" t " << header->envelope.tag);
 		debug("payload length " << payload_length);
 
 		UDPTransportPayload *payload = nullptr;
@@ -153,7 +153,7 @@ Header *UDPTransport::ordered_recv()
 		}
 
 		// properly receive the message from the kernel
-		// TODO this is really copying it twice, how can we avoid that?
+		// todo this is really copying it twice, how can we avoid that?
 		//      can optimize, partial reading in of header + payload - only copy once
 		int err = recvmsg(socket_recv, &hdr, 0);
 		if(err <= 0)

@@ -93,16 +93,33 @@ int BasicInterface::MPI_Request_free(MPI_Request *request)
 	CHECK_REQUEST(request);
 	CHECK_STAGES_ERROR();
 
-	// TODO garuntees
-	// active can be freed, but no longer used in Wait or Test
-	// active allowed to complete
-
 	Request_ptr req = reinterpret_cast<Request_ptr>(*request);
+
+	// lock request
+	std::lock_guard<std::mutex> lock(req->guard);
+
+	// 
+	if(!req->complete && req->persistent && req->active)
+	{
+		debug("marking request as freed, but active/incomplete");
+
+		// marked as freed
+		req->freed = true;
+		// todo where do we clean freed requests?
+	}
 	
-	Universe &universe = Universe::get_root_universe();
-	universe.deallocate_request(req);
+	// complete or inactive request
+	else
+	{
+		debug("deallocating request immediately");
+
+		Universe &universe = Universe::get_root_universe();
+		universe.deallocate_request(req);
+
+	}
 
 	// invalidate user MPI_Request handle
+	debug("invalidating user MPI_Request handle: addr " << request);
 	*request = MPI_REQUEST_NULL;
 
 	return MPI_SUCCESS;
@@ -721,7 +738,7 @@ int BasicInterface::MPI_Comm_set_errhandler(MPI_Comm comm, MPI_Errhandler err)
 	Universe &universe = Universe::get_root_universe();
 
 	FaultHandler &faulthandler = FaultHandler::get_instance();
-	// TODO should this be per Comm
+	// todo should this be per Comm?
 	faulthandler.setErrToHandle(SIGUSR2);
 	
 	debug("set error handler");

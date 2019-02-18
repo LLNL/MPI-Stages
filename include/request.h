@@ -38,9 +38,15 @@ struct Request
 	volatile bool complete;
 	bool cancelled;
 
+	// todo is the persistent flag even relevant?
+	// we treat all requests as persistent, just hidden
 	bool persistent;
+
 	bool hidden_persistent;
+	
+	// todo is complete and active the same thing?
 	bool active;
+	bool freed;
 
 	int error;
 
