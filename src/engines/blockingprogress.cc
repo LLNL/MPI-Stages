@@ -1,7 +1,7 @@
 #include <cstring>
 
 #include "engines/blockingprogress.h"
-#include "errors.h"
+#include "exceptions.h"
 
 namespace exampi
 {

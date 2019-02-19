@@ -8,6 +8,8 @@
 #include "daemon.h"
 #include "universe.h"
 #include "faulthandler.h"
+#include "checks.h"
+#include "exceptions.h"
 
 namespace exampi
 {
