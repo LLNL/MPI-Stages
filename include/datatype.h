@@ -10,45 +10,25 @@ namespace exampi
 class Datatype
 {
 protected:
-	MPI_Datatype mpiDatatype;
+	MPI_Datatype datatype;
+
 	size_t extent;
 	bool associative;
-	bool weakAssociative;
+	bool weak_associative;
 	bool commutative;
 
 public:
-	Datatype() {;}
+	Datatype();
+	Datatype(MPI_Datatype dt, size_t ex, bool assoc, bool wassoc, bool comm);
 
-	Datatype(MPI_Datatype dt, size_t ex, bool assoc, bool wassoc, bool comm)
-		: mpiDatatype(dt), extent(ex), associative(assoc), weakAssociative(wassoc),
-		  commutative(comm) {;}
+	~Datatype();
 
-	virtual ~Datatype() {;}
+	MPI_Datatype get_datatype() const;
+	size_t get_extent() const;
 
-	const MPI_Datatype &getMpiDatatype() const
-	{
-		return mpiDatatype;
-	}
-
-	size_t getExtent() const
-	{
-		return extent;
-	}
-
-	bool isAssociative() const
-	{
-		return associative;
-	}
-
-	bool isWeakAssociative() const
-	{
-		return weakAssociative;
-	}
-
-	bool isCommutative() const
-	{
-		return commutative;
-	}
+	bool is_associative() const;
+	bool is_weak_associative() const;
+	bool is_commutative() const;
 };
 
 } // exampi
