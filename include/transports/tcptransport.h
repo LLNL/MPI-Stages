@@ -9,6 +9,9 @@ namespace exampi
 class TCPTransport: public Transport
 {
 private:
+	std::mutex guard;
+
+	std::map<Protocol, size_t> available_protocols;
 
 public:
 	TCPTransport();
@@ -22,6 +25,7 @@ public:
 
 	virtual void reliable_send(const Protocol, const Request *) = 0;
 
+	// todo mpi stages
 	virtual int save(std::ostream &);
 	virtual int load(std::istream &);
 	virtual int halt();
