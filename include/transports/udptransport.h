@@ -90,12 +90,11 @@ public:
 	UDPTransport();
 	~UDPTransport();
 
+	const std::map<Protocol, size_t> &provided_protocols() const;
+
 	Header *ordered_recv();
 	void fill(const Header *, Request *);
-
 	void reliable_send(const Protocol, const Request *);
-
-	const std::map<Protocol, size_t> &provided_protocols() const;
 
 	// todo isolate mpi stages
 	int save(std::ostream &r);

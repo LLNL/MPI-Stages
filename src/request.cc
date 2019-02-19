@@ -10,7 +10,7 @@ Request::Request() :
 	condition(nullptr),
 	complete(false),
 	cancelled(false),
-	persistent(false),
+	//persistent(false),
 	active(false),
 	error(MPI_SUCCESS)
 {
