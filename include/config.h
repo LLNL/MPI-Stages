@@ -5,6 +5,8 @@
 #include <iostream>
 #include <map>
 
+#include "debug.h"
+
 /* config.h
  * simple inline class for parsing config files into maps
  * used to read MPI options in a clear manner

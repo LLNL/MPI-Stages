@@ -18,6 +18,7 @@ public:
 	int barrier();
 	int send_clean_up();
 	int wait_commit();
+	int abort();
 
 private:
 	int send_barrier_ready();
@@ -27,7 +28,6 @@ private:
 	sockaddr_in daemon;
 
 	Daemon();
-
 	~Daemon();
 
 	int send(std::string);

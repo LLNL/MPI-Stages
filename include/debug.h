@@ -4,7 +4,6 @@
 #include <mutex>
 #include <string>
 #include <iostream>
-#include <sstream>
 
 namespace exampi
 {
@@ -30,14 +29,28 @@ void debug_function_exit();
 
 #define debug_add_thread(name) debug_add_thread(name)
 
-#define debug(msg) debug_mutex.lock(); \
-                     std::clog << debug_init(__FILE__, __LINE__,__PRETTY_FUNCTION__) \
-                     << msg << std::endl << std::flush; \
-                     debug_mutex.unlock();
+#define debug(msg)	debug_mutex.lock(); \
+                    std::clog << debug_init(__FILE__,__LINE__,__PRETTY_FUNCTION__) \
+                    << msg << std::endl << std::flush; \
+                    debug_mutex.unlock();
+
+// todo debug improvements
+#define debug_error(msg)
+#define debug_warning(msg)
+#define debug_info(msg)
+#define debug_info_deep(msg)
+#define debug_time(msg)
+#define debug_envelope(envelope)
 
 #else
 
 #define debug_add_thread(name)
+
+#define debug_error(msg)
+#define debug_warning(msg)
+#define debug_info(msg)
+#define debug_info_deep(msg)
+#define debug_time(msg)
 
 #define debug(msg)
 

@@ -1,26 +1,42 @@
-#ifndef __EXAMPI_I_TRANSPORT_H
-#define __EXAMPI_I_TRANSPORT_H
+#ifndef __EXAMPI_INTERFACE_TRANSPORT_H
+#define __EXAMPI_INTERFACE_TRANSPORT_H
 
-#include <mpi.h>
+// todo remove with mpi stages
+#include <fstream>
+#include <map>
+
+#include "header.h"
+#include "request.h"
+#include "protocol.h"
 
 namespace exampi
 {
 
-class Transport
+struct Transport
 {
-public:
-	virtual void init() = 0;
-	virtual void finalize() = 0;
+	virtual ~Transport() {};
 
-	virtual std::future<int> send(std::vector<struct iovec> &iov, int dest,
-	                              MPI_Comm comm) = 0;
-	virtual std::future<int> receive(std::vector<struct iovec> &iov, MPI_Comm comm,
-	                                 ssize_t *count) = 0;
-	virtual int peek(std::vector<struct iovec> &iov, MPI_Comm comm) = 0;
-
+	// todo mpi stages
 	virtual int save(std::ostream &r) = 0;
 	virtual int load(std::istream &r) = 0;
-	virtual int cleanUp(MPI_Comm comm) = 0;
+	virtual int halt() = 0;
+
+	// never called
+	//virtual int cleanUp(MPI_Comm comm) = 0;
+
+	// ordered map (preference) of protocol initator and maximum message size
+	// note chose size_t over long int, because -1 == inf would work
+	//      but it cuts down by a large range, max size_t is enough
+	virtual const std::map<Protocol, size_t> &provided_protocols() const = 0;
+
+	// receive a header or nullptr
+	virtual Header *ordered_recv() = 0;
+
+	// fill header into matching request
+	virtual void fill(const Header *, Request *) = 0;
+
+	// send request with protocol
+	virtual void reliable_send(const Protocol, const Request *) = 0;
 };
 
 } // ::exampi

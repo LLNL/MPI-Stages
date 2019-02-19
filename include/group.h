@@ -6,6 +6,8 @@
 namespace exampi
 {
 
+// todo replace this group representation with an abstract
+// one should be enumerating, one should be range, 0-12 is in group.
 class Group
 {
 public:

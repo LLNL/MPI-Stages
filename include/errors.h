@@ -1,18 +1,75 @@
 #ifndef __EXAMPI_ERRORS_H
 #define __EXAMPI_ERRORS_H
 
+#include <exception>
+
+#include "mpi.h"
+
 namespace exampi
 {
 
-enum mpi_error
+class PersistentOffloadOperationError: public std::exception
 {
-	MPI_SUCCESS = 0,
-	MPI_ERR_COMM,
-	MPI_ERR_COUNT,
-	MPI_ERR_TYPE,
-	MPI_ERR_TAG,
-	MPI_ERR_RANK
+	const char *what() const noexcept override
+	{
+		return "An operation which is not persistent offload was given.";
+	}
 };
+
+class BsendCopyError: public std::exception
+{
+	const char *what() const noexcept override
+	{
+		return "std::memcpy failed to copy Bsend user buffer.";
+	}
+};
+
+// todo consolidate error definitions
+//enum mpi_error
+//{
+//	MPI_SUCCESS = MPI_SUCCESS,
+//	MPI_ERR_COMM,
+//	MPI_ERR_COUNT,
+//	MPI_ERR_TYPE,
+//	MPI_ERR_TAG,
+//	MPI_ERR_RANK
+//};
+
+#ifdef RUNTIME_ARGUMENT_CHECK
+
+int check_buffer(void *buf);
+int check_comm(MPI_Comm comm);
+int check_count(int count);
+int check_tag(int tag);
+int check_datatype(MPI_Datatype datatype);
+int check_rank(int rank, MPI_Comm comm);
+
+int check_request(MPI_Request *request);
+int check_status(MPI_Status *status);
+
+#define CHECK_BUFFER(buffer)			return check_buffer(buffer);
+#define CHECK_COMM(communicator)		return check_comm(communicator);
+#define CHECK_COUNT(count)				return check_count(count);
+#define CHECK_TAG(tag) 					return check_tag(tag);
+#define CHECK_DATATYPE(datatype)		return check_datatype(datatype);
+#define CHECK_RANK(rank, communiator)	return check_rank(rank, communicator);
+
+#define CHECK_REQUEST(request)			return check_request(request);
+#define CHECK_STATUS(status) 			return check_status(status);
+
+#else
+
+#define CHECK_BUFFER(buffer)
+#define CHECK_COMM(communicator)
+#define CHECK_COUNT(count)
+#define CHECK_TAG(tag)
+#define CHECK_DATATYPE(datatype)
+#define CHECK_RANK(rank, communicator)
+
+#define CHECK_REQUEST(request)
+#define CHECK_STATUS(status)
+
+#endif
 
 }
 

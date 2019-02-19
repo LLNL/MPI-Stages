@@ -1,8 +1,9 @@
-#ifndef __EXAMPI_I_PROGRESS_H
-#define __EXAMPI_I_PROGRESS_H
+#ifndef __EXAMPI_ABSTRACT_PROGRESS_H
+#define __EXAMPI_ABSTRACT_PROGRESS_H
 
 #include <mpi.h>
-#include <endpoint.h>
+
+#include "request.h"
 
 namespace exampi
 {
@@ -10,18 +11,18 @@ namespace exampi
 class Progress
 {
 public:
-	virtual int init() = 0;
-	virtual void finalize() = 0;
-	virtual int init(std::istream &t) = 0;
-	virtual void barrier() = 0;
-	virtual std::future<MPI_Status> postSend(UserArray array, Endpoint dest,
-	        int tag) = 0;
-	virtual std::future<MPI_Status> postRecv(UserArray array, Endpoint source,
-	        int tag) = 0;
+	virtual ~Progress() {}
+
+	// handle user request object
+	virtual void post_request(Request *request) = 0;
+
+	// todo mpi stages
 	virtual int save(std::ostream &t) = 0;
 	virtual int load(std::istream &t) = 0;
-	virtual int stop() = 0;
-	virtual void cleanUp() = 0;
+	virtual int halt() = 0;
+
+	// stages recovery send cleanup to daemon, this gets triggered by sigusr2 from daemon
+	//virtual void cleanup() = 0;
 };
 
 } // ::exampi

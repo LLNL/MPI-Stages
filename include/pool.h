@@ -3,12 +3,19 @@
 
 #include <mutex>
 #include <memory>
+#include <functional>
 #include <assert.h>
 
 #include "debug.h"
 
 // https://thinkingeek.com/2017/11/19/simple-memory-pool/
 // MR: this is a dirty copy of that, use that as base for good implementation
+
+// todo use mutex only to reset free set
+// free set is a collection of 1 link with an atomic to iterate
+
+// todo make this smarter
+// use a free list to point to non reset ones, avoid doing mutex if we are not low of items.
 
 namespace exampi
 {
@@ -84,25 +91,22 @@ public:
 	std::mutex sharedlock;
 
 public:
-	// shortcut unique ptr type for simplicity
-	typedef typename std::unique_ptr<T, std::function<void(T *)>> unique_ptr;
-
 	MemoryPool(size_t arena_size)
 		: arena_size(arena_size),
 		  allocated_items(0),
 		  allocated_arenas(1),
 		  arena(new MemoryPool_arena(arena_size)),
 		  free_list(arena->get_storage())
-	{;}
+	{
+		debug("free_list starts at: " << &free_list[0]);
+	}
 
 	template <typename... Args>
-	MemoryPool::unique_ptr alloc(Args &&... args)
+	T *allocate(Args &&... args)
 	{
 		debug("allocating " << typeid(T).name() << " from " << this->allocated_arenas
-		        << " arenas");
+		      << " arenas");
 
-		// TODO use mutex only to reset free set
-		// free set is a collection of 1 link with an atomic to iterate
 		std::lock_guard<std::mutex> lock(this->sharedlock);
 
 		// allocate a new arena if needed
@@ -131,16 +135,20 @@ public:
 		this->allocated_items++;
 		debug("item is number " << this->allocated_items);
 
-		return MemoryPool::unique_ptr(result, [this](T* t) -> void { this->free(t); });
+		return result;
 	}
 
-	void free(T *t)
+	void deallocate(T *t)
 	{
-		// TODO make this smarter
+		// todo make this smarter
 		// use a free list to point to non reset ones, avoid doing mutex if we are not low of items.
 
 		debug("freeing item, now at " << this->allocated_items << " : " <<
-		        this->allocated_arenas);
+		      this->allocated_arenas);
+
+		// avoid nullptr freeing
+		if(t == nullptr)
+			return;
 
 		std::lock_guard<std::mutex> lock(this->sharedlock);
 		this->allocated_items--;
@@ -153,6 +161,8 @@ public:
 		// return item to pool
 		current_item->set_next_item(this->free_list);
 		this->free_list = current_item;
+
+		debug("freed item to pool");
 	}
 };
 

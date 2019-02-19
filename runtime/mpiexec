@@ -317,7 +317,7 @@ def parse_arguments():
 	parser = argparse.ArgumentParser(description="ExaMPI Process Initiator")
 
 	# number of processes
-	parser.add_argument('-n', '--processes', type=int)
+	parser.add_argument('-n', '--processes', type=int, required=True)
 
 	# application to execute
 	parser.add_argument('program', metavar='<program>', type=str, nargs=argparse.REMAINDER)

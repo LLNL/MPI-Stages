@@ -5,11 +5,15 @@
 CXX ?= c++
 
 # flags
-CXXFLAGS += -Wall -Wextra -pedantic -Wno-unused-parameter
+CXXFLAGS += -Wall -Wextra -pedantic
 CXXFLAGS += -Wno-unused-parameter -Wno-unused-function -Wno-unused-variable -Wno-unused-but-set-variable
-CXXFLAGS += -std=c++11 -g -pthread -O2
+#CXXFLAGS += -Wno-unused-parameter
 
-CXXFLAGS += -DDEBUG 
+CXXFLAGS += -std=c++17 -g -pthread 
+
+CXXFLAGS += -O3 -funroll-loops
+
+#CXXFLAGS += -DDEBUG 
 
 LDFLAGS = 
 
@@ -32,10 +36,10 @@ docdir = docs
 
 # detect files
 headers = $(wildcard $(incdir)/*.h) $(wildcard $(incdir)/*/*.h)
-sources = $(wildcard $(srcdir)/*.cpp) $(wildcard $(srcdir)/*/*.cpp)
+sources = $(wildcard $(srcdir)/*.cc) $(wildcard $(srcdir)/*/*.cc)
 
 # determine files
-objects = $(patsubst %.cpp, %.o, $(subst $(srcdir), $(blddir), $(sources)))
+objects = $(patsubst %.cc, %.o, $(subst $(srcdir), $(blddir), $(sources)))
 
 ### rules
 default: static
@@ -56,10 +60,10 @@ $(shlib): $(objects)
 	@echo "SHARED LIBRARY NOT IMPLEMENTED"
 
 # object building rules
-$(blddir)/%.o: $(srcdir)/%.cpp $(headers) | directories
+$(blddir)/%.o: $(srcdir)/%.cc $(headers) | directories
 	$(CXX) -I$(incdir) -c $(CXXFLAGS) $< -o $@
 
-$(blddir)/*/%.o: $(srcdir)/*/%.cpp $(headers) | directories
+$(blddir)/*/%.o: $(srcdir)/*/%.cc $(headers) | directories
 	$(CXX) -I$(incdir) -c $(CXXFLAGS) $< -o $@
 
 ### directory rules
@@ -73,7 +77,9 @@ directories:
 	@mkdir -p $(blddir)/engines
 	@mkdir -p $(blddir)/checkpoints
 	@mkdir -p $(blddir)/transports
-
+	@mkdir -p $(blddir)/matchers
+	@mkdir -p $(blddir)/deciders
+	
 ### clean rules
 .PHONY: style
 style:
