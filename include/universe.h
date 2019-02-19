@@ -10,7 +10,7 @@
 #include "abstract/checkpoint.h"
 #include "pool.h"
 #include "request.h"
-#include "comm.h"
+#include "communicator.h"
 
 namespace exampi
 {
