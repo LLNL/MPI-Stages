@@ -18,7 +18,6 @@
 #include "daemon.h"
 #include "request.h"
 #include "protocol.h"
-#include "sigHandler.h"
 
 namespace exampi
 {

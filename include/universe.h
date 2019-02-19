@@ -10,7 +10,7 @@
 #include "abstract/checkpoint.h"
 #include "pool.h"
 #include "request.h"
-#include "comm.h"
+#include "communicator.h"
 
 namespace exampi
 {
@@ -57,7 +57,7 @@ public:
 	// todo mpi stages
 	std::unique_ptr<Checkpoint> checkpoint;
 
-	// todo eventually Interface *interface
+	// eventually Interface *interface
 
 	// prevent Universe from being copied
 	Universe(const Universe &u)				= delete;

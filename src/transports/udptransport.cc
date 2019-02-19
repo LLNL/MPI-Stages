@@ -231,7 +231,9 @@ void UDPTransport::reliable_send(const Protocol protocol,
 	iovs[3].iov_len = sizeof(int) * request->payload.count;
 
 	// todo rank -> root commmunicator -> address
-	sockaddr_in &addr = cache[request->envelope.destination];
+	// note this currently works, because comm_dup is the only communicator construction allowed
+	int world_rank = request->envelope.destination;
+	sockaddr_in &addr = cache[world_rank];
 
 	hdr.msg_iov = iovs;
 	hdr.msg_iovlen = 4;

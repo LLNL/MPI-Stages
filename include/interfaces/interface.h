@@ -34,7 +34,6 @@ private:
 	                      Operation operation);
 	int finalize_request(MPI_Request *request, Request *req, MPI_Status *status);
 
-	void mark_hidden_persistent(MPI_Request *);
 	int offload_persistent(const void *, int, MPI_Datatype, int, int, MPI_Comm, Operation, MPI_Request *);
 	int offload_persistent_wait(const void *, int, MPI_Datatype, int, int, MPI_Comm, Operation);
 

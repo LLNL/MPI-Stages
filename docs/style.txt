@@ -1,7 +1,3 @@
-\documentclass{article}
- 
-\begin{document}
-
 Place all implementation code into the source files instead of the header files.
 
 Indentation 4-space per level
@@ -48,5 +44,3 @@ debug statements as much as required.
 debug("this string" << variable << "another string")
 
 will automagically intend and such.
-
-\end{document}

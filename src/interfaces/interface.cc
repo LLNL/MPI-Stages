@@ -8,6 +8,8 @@
 #include "daemon.h"
 #include "universe.h"
 #include "faulthandler.h"
+#include "checks.h"
+#include "exceptions.h"
 
 namespace exampi
 {
@@ -135,13 +137,6 @@ int BasicInterface::MPI_Request_free(MPI_Request *request)
 	return MPI_SUCCESS;
 }
 
-void BasicInterface::mark_hidden_persistent(MPI_Request *request)
-{
-	// mark as hidden persistence, delete on MPI_Wait 
-	Request_ptr req = reinterpret_cast<Request_ptr>(*request);
-	req->hidden_persistent = true;
-}
-
 int BasicInterface::offload_persistent(const void *buf, int count, MPI_Datatype datatype, int rank, int tag, MPI_Comm comm, Operation operation, MPI_Request *request)
 {
 	// offload into persistent path
@@ -188,7 +183,9 @@ int BasicInterface::offload_persistent(const void *buf, int count, MPI_Datatype 
 	
 	if(err != MPI_SUCCESS) return err;
 
-	mark_hidden_persistent(request);
+	// disable persistence
+	Request_ptr req = reinterpret_cast<Request_ptr>(*request);
+	req->persistent = false;
 
 	debug("starting request");
 	err = MPI_Start(request);
@@ -211,7 +208,6 @@ int BasicInterface::offload_persistent_wait(const void *buf, int count, MPI_Data
 
 	debug("waiting for request");
 	err = MPI_Wait(&request, MPI_STATUS_IGNORE);
-	// request hidden persistent is freed
 
 	if(err != MPI_SUCCESS)
 	{
@@ -496,7 +492,7 @@ int BasicInterface::finalize_request(MPI_Request *request, Request *req,
 	}
 
 	// for persistent request
-	if(req->persistent && !req->hidden_persistent)
+	if(req->persistent)
 	{
 		req->active = false;
 	}
@@ -533,7 +529,7 @@ int BasicInterface::MPI_Wait(MPI_Request *request, MPI_Status *status)
 	// inactive persistent request chec
 	debug("checking persistent " << req->persistent << " and inactive " <<
 	      req->active);
-	if(req->persistent && !req->hidden_persistent && !req->active)
+	if(req->persistent && !req->active)
 	{
 		debug("persistent and inactive request found");
 		return MPI_SUCCESS;
@@ -703,18 +699,21 @@ int BasicInterface::MPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm)
 
 	Universe &universe = Universe::get_root_universe();
 
+	// get communicator object
 	int rc;
 	std::shared_ptr<Comm> c = universe.communicators.at(comm);
 
 	int coll_context;
 	int p2p_context;
 
+	// get next context id
 	rc = c->get_next_context(&p2p_context, &coll_context);
 	if (rc != MPI_SUCCESS)
 	{
 		return MPIX_TRY_RELOAD;
 	}
 
+	// create new communicator object
 	std::shared_ptr<Comm> communicator;
 	communicator = std::make_shared<Comm>(true, c->get_local_group(),
 	                                      c->get_remote_group());
@@ -722,8 +721,10 @@ int BasicInterface::MPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm)
 	communicator->set_rank(c->get_rank());
 	communicator->set_context(p2p_context, coll_context);
 
+	// register duplicate communicator
 	universe.communicators.push_back(communicator);
 
+	// What is this doing?
 	auto it = std::find_if(universe.communicators.begin(),
 	                       universe.communicators.end(),
 	                       [communicator](const std::shared_ptr<Comm> i) -> bool {return i->get_context_id_pt2pt() == communicator->get_context_id_pt2pt();});

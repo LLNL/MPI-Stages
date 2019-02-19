@@ -1,76 +1,69 @@
 #ifndef __EXAMPI_ERRORS_H
 #define __EXAMPI_ERRORS_H
 
-#include <exception>
-
-#include "mpi.h"
-
-namespace exampi
+enum Errors: int
 {
+	MPI_SUCCESS = 0,
+	
+	MPI_ERR_BUFFER,
+	MPI_ERR_COUNT,
+	MPI_ERR_TYPE,
+	MPI_ERR_TAG,
+	MPI_ERR_COMM,
+	MPI_ERR_RANK,
+	MPI_ERR_REQUEST,
+	MPI_ERR_ROOT,
+	MPI_ERR_GROUP,
+	MPI_ERR_OP,
+	MPI_ERR_TOPOLOGY,
+	MPI_ERR_DIMS,
+	MPI_ERR_ARG,
+	MPI_ERR_UNKNOWN,
+	MPI_ERR_TRUNCATE,
+	MPI_ERR_OTHER,
+	MPI_ERR_INTERN,
+	MPI_ERR_IN_STATUS,
+	MPI_ERR_PENDING,
+	MPI_ERR_KEYVAL,
+	MPI_ERR_NO_MEM,
+	MPI_ERR_BASE,
+	MPI_ERR_INFO_KEY,
+	MPI_ERR_INFO_VALUE,
+	MPI_ERR_INFO_NOKEY,
+	MPI_ERR_SPAWN,
+	MPI_ERR_PORT,
+	MPI_ERR_SERVICE,
+	MPI_ERR_NAME,
+	MPI_ERR_WIN,
+	MPI_ERR_SIZE,
+	MPI_ERR_DISP,
+	MPI_ERR_INFO,
+	MPI_ERR_LOCKTYPE,
+	MPI_ERR_ASSERT,
+	MPI_ERR_RMA_CONFLICT,
+	MPI_ERR_RMA_SYNC,
+	MPI_ERR_RMA_RANGE,
+	MPI_ERR_RMA_ATTACH,
+	MPI_ERR_RMA_SHARED,
+	MPI_ERR_RMA_FLAVOR,
+	MPI_ERR_FILE,
+	MPI_ERR_NOT_SAME,
+	MPI_ERR_AMODE,
+	MPI_ERR_UNSUPPORTED_DATAREP,
+	MPI_ERR_UNSUPPORTED_OPERATION,
+	MPI_ERR_NO_SUCH_FILE,
+	MPI_ERR_FILE_EXISTS,
+	MPI_ERR_BAD_FILE,
+	MPI_ERR_ACCESS,
+	MPI_ERR_NO_SPACE,
+	MPI_ERR_QUOTA,
+	MPI_ERR_READ_ONLY,
+	MPI_ERR_FILE_IN_USE,
+	MPI_ERR_DUP_DATAREP,
+	MPI_ERR_CONVERSION,
+	MPI_ERR_IO,
 
-class PersistentOffloadOperationError: public std::exception
-{
-	const char *what() const noexcept override
-	{
-		return "An operation which is not persistent offload was given.";
-	}
+	MPI_ERR_LASTCODE
 };
-
-class BsendCopyError: public std::exception
-{
-	const char *what() const noexcept override
-	{
-		return "std::memcpy failed to copy Bsend user buffer.";
-	}
-};
-
-// todo consolidate error definitions
-//enum mpi_error
-//{
-//	MPI_SUCCESS = MPI_SUCCESS,
-//	MPI_ERR_COMM,
-//	MPI_ERR_COUNT,
-//	MPI_ERR_TYPE,
-//	MPI_ERR_TAG,
-//	MPI_ERR_RANK
-//};
-
-#ifdef RUNTIME_ARGUMENT_CHECK
-
-int check_buffer(void *buf);
-int check_comm(MPI_Comm comm);
-int check_count(int count);
-int check_tag(int tag);
-int check_datatype(MPI_Datatype datatype);
-int check_rank(int rank, MPI_Comm comm);
-
-int check_request(MPI_Request *request);
-int check_status(MPI_Status *status);
-
-#define CHECK_BUFFER(buffer)			return check_buffer(buffer);
-#define CHECK_COMM(communicator)		return check_comm(communicator);
-#define CHECK_COUNT(count)				return check_count(count);
-#define CHECK_TAG(tag) 					return check_tag(tag);
-#define CHECK_DATATYPE(datatype)		return check_datatype(datatype);
-#define CHECK_RANK(rank, communiator)	return check_rank(rank, communicator);
-
-#define CHECK_REQUEST(request)			return check_request(request);
-#define CHECK_STATUS(status) 			return check_status(status);
-
-#else
-
-#define CHECK_BUFFER(buffer)
-#define CHECK_COMM(communicator)
-#define CHECK_COUNT(count)
-#define CHECK_TAG(tag)
-#define CHECK_DATATYPE(datatype)
-#define CHECK_RANK(rank, communicator)
-
-#define CHECK_REQUEST(request)
-#define CHECK_STATUS(status)
-
-#endif
-
-}
 
 #endif
