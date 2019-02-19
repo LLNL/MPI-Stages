@@ -78,7 +78,7 @@ private:
 	MemoryPool<Header> header_pool;
 	MemoryPool<UDPTransportPayload> payload_pool;
 
-	std::unordered_map<const Header *, UDPTransportPayload *> payload_buffer;
+	std::unordered_map<Header *, UDPTransportPayload *> payload_buffer;
 
 	msghdr hdr;
 
@@ -92,8 +92,8 @@ public:
 
 	const std::map<Protocol, size_t> &provided_protocols() const;
 
-	Header *ordered_recv();
-	void fill(const Header *, Request *);
+	std::unique_ptr<Header> ordered_recv();
+	void fill(std::unique_ptr<Header>, Request *);
 	void reliable_send(const Protocol, const Request *);
 
 	// todo isolate mpi stages

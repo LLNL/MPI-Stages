@@ -86,7 +86,7 @@ UDPTransport::~UDPTransport()
 	close(socket_recv);
 }
 
-Header *UDPTransport::ordered_recv()
+std::unqiue_ptr<Header> UDPTransport::ordered_recv()
 {
 	// early exit test
 	char test;
@@ -179,7 +179,7 @@ Header *UDPTransport::ordered_recv()
 	return header;
 }
 
-void UDPTransport::fill(const Header *header, Request *request)
+void UDPTransport::fill(std::unqiue_ptr<Header> header, Request *request)
 {
 	// look up payload with respect to header
 	UDPTransportPayload *payload = payload_buffer[header];
@@ -191,6 +191,7 @@ void UDPTransport::fill(const Header *header, Request *request)
 	}
 	else
 	{
+		header_pool.deallocate(header);
 		payload_pool.deallocate(payload);
 	}
 }
@@ -199,6 +200,8 @@ void UDPTransport::reliable_send(const Protocol protocol,
                                  const Request *request)
 {
 	std::lock_guard<std::mutex> lock(guard);
+
+	// TODO add sequence number
 
 	// todo depends on datatype
 	//      we currently only support vector/block
@@ -221,14 +224,14 @@ void UDPTransport::reliable_send(const Protocol protocol,
 	debug("sending payload " << ((int*)request->payload.buffer)[0]);
 
 	// payload length
-	// todo datatype packing, gather
-	int payload_size = request->payload.count * sizeof(int);
+	// TODO datatype packing, gather
+	int payload_size = request->payload.count * request->payload.datatype->get_extent();
 	iovs[2].iov_base = (void *)&payload_size;
 	iovs[2].iov_len = sizeof(int);
 
 	// request->buffer;
 	iovs[3].iov_base = (void *)request->payload.buffer;
-	iovs[3].iov_len = sizeof(int) * request->payload.count;
+	iovs[3].iov_len = request->payload.count * request->payload.datatype->get_extent();
 
 	// todo rank -> root commmunicator -> address
 	// note this currently works, because comm_dup is the only communicator construction allowed
