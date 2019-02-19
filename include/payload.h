@@ -9,7 +9,8 @@ namespace exampi
 struct Payload
 {
 	const void *buffer;
-	MPI_Datatype datatype;
+	//MPI_Datatype datatype;
+	Datatype *datatype;
 	int count;
 };
 

@@ -337,7 +337,10 @@ int BasicInterface::construct_request(const void *buf, int count,
 	req->envelope.tag = tag;
 
 	// data description
-	req->payload.datatype = datatype;
+	// TODO find datatype
+	//req->payload.datatype = datatype;
+	//req->payload.datatype = &...
+
 	req->payload.count = count;
 	req->payload.buffer = buf;
 
@@ -1053,7 +1056,7 @@ int BasicInterface::MPI_Reduce(const void *s_buf, void *r_buf, int count,
 
 	size_t szcount = count;
 	datatype = &(universe.datatypes[type]);
-	bufsize = datatype->getExtent() * szcount;
+	bufsize = datatype->get_extent() * szcount;
 	memcpy(r_buf, s_buf, bufsize);
 
 	buf = malloc((size_t) bufsize);
@@ -1152,11 +1155,11 @@ int BasicInterface::MPI_Get_count(MPI_Status *status, MPI_Datatype datatype,
 
 	Universe &universe = Universe::get_root_universe();
 	Datatype type = universe.datatypes[datatype];
-	if (type.getExtent())
+	if (type.get_extent())
 	{
-		*count = status->count / type.getExtent();
+		*count = status->count / type.get_extent();
 		if (status->count >= 0
-		        && *count * type.getExtent() != static_cast<size_t>(status->count))
+		        && *count * type.get_extent() != static_cast<size_t>(status->count))
 		{
 			*count = MPI_UNDEFINED;
 		}
