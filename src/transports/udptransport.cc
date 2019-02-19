@@ -231,6 +231,7 @@ void UDPTransport::reliable_send(const Protocol protocol,
 	iovs[3].iov_len = sizeof(int) * request->payload.count;
 
 	// todo rank -> root commmunicator -> address
+	// TODO translate communicator rank to global rank
 	sockaddr_in &addr = cache[request->envelope.destination];
 
 	hdr.msg_iov = iovs;

@@ -82,7 +82,6 @@ private:
 
 	msghdr hdr;
 
-	// TODO caching per rank does not work, needs per communicator...
 	std::unordered_map<long int, sockaddr_in> cache;
 
 	std::map<Protocol, size_t> available_protocols;
