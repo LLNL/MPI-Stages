@@ -2,6 +2,7 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <cstring>
+#include <limits>
 
 #include "transports/udptransport.h"
 #include "universe.h"
@@ -73,13 +74,11 @@ UDPTransport::UDPTransport() : header_pool(32), payload_pool(32)
 	}
 
 	// setting available protocols for UDPTransport
-	// todo still subtract sizeof(protocol+envelope)
-	//      65507 maximum udp packet size
-	//available_protocols[Protocol::EAGER] = 65507;
-	//available_protocols[Protocol::EAGER_ACK] = 65507;
+	available_protocols[Protocol::EAGER]		= 65507 - sizeof(Header);
+	available_protocols[Protocol::EAGER_ACK]	= 65507 - sizeof(Header);
 
-	available_protocols[Protocol::EAGER] = 1024 - sizeof(Header);
-	available_protocols[Protocol::EAGER_ACK] = 1024 - sizeof(Header);
+	available_protocols[Protocol::SEQ]			= std::numeric_limits<size_t>::max() - sizeof(Header);
+	available_protocols[Protocol::SEQ_ACK]		= std::numeric_limits<size_t>::max() - sizeof(Header);
 }
 
 UDPTransport::~UDPTransport()
