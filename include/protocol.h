@@ -17,20 +17,24 @@ typedef Request *Request_ptr;
 enum class Protocol: int
 {
 	// initiators
-	EAGER,			// pack data, no ack
-	EAGER_ACK,		// data is packed, ack required
-	//EAGER_SEQ,		// pack data, multiple messages
-	//EAGER_SEQ_ACK,	// packed data, multiple messages, ack required
+	EAGER,				// pack data, no ack
+	EAGER_ACK,			// data is packed, ack required
+	SEQ,				// pack data, multiple messages
+	SEQ_ACK,			// packed data, multiple messages, ack required
 
-	//RENDEVOUZ_PUT,	// send buffer is packed, requesting buffer on receiver
-	//RENDEVOUZ_GET,	// send buffer is packed, requesting get from buffer and ack
+	//EAGER_PUT,		// placed data into buffer on receiver side, preallocated
+	//EAGER_PUT_ACK,	// placed data into buffer require acknowledge
+
+	//RENDEZVOUS_PUT,	// send buffer is packed, requesting buffer on receiver
+	//RENDEZVOUS_GET,	// send buffer is packed, requesting get from buffer and ack
 
 	// followers
-	//EAGER_SEQ_TERM,
-	//EAGER_SEQ_TERM_ACK,
-	ACK,			// no data, ack in response, finalizing any protocol
+	SEQ_TERM,
+	SEQ_TERM_ACK,
+	ACK,				// no data, ack in response, finalizing any protocol
 
-	//RENDEVOUZ_ACK,	// recv buffer is packed, requesting putting into receiver, follow by ack
+	//RENDEZVOUS_INFO,
+	//RENDEZVOUS_ACK,	// recv buffer is packed, requesting putting into receiver, follow by ack
 };
 
 //struct ProtocolMessage
