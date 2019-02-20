@@ -111,20 +111,19 @@ void BlockingProgress::progress()
 		// 		blocking would be woken up by post_request, transporter ordered_recv()
 
 		// absorb message if any, this is inflow
-		if(Header *header = transporter->ordered_recv())
+		if(Header_uptr header = transporter->ordered_recv())
 		{
 			debug("progress thread, receiving message");
 
-			matcher->post_header(header);
+			matcher->post_header(std::move(header));
 		}
 
 		// match message if any, this is inflow
-		else if(Match match; matcher->progress(match))
-		//else if(auto [match, request, msg] = matcher->progress())
+		else if(auto [header, request] = matcher->progress(); request != nullptr)
 		{
-			debug("progress thread, matched message -> handling match");
+			debug("progress thread, matched header " << header.get() << " == request " << request);
 
-			handle_match(match);
+			handle_match(std::move(header), request);
 		}
 
 		// emit message if any, this is outflow
@@ -157,23 +156,21 @@ void BlockingProgress::progress()
 	}
 }
 
-void BlockingProgress::handle_match(Match &match)
+void BlockingProgress::handle_match(Header_uptr header, Request *request)
 {
 	// note this is the big switch or dictionary protocol handling
 
 	debug("handling matched request <-> protocol message");
 
 	// todo put this into a dictionary/map
-	int err = -1;
-	//switch(match.message->stage)
-	switch(match.header->protocol)
+	switch(header->protocol)
 	{
 		case Protocol::EAGER_ACK:
 		{
 			debug("protocol message: EAGER_ACK");
 
 			// return ACK message
-			transporter->reliable_send(Protocol::ACK, match.request);
+			transporter->reliable_send(Protocol::ACK, request);
 
 			[[fallthrough]];
 		}
@@ -182,9 +179,9 @@ void BlockingProgress::handle_match(Match &match)
 		{
 			debug("protocol message: EAGER");
 
-			transporter->fill(match.header, match.request);
+			transporter->fill(std::move(header), request);
 
-			match.request->release();
+			request->release();
 
 			debug("request completed and released");
 			break;
@@ -194,7 +191,7 @@ void BlockingProgress::handle_match(Match &match)
 		{
 			debug("protocol message: ACK");
 
-			match.request->release();
+			request->release();
 
 			debug("request completed and released");
 			break;

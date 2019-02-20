@@ -38,7 +38,7 @@ private:
 	std::unique_ptr<Decider> decider;
 
 	void progress();
-	void handle_match(Match &match);
+	void handle_match(Header_uptr, Request *);
 	void handle_request();
 	void handle_send(Request *request);
 

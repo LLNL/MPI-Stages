@@ -14,17 +14,17 @@ public:
 	TCPTransport();
 	~TCPTransport();
 
-	virtual const std::map<Protocol, size_t> &provided_protocols() const = 0;
+	const std::map<Protocol, size_t> &provided_protocols() const;
 
-	virtual Header *ordered_recv() = 0;
+	Header_uptr ordered_recv();
 
-	virtual void fill(const Header *, Request *) = 0;
+	void fill(Header_uptr, Request *);
 
-	virtual void reliable_send(const Protocol, const Request *) = 0;
+	void reliable_send(const Protocol, const Request *);
 
-	virtual int save(std::ostream &);
-	virtual int load(std::istream &);
-	virtual int halt();
+	int save(std::ostream &);
+	int load(std::istream &);
+	int halt();
 };
 
 }
