@@ -4,6 +4,7 @@
 // todo remove with mpi stages
 #include <fstream>
 #include <map>
+#include <memory>
 
 #include "header.h"
 #include "request.h"
@@ -30,10 +31,10 @@ struct Transport
 	virtual const std::map<Protocol, size_t> &provided_protocols() const = 0;
 
 	// receive a header or nullptr
-	virtual Header *ordered_recv() = 0;
+	virtual Header_uptr ordered_recv() = 0;
 
 	// fill header into matching request
-	virtual void fill(const Header *, Request *) = 0;
+	virtual void fill(Header_uptr, Request *) = 0;
 
 	// send request with protocol
 	virtual void reliable_send(const Protocol, const Request *) = 0;

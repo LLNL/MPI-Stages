@@ -6,11 +6,13 @@
 
 */
 
-#ifndef _MPI_H
-#define _MPI_H
+#ifndef __EXAMPI_MPI_H
+#define __EXAMPI_MPI_H
 
 #include <stdint.h>
 #include <sys/types.h>
+
+#include "errors.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -264,7 +266,6 @@ int MPI_Wait(MPI_Request *, MPI_Status *);
 int MPI_Waitall(int, MPI_Request [], MPI_Status []);
 double MPI_Wtime(void);
 
-// todo:  Haven't cleared this for PMPI api yet
 int MPIX_Checkpoint_write(void);
 int MPIX_Checkpoint_read(void);
 int MPIX_Get_fault_epoch(int *);

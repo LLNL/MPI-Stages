@@ -86,7 +86,7 @@ UDPTransport::~UDPTransport()
 	close(socket_recv);
 }
 
-Header *UDPTransport::ordered_recv()
+Header_uptr UDPTransport::ordered_recv()
 {
 	// early exit test
 	char test;
@@ -172,17 +172,17 @@ Header *UDPTransport::ordered_recv()
 		if(payload_length > 0)
 		{
 			debug("payload received: " << ((int*)payload)[0]);
-			payload_buffer[(const Header *)header] = payload;
+			payload_buffer[header] = payload;
 		}
 	}
 
-	return header;
+	return Header_uptr(header, [this] (Header *header) -> void { this->header_pool.deallocate(header); });
 }
 
-void UDPTransport::fill(const Header *header, Request *request)
+void UDPTransport::fill(Header_uptr header, Request *request)
 {
 	// look up payload with respect to header
-	UDPTransportPayload *payload = payload_buffer[header];
+	UDPTransportPayload *payload = payload_buffer[header.get()];
 
 	void *err = std::memcpy((void *)request->payload.buffer, payload, sizeof(int));
 	if(err == nullptr)
@@ -231,7 +231,9 @@ void UDPTransport::reliable_send(const Protocol protocol,
 	iovs[3].iov_len = sizeof(int) * request->payload.count;
 
 	// todo rank -> root commmunicator -> address
-	sockaddr_in &addr = cache[request->envelope.destination];
+	// note this currently works, because comm_dup is the only communicator construction allowed
+	int world_rank = request->envelope.destination;
+	sockaddr_in &addr = cache[world_rank];
 
 	hdr.msg_iov = iovs;
 	hdr.msg_iovlen = 4;

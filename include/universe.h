@@ -57,7 +57,7 @@ public:
 	// todo mpi stages
 	std::unique_ptr<Checkpoint> checkpoint;
 
-	// todo eventually Interface *interface
+	// eventually Interface *interface
 
 	// prevent Universe from being copied
 	Universe(const Universe &u)				= delete;

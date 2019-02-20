@@ -78,11 +78,10 @@ private:
 	MemoryPool<Header> header_pool;
 	MemoryPool<UDPTransportPayload> payload_pool;
 
-	std::unordered_map<const Header *, UDPTransportPayload *> payload_buffer;
+	std::unordered_map<Header *, UDPTransportPayload *> payload_buffer;
 
 	msghdr hdr;
 
-	// TODO caching per rank does not work, needs per communicator...
 	std::unordered_map<long int, sockaddr_in> cache;
 
 	std::map<Protocol, size_t> available_protocols;
@@ -91,12 +90,11 @@ public:
 	UDPTransport();
 	~UDPTransport();
 
-	Header *ordered_recv();
-	void fill(const Header *, Request *);
-
-	void reliable_send(const Protocol, const Request *);
-
 	const std::map<Protocol, size_t> &provided_protocols() const;
+
+	Header_uptr ordered_recv();
+	void fill(Header_uptr, Request *);
+	void reliable_send(const Protocol, const Request *);
 
 	// todo isolate mpi stages
 	int save(std::ostream &r);

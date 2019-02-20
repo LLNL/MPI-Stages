@@ -21,29 +21,25 @@ void SimpleMatcher::post_request(Request_ptr request)
 	change = true;
 }
 
-//void SimpleMatcher::post_message(ProtocolMessage_uptr message)
-void SimpleMatcher::post_header(Header *header)
+void SimpleMatcher::post_header(Header_uptr header)
 {
 	std::lock_guard<std::mutex> lock(guard);
 	debug("posting message in matcher");
 
 	Universe &universe = Universe::get_root_universe();
 
-	//if(message->envelope.epoch != universe.epoch)
 	if(header->envelope.epoch < universe.epoch)
 	{
 		debug("silently dropping message from wrong epoch");
 		return;
 	}
 
-	//received_message_queue.push_back(std::move(message));
-	received_header_queue.push_back(header);
+	received_header_queue.push_back(std::move(header));
 
 	change = true;
 }
 
-bool SimpleMatcher::progress(Match &match)
-//std::tuple<bool, Request_ptr, ProtocolMessage_uptr> SimpleMatcher::progress()
+std::tuple<Header_uptr, Request *> SimpleMatcher::progress()
 {
 	std::lock_guard<std::mutex> lock(guard);
 
@@ -55,8 +51,7 @@ bool SimpleMatcher::progress(Match &match)
 
 		debug("found requests and messages to match");
 
-		//typedef std::list<ProtocolMessage_uptr>::iterator msg_iter;
-		typedef std::list<Header *>::iterator hdr_iter;
+		typedef std::list<Header_uptr>::iterator hdr_iter;
 
 		// iterate all posted receives
 		for(auto riter = posted_request_queue.begin();
@@ -68,20 +63,17 @@ bool SimpleMatcher::progress(Match &match)
 			debug("picked up request: " << req);
 
 			// find match in messages
-			//auto iterator = std::find_if(received_message_queue.begin(),
-			//                             received_message_queue.end(),
-			//                             [&](ProtocolMessage_uptr &msg) -> bool
 			auto iterator = std::find_if(received_header_queue.begin(),
 			                             received_header_queue.end(),
-			                             [&](Header *header) -> bool
+			                             [&](Header_uptr &header) -> bool
 			{
 				// todo make convience debug_print_header(header)
 				debug("testing match between request <-> header: epoch " << req->envelope.epoch << " == " << header->envelope.epoch << ", comm " << req->envelope.context << " == " << header->envelope.context << ", source " << req->envelope.source << " == " << header->envelope.source << ", dest " << req->envelope.destination << " == " << header->envelope.destination << ", tag " << req->envelope.tag << " == " << header->envelope.tag);
 
 				// minimal matching condition set
 				bool condition = (req->envelope.epoch			== header->envelope.epoch) &&
-				(req->envelope.context 		== header->envelope.context) &&
-				(req->envelope.destination		== header->envelope.destination);
+								(req->envelope.context 			== header->envelope.context) &&
+							(req->envelope.destination			== header->envelope.destination);
 
 				// check for MPI_ANY_SOURCE
 				if(req->envelope.source != MPI_ANY_SOURCE)
@@ -95,27 +87,21 @@ bool SimpleMatcher::progress(Match &match)
 			});
 
 			// if matched
-			//if(iterator != received_message_queue.end())
 			if(iterator != received_header_queue.end())
 			{
 				debug("found match, generating match object");
 
-				// fill match object
-				match.request = req;
-				//match.message = std::move(*std::move_iterator<msg_iter>(iterator));
-				match.header = std::move(*std::move_iterator<hdr_iter>(iterator));
+				Header_uptr header = std::move(*std::move_iterator<hdr_iter>(iterator));
+
+				debug("header " << header.get() << " == " << req);
 
 				// remove from respective lists
 				posted_request_queue.erase(riter);
-				//received_message_queue.erase(iterator);
 				received_header_queue.erase(iterator);
-
-				//debug("matched req " << match.request << " <-> " << match.message.get());
 
 				debug("matching complete, found match");
 
-				return true;
-				//return std::make_tuple(true, req, std::move(*std::move_iterator<msg_iter>(iterator)));
+				return std::make_tuple(std::move(header), req);
 			}
 			else
 			{
@@ -126,8 +112,7 @@ bool SimpleMatcher::progress(Match &match)
 		}
 	}
 
-	//return std::make_tuple(false, nullptr, ProtocolMessage_uptr*(nullptr));
-	return false;
+	return std::make_tuple(std::unique_ptr<Header>(nullptr), nullptr);
 }
 
 void SimpleMatcher::halt()
