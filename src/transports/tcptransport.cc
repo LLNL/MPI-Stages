@@ -75,7 +75,7 @@ int TCPTransport::connect(int world_rank)
 	}
 	
 	// world_rank -> sockaddr
-	// TODO 	
+	// TODO ask config
 
 	// connect to rank tcp server_socket
 	int err = connect(client, );
@@ -107,11 +107,8 @@ Header_uptr TCPTransport::ordered_recv()
 		// insert client into connections
 	}
 	
-	// peek for message header	
-	// recv from n clients
-	
-	// if no data read it fully
-	// TODO
+	// peek from n clients for message header
+	// TODO this is bad	
 }
 
 void TCPTransport::fill(Header_uptr header, Request *request)
@@ -119,7 +116,7 @@ void TCPTransport::fill(Header_uptr header, Request *request)
 	std::lock_guard<std::mutex> lock(guard);
 
 	// read from tcp socket the associated data	
-	// TODO
+	// TODO straight forward, read from socket into request buffer(s)
 }
 
 void TCPTransport::reliable_send(const Protocol protocol, const Request *request)
@@ -173,7 +170,8 @@ void TCPTransport::reliable_send(const Protocol protocol, const Request *request
 	}
 	else
 	{
-		debug("sent " << err << " bytes over tcptransport");
+		debug("sent " << err << " bytes over tcptransport to world_rank " << 
+		      world_rank << " : comm_rank " << request->envelope.destination);
 	}
 }
 
