@@ -36,14 +36,31 @@ class TCPTransportSendError: public std::exception
 	}
 };
 
+class TCPTransportBindError: public std::exception
+{
+	const char *what() const noexcept override
+	{
+		return "TCPTransport failed to bind socket.";
+	}
+};
+
+class TCPTransportListenError: public std::exception
+{
+	const char *what() const noexcept override
+	{
+		return "TCPTransport failed on socket listen.";
+	}
+};
+
 class TCPTransport: public Transport
 {
 private:
 	std::mutex guard;
 	std::map<Protocol, size_t> available_protocols;
+	// world_rank, socket
 	std::unordered_map<int, int> connections;
 
-	int server;
+	int server_socket;
 	msghdr hdr;
 
 	int connect(int);
