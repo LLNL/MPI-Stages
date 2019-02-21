@@ -54,11 +54,12 @@ public:
 
 	const std::map<Protocol, size_t> &provided_protocols() const;
 
-	Header *ordered_recv();
-	void fill(const Header *, Request *);
+	Header_uptr ordered_recv();
+
+	void fill(Header_uptr, Request *);
+
 	void reliable_send(const Protocol, const Request *);
 
-	// todo mpi stages
 	int save(std::ostream &);
 	int load(std::istream &);
 	int halt();

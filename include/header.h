@@ -13,6 +13,8 @@ struct Header
 	Envelope envelope;
 };
 
+typedef std::unique_ptr<Header, std::function<void(Header *)>> Header_uptr;
+
 }
 
 #endif

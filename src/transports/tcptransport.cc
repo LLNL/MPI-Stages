@@ -86,7 +86,7 @@ int TCPTransport::connect(int world_rank)
 	return client;
 }
 
-Header *TCPTransport::ordered_recv()
+Header_uptr TCPTransport::ordered_recv()
 {
 	std::lock_guard<std::mutex> lock(guard);
 
@@ -100,7 +100,7 @@ Header *TCPTransport::ordered_recv()
 	// if no data read it fully
 }
 
-void TCPTransport::fill(const Header *header, Request *request)
+void TCPTransport::fill(Header_uptr header, Request *request)
 {
 	std::lock_guard<std::mutex> lock(guard);
 

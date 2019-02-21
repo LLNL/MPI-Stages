@@ -92,8 +92,8 @@ public:
 
 	const std::map<Protocol, size_t> &provided_protocols() const;
 
-	std::unique_ptr<Header> ordered_recv();
-	void fill(std::unique_ptr<Header>, Request *);
+	Header_uptr ordered_recv();
+	void fill(Header_uptr, Request *);
 	void reliable_send(const Protocol, const Request *);
 
 	// todo isolate mpi stages
