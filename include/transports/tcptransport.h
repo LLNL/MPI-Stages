@@ -4,7 +4,6 @@
 #include <mutex>
 #include <map>
 #include <unordered_map>
-#include <sys/socket.h>
 
 #include "abstract/transport.h"
 #include "pool.h"
