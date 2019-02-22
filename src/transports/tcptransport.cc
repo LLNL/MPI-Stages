@@ -1,7 +1,9 @@
 #include <unistd.h>
 #include <sys/socket.h>
+#include <netinet/in.h>
 
 #include "transports/tcptransport.h"
+#include "universe.h"
 
 namespace exampi
 {
@@ -24,15 +26,22 @@ TCPTransport::TCPTransport()
 	// set non blocking
 	
 	// bind socket
-	int err = bind(server_socket, );
-	if(err < 0)
+	Universe &universe = Universe::get_root_universe();
+	int port = std::stoi(std::string(std::getenv("EXAMPI_TCP_TRANSPORT_BASE"))) + universe.rank;
+	debug("tcp transport port: " << port);
+
+	struct sockaddr_in local;
+	local.sin_family = AF_INET;
+	local.sin_addr.s_addr = INADDR_ANY;
+	local.sin_port = htons(port);
+	
+	if(bind(server_socket, (sockaddr *)&local, sizeof(local)) < 0)
 	{
 		throw TCPTransportBindError();
 	}
 
 	// listen on socket
-	err = listen(server_socket, 5);
-	if(err < 0)
+	if(listen(server_socket, 5) < 0)
 	{
 		throw TCPTransportListenError();
 	}
@@ -79,6 +88,7 @@ int TCPTransport::connect(int world_rank)
 	// TODO ask config
 
 	// connect to rank tcp server_socket
+	// todo can fail to connect, retry after delay...
 	int err = connect(client, );
 	if(err < 0)
 	{
