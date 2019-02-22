@@ -1,10 +1,17 @@
 #ifndef __EXAMPI_ERRORS_H
 #define __EXAMPI_ERRORS_H
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 enum Errors: int
 {
+	// MPI defined
 	MPI_SUCCESS = 0,
 	
+	// MPI declared
 	MPI_ERR_BUFFER,
 	MPI_ERR_COUNT,
 	MPI_ERR_TYPE,
@@ -63,7 +70,15 @@ enum Errors: int
 	MPI_ERR_CONVERSION,
 	MPI_ERR_IO,
 
+	// EXAMPI declared
+	// ...
+
+	// MPI declared
 	MPI_ERR_LASTCODE
 };
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

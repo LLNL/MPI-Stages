@@ -51,6 +51,7 @@ typedef struct
 typedef void (*MPIX_Serialize_handler) (MPIX_Handles *handle);
 typedef void (*MPIX_Deserialize_handler) (MPIX_Handles handle);
 
+// 
 #define MPI_STATUS_IGNORE 0
 #define MPI_STATUSES_IGNORE 0
 #define MPI_REQUEST_NULL 0
@@ -58,8 +59,10 @@ typedef void (*MPIX_Deserialize_handler) (MPIX_Handles handle);
 #define MPI_ANY_SOURCE -1
 #define MPI_ANY_TAG -1
 
-#define MPI_SUCCESS 0 /* this is the default error class for success */
+
+// TODO errors
 #define MPI_REVERT 100  /* Need to revert to a checkpoint epoch */
+
 #define MPIX_TRY_RELOAD 101
 #define MPIX_SUCCESS_RECOVERY 102
 #define MPIX_SUCCESS_RESTART 103
@@ -67,21 +70,6 @@ typedef void (*MPIX_Deserialize_handler) (MPIX_Handles handle);
 #define MPI_UNDEFINED -1
 #define MPI_ERR_MPIEXEC 104
 #define MPI_ERR_ABORT 255
-#define MPI_ERR_BSEND 254
-#define MPI_ERR_RELIABLE_SEND_FAILED 253
-
-#define MPI_ERR_COMM		10
-#define MPI_ERR_COUNT		11
-#define MPI_ERR_TYPE		12
-#define MPI_ERR_TAG 		13
-#define MPI_ERR_RANK 		14
-#define MPI_ERR_INTERN 		15
-#define MPI_ERR_REQUEST 	16
-#define MPI_ERR_ARG			17
-#define MPI_ERR_BUFFER		18
-#define MPI_ERR_STATUS  	19
-#define MPI_ERR_SEND_TYPE	20
-#define MPI_ERR_DISABLED	21
 
 /* other error classes not defined yet */
 

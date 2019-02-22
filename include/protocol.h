@@ -19,8 +19,8 @@ enum class Protocol: int
 	// initiators
 	EAGER,				// pack data, no ack
 	EAGER_ACK,			// data is packed, ack required
-	SEQ,				// pack data, multiple messages
-	SEQ_ACK,			// packed data, multiple messages, ack required
+	//SEQ,				// pack data, multiple messages
+	//SEQ_ACK,			// packed data, multiple messages, ack required
 
 	//EAGER_PUT,		// placed data into buffer on receiver side, preallocated
 	//EAGER_PUT_ACK,	// placed data into buffer require acknowledge
@@ -29,8 +29,8 @@ enum class Protocol: int
 	//RENDEZVOUS_GET,	// send buffer is packed, requesting get from buffer and ack
 
 	// followers
-	SEQ_TERM,
-	SEQ_TERM_ACK,
+	//SEQ_TERM,
+	//SEQ_TERM_ACK,
 	ACK,				// no data, ack in response, finalizing any protocol
 
 	//RENDEZVOUS_INFO,
