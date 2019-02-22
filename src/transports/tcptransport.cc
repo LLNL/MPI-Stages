@@ -27,7 +27,7 @@ TCPTransport::TCPTransport() :
 		throw TCPTransportSocketCreationFailed();
 	}
 
-	// set non-blocking
+	// set non-blocking server socket
 	int flags;
 	if((flags = fcntl(server_socket, F_GETFL, 0)) < 0) 
 	{
