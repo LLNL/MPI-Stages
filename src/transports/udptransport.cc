@@ -77,8 +77,8 @@ UDPTransport::UDPTransport() : header_pool(32), payload_pool(32)
 	available_protocols[Protocol::EAGER]		= 65507 - sizeof(Header);
 	available_protocols[Protocol::EAGER_ACK]	= 65507 - sizeof(Header);
 
-	available_protocols[Protocol::SEQ]			= std::numeric_limits<size_t>::max() - sizeof(Header);
-	available_protocols[Protocol::SEQ_ACK]		= std::numeric_limits<size_t>::max() - sizeof(Header);
+	//available_protocols[Protocol::SEQ]			= std::numeric_limits<size_t>::max() - sizeof(Header);
+	//available_protocols[Protocol::SEQ_ACK]		= std::numeric_limits<size_t>::max() - sizeof(Header);
 }
 
 UDPTransport::~UDPTransport()

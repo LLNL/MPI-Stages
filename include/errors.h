@@ -71,7 +71,7 @@ enum Errors: int
 	MPI_ERR_IO,
 
 	// EXAMPI declared
-	// ...
+	MPI_ERR_DISABLED,
 
 	// MPI declared
 	MPI_ERR_LASTCODE

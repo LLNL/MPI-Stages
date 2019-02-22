@@ -66,7 +66,7 @@ int check_status(MPI_Status *status)
 	if(status == MPI_STATUS_IGNORE || (uintptr_t)status > (uintptr_t)0)
 		return MPI_SUCCESS;
 	else
-		return MPI_ERR_STATUS;
+		return MPI_ERR_ARG;
 }
 
 }
