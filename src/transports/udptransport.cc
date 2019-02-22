@@ -191,7 +191,6 @@ void UDPTransport::fill(Header_uptr header, Request *request)
 	}
 	else
 	{
-		header_pool.deallocate(header);
 		payload_pool.deallocate(payload);
 	}
 }

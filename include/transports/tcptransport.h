@@ -4,6 +4,7 @@
 #include <mutex>
 #include <map>
 #include <unordered_map>
+#include <vector>
 
 #include "abstract/transport.h"
 #include "pool.h"
@@ -24,6 +25,14 @@ class TCPTransportConnectionFailed: public std::exception
 	const char *what() const noexcept override
 	{
 		return "TCPTransport failed to connection client socket for sending.";
+	}
+};
+
+class TCPTransportNonBlockError: public std::exception
+{
+	const char *what() const noexcept override
+	{
+		return "TCPTransport failed to set non-blocking mode for server socket.";
 	}
 };
 
@@ -51,6 +60,14 @@ class TCPTransportListenError: public std::exception
 	}
 };
 
+class TCPTransportPollError: public std::exception
+{
+	const char *what() const noexcept override
+	{
+		return "TCPTransport polling on sockets failed.";
+	}
+};
+
 class TCPTransport: public Transport
 {
 private:
@@ -58,11 +75,14 @@ private:
 	std::map<Protocol, size_t> available_protocols;
 	// world_rank, socket
 	std::unordered_map<int, int> connections;
+	std::vector<struct pollfd> fds;
 
 	int server_socket;
 	msghdr hdr;
+	size_t arrivals;
 
-	int connect(int);
+	int rank_connect(int);
+	Header_uptr iterate();
 
 public:
 	TCPTransport();

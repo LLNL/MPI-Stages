@@ -1,14 +1,19 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
+#include <poll.h>
+#include <fcntl.h>
 
 #include "transports/tcptransport.h"
 #include "universe.h"
+#include "config.h"
 
 namespace exampi
 {
 
-TCPTransport::TCPTransport()
+TCPTransport::TCPTransport() :
+	arrivals(0)
 {
 	// set available protocols
 	available_protocols[Protocol::EAGER]		= std::numeric_limits<size_t>::max() - sizeof(Header);
@@ -22,8 +27,16 @@ TCPTransport::TCPTransport()
 		throw TCPTransportSocketCreationFailed();
 	}
 
-	// TODO set sock opt
-	// set non blocking
+	// set non-blocking
+	int flags;
+	if((flags = fcntl(server_socket, F_GETFL, 0)) < 0) 
+	{
+		throw TCPTransportNonBlockError();
+	} 
+	if(fcntl(server_socket, F_SETFL, flags | O_NONBLOCK) < 0) 
+	{ 
+		throw TCPTransportNonBlockError();
+	} 
 	
 	// bind socket
 	Universe &universe = Universe::get_root_universe();
@@ -75,7 +88,7 @@ const std::map<Protocol, size_t> &TCPTransport::provided_protocols() const
 	return available_protocols;
 }
 
-int TCPTransport::connect(int world_rank)
+int TCPTransport::rank_connect(int world_rank)
 {
 	int client = socket(AF_INET, SOCK_STREAM, 0);
 	if(client == 0)
@@ -84,12 +97,22 @@ int TCPTransport::connect(int world_rank)
 		throw TCPTransportSocketCreationFailed();
 	}
 	
+	Config &config = Config::get_instance();
+
 	// world_rank -> sockaddr
-	// TODO ask config
+	std::string descriptor = config[std::to_string(world_rank)];
+	size_t delimiter = descriptor.find_first_of(":");
+	std::string ip = descriptor.substr(0, delimiter);
+	int port = std::stoi(descriptor.substr(delimiter+1));
+
+	struct sockaddr_in addr;
+	addr.sin_family = AF_INET;
+	addr.sin_addr.s_addr = inet_addr(ip.c_str());
+	addr.sin_port = htons(port);
 
 	// connect to rank tcp server_socket
 	// todo can fail to connect, retry after delay...
-	int err = connect(client, );
+	int err = connect(client, (sockaddr *)&addr, sizeof(addr));
 	if(err < 0)
 	{
 		throw TCPTransportConnectionFailed();
@@ -98,28 +121,77 @@ int TCPTransport::connect(int world_rank)
 	return client;
 }
 
+Header_uptr TCPTransport::iterate()
+{
+	// arrivals > 0
+
+	// iterate for first one
+	
+		// if server_socket then accept connection
+
+		// else return header
+
+	return nullptr;
+	// find first fd
+	//for(auto)
+	//{
+	//	
+	//}
+	// TODO
+
+	// reduce arrivals
+
+	// read in header
+
+	// TODO move to iterate as special socket fd
+	//// check for connection on server_socket
+	//// todo could use SIGIO as handler
+	//struct sockaddr_in addr;
+	//int client = accept(server_socket, &addr, sizeof(addr));
+	//if(client < 0)
+	//{
+	//	// expected result, non-blocking socket
+	//	// todo should check errno
+	//	//      throw if not EAGAIN || EWOULDBLOCK
+	//}
+	//else
+	//{
+	//	// insert client into connections
+	//	// TODO
+	//	// both fds and connections
+	//}
+}
+
 Header_uptr TCPTransport::ordered_recv()
 {
 	std::lock_guard<std::mutex> lock(guard);
 
-	// check for connection on server_socket
-	// could handle with SIGIO interupt
-		// when accepting put into connections
-	struct sockaddr_in addr;
-	int client = accept(server_socket, &addr, sizeof(addr));
-	if(client < 0)
+	// check for previously unprocessed arrivals
+	if(arrivals > 0)
 	{
-		// expected result, non-blocking socket
-		// todo should check errno
-		//      throw if not EAGAIN || EWOULDBLOCK
-	}
-	else
-	{
-		// insert client into connections
+		// iterate fds check for first arrival
+		return iterate();
 	}
 	
-	// peek from n clients for message header
-	// TODO this is bad	
+	// otherwise poll sockets
+	else
+	{
+		// poll all sockets, returning immediately
+		int err = poll(fds.data(), fds.size(), 0);
+		if(err < 0)
+		{
+			throw TCPTransportPollError();
+		}
+		else if(err > 0)
+		{
+			arrivals = err;
+			return iterate();
+		}
+		else
+		{
+			return nullptr;
+		}
+	}
 }
 
 void TCPTransport::fill(Header_uptr header, Request *request)
@@ -128,6 +200,7 @@ void TCPTransport::fill(Header_uptr header, Request *request)
 
 	// read from tcp socket the associated data	
 	// TODO straight forward, read from socket into request buffer(s)
+	// no buffering required as in UDPTransport
 }
 
 void TCPTransport::reliable_send(const Protocol protocol, const Request *request)
@@ -144,7 +217,7 @@ void TCPTransport::reliable_send(const Protocol protocol, const Request *request
 	if(client == 0)
 	{
 		debug("rank " << request->envelope.destination << " is not connected");
-		client = connect(world_rank);
+		client = rank_connect(world_rank);
 	}
 
 	// prepare iov send hdr
