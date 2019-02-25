@@ -68,14 +68,31 @@ class TCPTransportPollError: public std::exception
 	}
 };
 
+class TCPTransportFillError: public std::exception
+{
+	const char *what() const noexcept override
+	{
+		return "TCPTransport failed to fill a message.";
+	}
+};
+
+class TCPTransportPeekError: public std::exception
+{
+	const char *what() const noexcept override
+	{
+		return "TCPTransport failed to peek for the message header.";
+	}
+};
+
 class TCPTransport: public Transport
 {
 private:
 	std::mutex guard;
 	std::map<Protocol, size_t> available_protocols;
-	// world_rank, socket
+	// world_rank, socket fd
 	std::unordered_map<int, int> connections;
 	std::vector<struct pollfd> fds;
+	MemoryPool<Header> header_pool;
 
 	int server_socket;
 	msghdr hdr;
@@ -91,11 +108,10 @@ public:
 	const std::map<Protocol, size_t> &provided_protocols() const;
 
 	Header_uptr ordered_recv();
-
 	void fill(Header_uptr, Request *);
-
 	void reliable_send(const Protocol, const Request *);
 
+	// todo remove mpi stages
 	int save(std::ostream &);
 	int load(std::istream &);
 	int halt();

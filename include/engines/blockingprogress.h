@@ -11,14 +11,6 @@
 #include "abstract/transport.h"
 #include "abstract/decider.h"
 
-#include "matchers/simplematcher.h"
-#include "transports/udptransport.h"
-#include "deciders/simpledecider.h"
-
-#include "daemon.h"
-#include "request.h"
-#include "protocol.h"
-
 namespace exampi
 {
 
