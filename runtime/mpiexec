@@ -231,6 +231,7 @@ class RuntimeHandler(object):
 
 			# launch process
 			process = subprocess.Popen(command, env=env, stdout=output_file, stderr=error_file)
+			#process = subprocess.Popen(command, env=env)
 			processes.append(process)
 
 			self.log.info('started process %i', process.pid)

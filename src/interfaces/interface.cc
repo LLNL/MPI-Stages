@@ -337,10 +337,7 @@ int BasicInterface::construct_request(const void *buf, int count,
 	req->envelope.tag = tag;
 
 	// data description
-	// TODO find datatype
-	//req->payload.datatype = datatype;
-	//req->payload.datatype = &...
-
+	req->payload.datatype = &universe.datatypes[datatype]; 
 	req->payload.count = count;
 	req->payload.buffer = buf;
 

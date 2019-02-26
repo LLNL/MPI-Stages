@@ -17,8 +17,10 @@ class FaultDaemon(object):
 	"""FaultDaemon is the class representing the FaultDaemon wrapper around an MPI Stages enabled
 	application. FaultDaemon also instantiates HeadDaemon and ControllerDaemon."""
 
-	def __init__(self, udp_transport_base=33421):
+	def __init__(self, udp_transport_base=33421, tcp_transport_base=33421):
 		self.udp_transport_base = udp_transport_base
+		self.tcp_transport_base = tcp_transport_base
+
 		self.rank = None
 		self.job_id = None
 		self.world_size = None
@@ -189,6 +191,7 @@ class FaultDaemon(object):
 
 		# announce daemon socket port
 		self.sub_env['EXAMPI_UDP_TRANSPORT_BASE'] = str(self.udp_transport_base)
+		self.sub_env['EXAMPI_TCP_TRANSPORT_BASE'] = str(self.tcp_transport_base)
 
 	def set_epoch(self, epoch):
 		"""Sets the epoch in which we are starting."""

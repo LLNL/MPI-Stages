@@ -13,8 +13,7 @@ namespace exampi
 {
 
 TCPTransport::TCPTransport() :
-	header_pool(32),
-	arrivals(0)
+	header_pool(32)
 {
 	// set available protocols
 	available_protocols[Protocol::EAGER]		= std::numeric_limits<size_t>::max() - sizeof(Header);
@@ -29,15 +28,15 @@ TCPTransport::TCPTransport() :
 	}
 
 	// set non-blocking server socket
-	int flags;
-	if((flags = fcntl(server_socket, F_GETFL, 0)) < 0) 
-	{
-		throw TCPTransportNonBlockError();
-	} 
-	if(fcntl(server_socket, F_SETFL, flags | O_NONBLOCK) < 0) 
-	{ 
-		throw TCPTransportNonBlockError();
-	} 
+	//int flags;
+	//if((flags = fcntl(server_socket, F_GETFL, 0)) < 0) 
+	//{
+	//	throw TCPTransportNonBlockError();
+	//} 
+	//if(fcntl(server_socket, F_SETFL, flags | O_NONBLOCK) < 0) 
+	//{ 
+	//	throw TCPTransportNonBlockError();
+	//} 
 	
 	// bind socket
 	Universe &universe = Universe::get_root_universe();
@@ -69,9 +68,10 @@ TCPTransport::TCPTransport() :
 	hdr.msg_flags = 0;
 
 	// static triangular connection building
+	debug("build tcp connections statically");
 	for(int rank = 0; rank < universe.rank; ++rank)
 	{
-		debug("static connection building to " << rank);
+		debug("static connection building to world_rank" << rank);
 		connections[rank] = rank_connect(rank);
 
 		// write into fds
@@ -84,17 +84,28 @@ TCPTransport::TCPTransport() :
 	}
 	for(int rank = universe.rank+1; rank < universe.world_size; ++rank)
 	{
+		debug("accepting connection from rank idx " << rank);
+
 		sockaddr_in addr;
 		unsigned int addrlen = sizeof(addr);
-		int client = accept(server_socket, (sockaddr*)&addr, (socklen_t*)&addrlen);
+		int client = accept4(server_socket, (sockaddr*)&addr, (socklen_t*)&addrlen, SOCK_NONBLOCK);
 
 		// recv rank
-		// ordering is not garunteed, especially when dynamic connections
-		int rank_recv;
-		int err = recv(client, &rank_recv, sizeof(rank_recv), 0);
-		if(err < 0)
+		// ordering is not garunteed, especially with dynamic connections
+		int rank_recv = -1;
+
+		while(rank_recv == -1)
 		{
-			throw TCPTransportConnectionFailed();
+			int err = recv(client, &rank_recv, sizeof(rank_recv), MSG_WAITALL);
+			if(err < 0)
+			{
+				//throw TCPTransportConnectionFailed();
+				usleep(10 * 1000); // 10ms
+			}
+			else
+			{
+				debug("received rank " << rank_recv);
+			}
 		}
 
 		// insert into connections
@@ -131,7 +142,7 @@ const std::map<Protocol, size_t> &TCPTransport::provided_protocols() const
 
 int TCPTransport::rank_connect(int world_rank)
 {
-	int client = socket(AF_INET, SOCK_STREAM, 0);
+	int client = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
 	if(client == 0)
 	{
 		debug("ERROR: failed to create socket for client communication.");
@@ -152,16 +163,24 @@ int TCPTransport::rank_connect(int world_rank)
 	addr.sin_port = htons(port);
 
 	// connect to rank tcp server_socket
-	// TODO can fail to connect, retry after delay...
-	int err = connect(client, (sockaddr *)&addr, sizeof(addr));
-	if(err < 0)
+	bool connected = false;
+	while(!connected)
 	{
-		throw TCPTransportConnectionFailed();
+		int err = connect(client, (sockaddr *)&addr, sizeof(addr));
+		if(err < 0)
+		{
+			//throw TCPTransportConnectionFailed();
+			usleep(100000);
+		}
+		else
+		{
+			connected = true; 
+		}
 	}
 
 	// send rank
 	Universe &universe = Universe::get_root_universe();
-	err = send(client, &universe.rank, sizeof(int), 0);
+	int err = send(client, &universe.rank, sizeof(int), 0);
 	if(err < 0)
 	{
 		throw TCPTransportConnectionFailed();
@@ -173,13 +192,13 @@ int TCPTransport::rank_connect(int world_rank)
 Header_uptr TCPTransport::iterate()
 {
 	// arrivals > 0
-	if(arrivals == 0)
+	if((arrivals - peeked) == 0)
 	{
+		debug("false iterate call, no arrivals");
 		return nullptr;
 	}
 
 	// iterate for first one
-	Header *header = nullptr;
 	for(auto& pollfd: fds)
 	{	
 		if(pollfd.revents != 0)
@@ -187,13 +206,14 @@ Header_uptr TCPTransport::iterate()
 			// if server_socket then accept connection
 			if(pollfd.fd == server_socket)
 			{
+				debug("found server socket with poll");
 				// todo dynamic connection building
 			}
 			
 			// otherwise receive message
 			else
 			{
-				header = header_pool.allocate();
+				Header *header = header_pool.allocate();
 
 				// set up iovs
 				iovec iovs[2];
@@ -218,17 +238,19 @@ Header_uptr TCPTransport::iterate()
 				else
 				{
 					debug("peeked message header from rank " << header->envelope.source);
+
+					// only process first socket
+					pollfd.revents = 0;
+					peeked += 1;
+					
+					return Header_uptr(header, [this] (Header *header) -> void { this->header_pool.deallocate(header); }); 
 				}
 			}
 
-			// only process first socket
-			pollfd.revents = 0;
-			arrivals -= 1;
-			break;
 		}
 	}
 
-	return Header_uptr(header);
+	return nullptr;
 }
 
 Header_uptr TCPTransport::ordered_recv()
@@ -236,14 +258,15 @@ Header_uptr TCPTransport::ordered_recv()
 	std::lock_guard<std::mutex> lock(guard);
 
 	// check for previously unprocessed arrivals
-	if(arrivals > 0)
+	if((arrivals - peeked) > 0)
 	{
 		// iterate fds check for first arrival
+		debug("found arrivals already present");
 		return iterate();
 	}
 	
-	// otherwise poll sockets
-	else
+	// if no known messages
+	else if(arrivals == 0)
 	{
 		// poll all sockets, returning immediately
 		int err = poll(fds.data(), fds.size(), 0);
@@ -253,6 +276,7 @@ Header_uptr TCPTransport::ordered_recv()
 		}
 		else if(err > 0)
 		{
+			debug("found arrivals " << err);
 			arrivals = err;
 			return iterate();
 		}
@@ -261,6 +285,8 @@ Header_uptr TCPTransport::ordered_recv()
 			return nullptr;
 		}
 	}
+	else
+		return nullptr;
 }
 
 void TCPTransport::fill(Header_uptr header, Request *request)
@@ -303,8 +329,12 @@ void TCPTransport::fill(Header_uptr header, Request *request)
 	}
 	else
 	{
-		debug("filled message from " << header->envelope.source << " request " << request);
+		debug("filled message from rank " << header->envelope.source << " request " << request);
 	}
+	
+	// finalize message arrival
+	peeked -= 1;
+	arrivals -= 1;
 }
 
 void TCPTransport::reliable_send(const Protocol protocol, const Request *request)
@@ -362,6 +392,21 @@ void TCPTransport::reliable_send(const Protocol protocol, const Request *request
 		debug("sent " << err << " bytes over tcptransport to world_rank " << 
 		      world_rank << " : comm_rank " << request->envelope.destination);
 	}
+}
+
+int TCPTransport::save(std::ostream &t)
+{
+	return MPI_SUCCESS;
+}
+
+int TCPTransport::load(std::istream &t)
+{
+	return MPI_SUCCESS;
+}
+
+int TCPTransport::halt()
+{
+	return MPI_SUCCESS;
 }
 
 }

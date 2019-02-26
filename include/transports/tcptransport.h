@@ -96,7 +96,9 @@ private:
 
 	int server_socket;
 	msghdr hdr;
+
 	size_t arrivals;
+	size_t peeked;
 
 	int rank_connect(int);
 	Header_uptr iterate();
