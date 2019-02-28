@@ -16,11 +16,6 @@ struct Transport
 {
 	virtual ~Transport() {};
 
-	// todo mpi stages
-	virtual int save(std::ostream &r) = 0;
-	virtual int load(std::istream &r) = 0;
-	virtual int halt() = 0;
-
 	// ordered map (preference) of protocol initator and maximum message size
 	// note chose size_t over long int, because -1 == inf would work
 	//      but it cuts down by a large range, max size_t is enough

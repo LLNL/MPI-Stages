@@ -14,8 +14,6 @@ public:
 	virtual void post_header(Header_uptr) = 0;
 
 	virtual std::tuple<Header_uptr, Request *> progress() = 0;
-
-	virtual void halt() = 0;
 };
 
 }
