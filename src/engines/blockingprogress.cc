@@ -244,55 +244,55 @@ void BlockingProgress::handle_send(Request *request)
 	request->release();
 }
 
-int BlockingProgress::halt()
-{
-	// stop all progress threads
-	debug("stopping all progress threads");
-	shutdown = true;
+//int BlockingProgress::halt()
+//{
+//	// stop all progress threads
+//	debug("stopping all progress threads");
+//	shutdown = true;
+//
+//	// todo mpi stages unify with deconstruction
+//	for(auto &&thr : this->progress_threads)
+//	{
+//		thr.join();
+//	}
+//
+//	debug("joined all threads");
+//
+//	int err = MPI_SUCCESS;
+//	// todo mpi stages
+//	//err = matcher->halt();
+//	matcher->halt();
+//	if(err != MPI_SUCCESS)
+//	{
+//		debug("failed to halt matcher");
+//		return err;
+//	}
+//
+//	err = transporter->halt();
+//	if(err != MPI_SUCCESS)
+//	{
+//		debug("failed to halt transporter");
+//		return err;
+//	}
+//
+//	return err;
+//}
 
-	// todo mpi stages unify with deconstruction
-	for(auto &&thr : this->progress_threads)
-	{
-		thr.join();
-	}
+//int BlockingProgress::save(std::ostream &t)
+//{
+//	// delegate further
+//	int err = MPI_SUCCESS;
+//
+//	// todo mpi stages save endpoints?
+//	//err = transporter->save(t);
+//
+//	//err = matcher->save(t);
+//
+//	return err;
+//}
 
-	debug("joined all threads");
-
-	int err = MPI_SUCCESS;
-	// todo mpi stages
-	//err = matcher->halt();
-	matcher->halt();
-	if(err != MPI_SUCCESS)
-	{
-		debug("failed to halt matcher");
-		return err;
-	}
-
-	err = transporter->halt();
-	if(err != MPI_SUCCESS)
-	{
-		debug("failed to halt transporter");
-		return err;
-	}
-
-	return err;
-}
-
-int BlockingProgress::save(std::ostream &t)
-{
-	// delegate further
-	int err = MPI_SUCCESS;
-
-	// todo mpi stages save endpoints?
-	//err = transporter->save(t);
-
-	//err = matcher->save(t);
-
-	return err;
-}
-
-int BlockingProgress::load(std::istream &t)
-{
+//int BlockingProgress::load(std::istream &t)
+//{
 //	int comm_size, group_size;
 //	int r, p2p, coll, id;
 //	bool intra;
@@ -359,7 +359,7 @@ int BlockingProgress::load(std::istream &t)
 //		exampi::communicators.push_back(com);
 //		comm_size--;
 //	}
-	return MPI_SUCCESS;
-}
+//	return MPI_SUCCESS;
+//}
 
 } // exampi

@@ -1,7 +1,6 @@
 #include <memory>
 
 #include "universe.h"
-#include "checkpoints/checkpoint.h"
 #include "engines/blockingprogress.h"
 #include "daemon.h"
 
@@ -59,7 +58,7 @@ Universe::Universe() : request_pool(128), initialized(false)
 	debug("world size " << world_size);
 
 	debug("creating checkpoint");
-	checkpoint = std::make_unique<BasicCheckpoint>();
+	//checkpoint = std::make_unique<BasicCheckpoint>();
 	// todo mpi stages progress should be created here
 
 	// MPI WORLD GROUP
@@ -144,77 +143,77 @@ void Universe::deallocate_request(Request_ptr request)
 	request_pool.deallocate(request);
 }
 
-int Universe::save(std::ostream &t)
-{
-	// save derived datatypes
-	// todo deferred
-
-	// save groups
-	int group_size = groups.size();
-	t.write(reinterpret_cast<char *>(&group_size), sizeof(int));
-	for (auto &g : groups)
-	{
-		int value = g->get_group_id();
-		t.write(reinterpret_cast<char *>(&value), sizeof(int));
-		value = g->get_process_list().size();
-		t.write(reinterpret_cast<char *>(&value), sizeof(int));
-		for (auto p : g->get_process_list())
-		{
-			t.write(reinterpret_cast<char *>(&p), sizeof(int));
-		}
-	}
-
-	// save communicators
-	int comm_size = communicators.size();
-	t.write(reinterpret_cast<char *>(&comm_size), sizeof(int));
-	for(auto &c : communicators)
-	{
-		int value = c->get_rank();
-		t.write(reinterpret_cast<char *>(&value), sizeof(int));
-		value = c->get_context_id_pt2pt();
-		t.write(reinterpret_cast<char *>(&value), sizeof(int));
-		value = c->get_context_id_coll();
-		t.write(reinterpret_cast<char *>(&value), sizeof(int));
-		bool intra = c->get_is_intra();
-		t.write(reinterpret_cast<char *>(&intra), sizeof(bool));
-		value = c->get_local_group()->get_group_id();
-		t.write(reinterpret_cast<char *>(&value), sizeof(int));
-		value = c->get_remote_group()->get_group_id();
-		t.write(reinterpret_cast<char *>(&value), sizeof(int));
-	}
-
-	// save composites
-	int err = MPI_SUCCESS;
-	//err = progress->save(t);
-
-	return err;
-}
-
-int Universe::load(std::istream &t)
-{
-	// todo mpi stages load appropriate engine
-	progress = std::make_unique<BlockingProgress>();
-
-	debug("universe is loading");
-	return MPI_SUCCESS;
-}
-
-void Universe::halt()
-{
-	Daemon &daemon = Daemon::get_instance();
-	int err = daemon.send_clean_up();
-	// todo handle error
-
-	// propagate halt
-	progress->halt();
-
-	// destroy progress
-	Progress *engine = progress.get();
-	progress.release();
-
-	delete engine;
-
-	progress = std::make_unique<BlockingProgress>();
-}
+//int Universe::save(std::ostream &t)
+//{
+//	// save derived datatypes
+//	// todo deferred
+//
+//	// save groups
+//	int group_size = groups.size();
+//	t.write(reinterpret_cast<char *>(&group_size), sizeof(int));
+//	for (auto &g : groups)
+//	{
+//		int value = g->get_group_id();
+//		t.write(reinterpret_cast<char *>(&value), sizeof(int));
+//		value = g->get_process_list().size();
+//		t.write(reinterpret_cast<char *>(&value), sizeof(int));
+//		for (auto p : g->get_process_list())
+//		{
+//			t.write(reinterpret_cast<char *>(&p), sizeof(int));
+//		}
+//	}
+//
+//	// save communicators
+//	int comm_size = communicators.size();
+//	t.write(reinterpret_cast<char *>(&comm_size), sizeof(int));
+//	for(auto &c : communicators)
+//	{
+//		int value = c->get_rank();
+//		t.write(reinterpret_cast<char *>(&value), sizeof(int));
+//		value = c->get_context_id_pt2pt();
+//		t.write(reinterpret_cast<char *>(&value), sizeof(int));
+//		value = c->get_context_id_coll();
+//		t.write(reinterpret_cast<char *>(&value), sizeof(int));
+//		bool intra = c->get_is_intra();
+//		t.write(reinterpret_cast<char *>(&intra), sizeof(bool));
+//		value = c->get_local_group()->get_group_id();
+//		t.write(reinterpret_cast<char *>(&value), sizeof(int));
+//		value = c->get_remote_group()->get_group_id();
+//		t.write(reinterpret_cast<char *>(&value), sizeof(int));
+//	}
+//
+//	// save composites
+//	int err = MPI_SUCCESS;
+//	//err = progress->save(t);
+//
+//	return err;
+//}
+//
+//int Universe::load(std::istream &t)
+//{
+//	// todo mpi stages load appropriate engine
+//	progress = std::make_unique<BlockingProgress>();
+//
+//	debug("universe is loading");
+//	return MPI_SUCCESS;
+//}
+//
+//void Universe::halt()
+//{
+//	Daemon &daemon = Daemon::get_instance();
+//	int err = daemon.send_clean_up();
+//	// todo handle error
+//
+//	// propagate halt
+//	progress->halt();
+//
+//	// destroy progress
+//	Progress *engine = progress.get();
+//	progress.release();
+//
+//	delete engine;
+//
+//	progress = std::make_unique<BlockingProgress>();
+//}
 
 }

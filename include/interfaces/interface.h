@@ -105,16 +105,15 @@ public:
 
 	int MPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm);
 
-	// todo mpi stages
-	int MPIX_Serialize_handles();
-	int MPIX_Deserialize_handles();
-	int MPIX_Serialize_handler_register(const MPIX_Serialize_handler
-	                                    handler);
-	int MPIX_Deserialize_handler_register(const MPIX_Deserialize_handler
-	                                      handler);
-	int MPIX_Checkpoint_write();
-	int MPIX_Checkpoint_read();
-	int MPIX_Get_fault_epoch(int *epoch);
+	//int MPIX_Serialize_handles();
+	//int MPIX_Deserialize_handles();
+	//int MPIX_Serialize_handler_register(const MPIX_Serialize_handler
+	//                                    handler);
+	//int MPIX_Deserialize_handler_register(const MPIX_Deserialize_handler
+	//                                      handler);
+	//int MPIX_Checkpoint_write();
+	//int MPIX_Checkpoint_read();
+	//int MPIX_Get_fault_epoch(int *epoch);
 
 	// ...
 	double MPI_Wtime();

@@ -258,18 +258,18 @@ const std::map<Protocol, size_t> &UDPTransport::provided_protocols() const
 	return available_protocols;
 }
 
-int UDPTransport::save(std::ostream &r)
-{
-	return MPI_SUCCESS;
-}
+//int UDPTransport::save(std::ostream &r)
+//{
+//	return MPI_SUCCESS;
+//}
 
-int UDPTransport::load(std::istream &r)
-{
-	return MPI_SUCCESS;
-}
+//int UDPTransport::load(std::istream &r)
+//{
+//	return MPI_SUCCESS;
+//}
 
-int UDPTransport::halt()
-{
+//int UDPTransport::halt()
+//{
 	// todo mpi stages no idea what this does, from original udp transport
 //	//std::cout << debug() << "basic::Transport::receive(...)" << std::endl;
 //	char buffer[2];
@@ -296,7 +296,7 @@ int UDPTransport::halt()
 //	recvmsg(recvSocket.getFd(), &message, MSG_WAITALL);
 //	//std::cout << debug() << "basic::Transport::udp::recv exiting\n";
 //	//std::cout << debug() << "basic::Transport::receive returning" << std::endl;
-	return MPI_SUCCESS;
-}
+//	return MPI_SUCCESS;
+//}
 
 }

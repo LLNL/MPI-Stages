@@ -49,12 +49,12 @@ int BasicInterface::MPI_Init(int *argc, char ***argv)
 
 	// checkpoint load or initialize for first run
 	// STAGES
-	recovery_code = universe.checkpoint->load();
-	if(recovery_code != MPI_SUCCESS)
-	{
-		debug("unsuccessful checkpoint load");
-		return recovery_code;
-	}
+	//recovery_code = universe.checkpoint->load();
+	//if(recovery_code != MPI_SUCCESS)
+	//{
+	//	debug("unsuccessful checkpoint load");
+	//	return recovery_code;
+	//}
 
 	// execute global barrier
 	// todo mpi stages move to checkpoint
@@ -759,8 +759,8 @@ int BasicInterface::MPI_Comm_set_errhandler(MPI_Comm comm, MPI_Errhandler err)
 
 //#############################################################################
 
-int BasicInterface::MPIX_Serialize_handles()
-{
+//int BasicInterface::MPIX_Serialize_handles()
+//{
 //	CHECK_STAGES_ERROR();
 //
 //	Universe& universe = Universe::get_root_universe();
@@ -795,11 +795,11 @@ int BasicInterface::MPIX_Serialize_handles()
 //	t.close();
 //
 //	return MPI_SUCCESS;
-	return MPI_ERR_DISABLED;
-}
-
-int BasicInterface::MPIX_Deserialize_handles()
-{
+//	return MPI_ERR_DISABLED;
+//}
+//
+//int BasicInterface::MPIX_Deserialize_handles()
+//{
 //	CHECK_STAGES_ERROR();
 //
 //	Universe& universe = Universe::get_root_universe();
@@ -866,12 +866,12 @@ int BasicInterface::MPIX_Deserialize_handles()
 //
 //	t.close();
 //	return MPI_SUCCESS;
-	return MPI_ERR_DISABLED;
-}
-
-int BasicInterface::MPIX_Serialize_handler_register(const MPIX_Serialize_handler
-        handler)
-{
+//	return MPI_ERR_DISABLED;
+//}
+//
+//int BasicInterface::MPIX_Serialize_handler_register(const MPIX_Serialize_handler
+//        handler)
+//{
 //	CHECK_STAGES_ERROR();
 //
 //	Universe& universe = Universe::get_root_universe();
@@ -885,13 +885,13 @@ int BasicInterface::MPIX_Serialize_handler_register(const MPIX_Serialize_handler
 //	}
 //
 //	return MPI_SUCCESS;
-	return MPI_ERR_DISABLED;
-}
-
-int BasicInterface::MPIX_Deserialize_handler_register(const
-        MPIX_Deserialize_handler
-        handler)
-{
+//	return MPI_ERR_DISABLED;
+//}
+//
+//int BasicInterface::MPIX_Deserialize_handler_register(const
+//        MPIX_Deserialize_handler
+//        handler)
+//{
 //	CHECK_STAGES_ERROR();
 //
 //	Universe& universe = Universe::get_root_universe();
@@ -905,64 +905,64 @@ int BasicInterface::MPIX_Deserialize_handler_register(const
 //	}
 //
 //	return MPI_SUCCESS;
-	return MPI_ERR_DISABLED;
-}
-
-int BasicInterface::MPIX_Checkpoint_write()
-{
-	CHECK_STAGES_ERROR();
-
-	Universe &universe = Universe::get_root_universe();
-	// STAGES
-	universe.checkpoint->save();
-
-	return MPI_SUCCESS;
-}
-
-int BasicInterface::MPIX_Checkpoint_read()
-{
-	// note no check since we are already in a fault
-	//CHECK_STAGES_ERROR();
-
-	debug("checkpoint_read");
-
-	// note instead reset
-	FaultHandler &faulthandler = FaultHandler::get_instance();
-	if(faulthandler.isErrSet())
-	{
-		debug("resetting fault handler");
-		faulthandler.setErrToZero();
-	}
-
-	Universe &universe = Universe::get_root_universe();
-	debug("surviving process restart " << universe.rank);
-
-	// wait for restarted process
-	Daemon &daemon = Daemon::get_instance();
-
-	daemon.wait_commit();
-	debug("commit epoch received " << universe.epoch);
-
-	// todo again why is there a barrier, due to transport? then should live in transport
-	//      otherwise clarify and put in corrrect place instead of in interface, because
-	//      the interface does not require it fundementally.
-	debug("entering daemon barrier for restart");
-	daemon.barrier();
-
-	return MPI_SUCCESS;
-}
-
-int BasicInterface::MPIX_Get_fault_epoch(int *epoch)
-{
-	CHECK_STAGES_ERROR();
-
-	// fetch universe
-	Universe &universe = Universe::get_root_universe();
-	*epoch = universe.epoch;
-	debug("current epoch " << *epoch);
-
-	return MPI_SUCCESS;
-}
+//	return MPI_ERR_DISABLED;
+//}
+//
+//int BasicInterface::MPIX_Checkpoint_write()
+//{
+//	CHECK_STAGES_ERROR();
+//
+//	Universe &universe = Universe::get_root_universe();
+//	// STAGES
+//	universe.checkpoint->save();
+//
+//	return MPI_SUCCESS;
+//}
+//
+//int BasicInterface::MPIX_Checkpoint_read()
+//{
+//	// note no check since we are already in a fault
+//	//CHECK_STAGES_ERROR();
+//
+//	debug("checkpoint_read");
+//
+//	// note instead reset
+//	FaultHandler &faulthandler = FaultHandler::get_instance();
+//	if(faulthandler.isErrSet())
+//	{
+//		debug("resetting fault handler");
+//		faulthandler.setErrToZero();
+//	}
+//
+//	Universe &universe = Universe::get_root_universe();
+//	debug("surviving process restart " << universe.rank);
+//
+//	// wait for restarted process
+//	Daemon &daemon = Daemon::get_instance();
+//
+//	daemon.wait_commit();
+//	debug("commit epoch received " << universe.epoch);
+//
+//	// todo again why is there a barrier, due to transport? then should live in transport
+//	//      otherwise clarify and put in corrrect place instead of in interface, because
+//	//      the interface does not require it fundementally.
+//	debug("entering daemon barrier for restart");
+//	daemon.barrier();
+//
+//	return MPI_SUCCESS;
+//}
+//
+//int BasicInterface::MPIX_Get_fault_epoch(int *epoch)
+//{
+//	CHECK_STAGES_ERROR();
+//
+//	// fetch universe
+//	Universe &universe = Universe::get_root_universe();
+//	*epoch = universe.epoch;
+//	debug("current epoch " << *epoch);
+//
+//	return MPI_SUCCESS;
+//}
 
 //#############################################################################
 

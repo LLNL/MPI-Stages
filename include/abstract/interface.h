@@ -72,21 +72,21 @@ public:
 	virtual int MPI_Reduce(const void *s_buf, void *r_buf, int count,
 	                       MPI_Datatype type, MPI_Op op, int root, MPI_Comm comm) = 0;
 
-	// stages
-	virtual int MPIX_Checkpoint_write(void) = 0;
+//	// stages
+//	virtual int MPIX_Checkpoint_write(void) = 0;
+//
+//	virtual int MPIX_Checkpoint_read(void) = 0;
+//
+//	virtual int MPIX_Get_fault_epoch(int *epoch) = 0;
+//
+//	virtual int MPIX_Deserialize_handles() = 0;
+//
+//	virtual int MPIX_Deserialize_handler_register(const MPIX_Deserialize_handler) =
+//	    0;
 
-	virtual int MPIX_Checkpoint_read(void) = 0;
-
-	virtual int MPIX_Get_fault_epoch(int *epoch) = 0;
-
-	virtual int MPIX_Deserialize_handles() = 0;
-
-	virtual int MPIX_Deserialize_handler_register(const MPIX_Deserialize_handler) =
-	    0;
-
-	virtual int MPIX_Serialize_handles() = 0;
-
-	virtual int MPIX_Serialize_handler_register(const MPIX_Serialize_handler) = 0;
+//	virtual int MPIX_Serialize_handles() = 0;
+//
+//	virtual int MPIX_Serialize_handler_register(const MPIX_Serialize_handler) = 0;
 };
 
 } // exampi

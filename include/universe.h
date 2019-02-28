@@ -7,7 +7,6 @@
 
 #include "abstract/progress.h"
 #include "abstract/transport.h"
-#include "abstract/checkpoint.h"
 #include "pool.h"
 #include "request.h"
 #include "communicator.h"
@@ -54,9 +53,6 @@ public:
 
 	std::unique_ptr<Progress> progress;
 
-	// todo mpi stages
-	std::unique_ptr<Checkpoint> checkpoint;
-
 	// eventually Interface *interface
 
 	// prevent Universe from being copied
@@ -65,11 +61,6 @@ public:
 
 	Request_ptr allocate_request();
 	void deallocate_request(Request_ptr request);
-
-	// mpi stages
-	int save(std::ostream &t);
-	int load(std::istream &t);
-	void halt();
 };
 
 }
