@@ -11,6 +11,8 @@
 #include "checks.h"
 #include "exceptions.h"
 
+#include "engines/blockingprogress.h"
+
 namespace exampi
 {
 
@@ -55,6 +57,9 @@ int BasicInterface::MPI_Init(int *argc, char ***argv)
 	//	debug("unsuccessful checkpoint load");
 	//	return recovery_code;
 	//}
+	recovery_code = MPI_SUCCESS;
+
+	universe.progress = std::make_unique<BlockingProgress>();
 
 	// execute global barrier
 	// todo mpi stages move to checkpoint

@@ -48,6 +48,7 @@ public:
 	bool initialized;
 	int rank;
 	int world_size;
+
 	int epoch;
 	std::string epoch_config;
 
