@@ -112,11 +112,6 @@ public:
 	Header_uptr ordered_recv();
 	void fill(Header_uptr, Request *);
 	void reliable_send(const Protocol, const Request *);
-
-	// todo remove mpi stages
-	int save(std::ostream &);
-	int load(std::istream &);
-	int halt();
 };
 
 }

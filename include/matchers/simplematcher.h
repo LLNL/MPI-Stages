@@ -26,8 +26,6 @@ public:
 	void post_header(Header_uptr header);
 
 	std::tuple<Header_uptr, Request *> progress();
-
-	void halt();
 };
 
 }

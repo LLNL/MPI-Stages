@@ -42,12 +42,6 @@ public:
 	~BlockingProgress();
 
 	void post_request(Request *request);
-
-	// mpi stages, figure out how to do this, separate into another progress inheriting?
-	//void cleanup();
-	int halt();
-	int save(std::ostream &);
-	int load(std::istream &);
 };
 
 }
