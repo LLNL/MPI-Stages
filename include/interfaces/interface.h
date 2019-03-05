@@ -91,7 +91,7 @@ public:
 	int MPI_Start(MPI_Request *request);
 
 	int MPI_Wait(MPI_Request *request, MPI_Status *status);
-	int MPI_Waitall(int count, MPI_Request array_of_requests[], MPI_Status array_of_statuses);
+	int MPI_Waitall(int count, MPI_Request array_of_requests[], MPI_Status array_of_statuses[]);
 
 	int MPI_Test(MPI_Request *request, int *flag, MPI_Status *status);
 

@@ -23,7 +23,7 @@ public:
 	virtual int MPI_Start(MPI_Request *request) =0;
 
 	virtual int MPI_Wait(MPI_Request *request, MPI_Status *status) = 0;
-	virtual int MPI_Waitall(int count, MPI_Request array_of_requests[], MPI_Status array_of_statuses) = 0;
+	virtual int MPI_Waitall(int count, MPI_Request array_of_requests[], MPI_Status array_of_statuses[]) = 0;
 
 	virtual double MPI_Wtime(void) = 0;
 
