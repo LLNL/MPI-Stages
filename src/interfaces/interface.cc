@@ -569,39 +569,40 @@ int BasicInterface::MPI_Wait(MPI_Request *request, MPI_Status *status)
 	return finalize_request(request, req, status);
 }
 
-//int BasicInterface::MPI_Waitall(int count, MPI_Request array_of_requests[],
-//                                MPI_Status array_of_statuses[])
-//{
-//	// sanitize user input
-//	CHECK_REQUEST(request);
-//	CHECK_STATUS(status);//	// mpi stages error check
-//	CHECK_STAGES_ERROR();
-//
-//	if (array_of_statuses != MPI_STATUSES_IGNORE)
-//	{
-//		for (int i = 0; i < count; i++)
-//		{
-//			if (array_of_requests[i])
-//			{
-//				array_of_statuses[i].MPI_ERROR = MPI_Wait(array_of_requests + i,
-//				                                 array_of_statuses + i);
-//				if (array_of_statuses[i].MPI_ERROR)
-//					return -1;
-//			}
-//		}
-//	}
-//	else
-//	{
-//		for (int i = 0; i < count; i++)
-//		{
-//			int rc = MPI_Wait(array_of_requests + i, nullptr);
-//			if (rc)
-//				return rc;
-//		}
-//	}
-//	return MPI_SUCCESS;
-//	return -1;
-//}
+int BasicInterface::MPI_Waitall(int count, MPI_Request array_of_requests[],
+                                MPI_Status array_of_statuses[])
+{
+	// sanitize user input
+	CHECK_REQUEST(request);
+	CHECK_STATUS(status);	// mpi stages error check
+	CHECK_STAGES_ERROR();
+
+	if(array_of_statuses != MPI_STATUSES_IGNORE)
+	{
+		for(int i = 0; i < count; i++)
+		{
+			if(array_of_requests[i])
+			{
+				array_of_statuses[i].MPI_ERROR = MPI_Wait(array_of_requests + i, array_of_statuses + i);
+
+				if (array_of_statuses[i].MPI_ERROR)
+					return array_of_statuses[i].MPI_ERROR;
+			}
+		}
+	}
+	else
+	{
+		for (int i = 0; i < count; i++)
+		{
+			int rc = MPI_Wait(array_of_requests + i, MPI_STATUS_IGNORE);
+
+			if(rc != MPI_SUCCESS)
+				return rc;
+		}
+	}
+
+	return MPI_SUCCESS;
+}
 
 //int BasicInterface::MPI_Waitany()
 //{
