@@ -104,7 +104,7 @@ public:
 		std::lock_guard<std::mutex> lock(this->sharedlock);
 
 		// allocate a new arena if needed
-		if (free_list == nullptr)
+		if(free_list == nullptr)
 		{
 			debug("allocating additional arena");
 
@@ -118,8 +118,10 @@ public:
 		}
 
 		// fetch next empty
+		debug("free_list " << free_list);
 		MemoryPool_item *current_item = free_list;
 		free_list = current_item->get_next_item();
+		debug("new free_list " << free_list);
 
 		T *result = current_item->get_storage();
 

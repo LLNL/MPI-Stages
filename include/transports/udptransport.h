@@ -65,7 +65,7 @@ class UDPTransportPayloadReceiveError: public std::exception
 
 struct UDPTransportPayload
 {
-	int payload[(1024 - sizeof(Header))/sizeof(int)];
+	int payload[(65507 - sizeof(Header))/sizeof(int)];
 };
 
 class UDPTransport: public Transport
