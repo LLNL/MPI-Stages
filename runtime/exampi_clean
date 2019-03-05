@@ -1,0 +1,10 @@
+#!/bin/bash
+
+rm -rf mpiexec.log
+rm -rf controller_daemon.log
+
+rm -rf head_daemon_*.log
+rm -rf fault_daemon_*.log
+
+rm -rf local-*.out
+rm -rf local-*.err
