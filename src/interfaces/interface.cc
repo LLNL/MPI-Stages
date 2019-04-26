@@ -320,6 +320,8 @@ int BasicInterface::MPI_Sendrecv(const void *sendbuf, int sendcount,
 int BasicInterface::MPI_Isend(const void *buf, int count, MPI_Datatype datatype,
                               int dest, int tag, MPI_Comm comm, MPI_Request *request)
 {
+	debug("entry MPI_Isend with buf " << buf << " count " << count << " dest " << dest << " tag " << tag); 	
+
 	return offload_persistent(buf, count, datatype, dest, tag, comm, Operation::Send, request);
 }
 
@@ -344,6 +346,8 @@ int BasicInterface::MPI_Irsend(const void *buf, int count, MPI_Datatype datatype
 int BasicInterface::MPI_Irecv(void *buf, int count, MPI_Datatype datatype,
                               int source, int tag, MPI_Comm comm, MPI_Request *request)
 {
+	debug("entry MPI_Irend with buf " << buf << " count " << count << " src " << source << " tag " << tag); 	
+
 	return offload_persistent(buf, count, datatype, source, tag, comm, Operation::Receive, request);
 }
 
@@ -611,7 +615,7 @@ int BasicInterface::MPI_Waitall(int count, MPI_Request array_of_requests[],
 {
 	// sanitize user input
 	CHECK_REQUEST(request);
-	CHECK_STATUS(status);//	// mpi stages error check
+	CHECK_STATUS(status); // mpi stages error check
 	CHECK_STAGES_ERROR();
 
 	if (array_of_statuses != MPI_STATUSES_IGNORE)
@@ -622,6 +626,7 @@ int BasicInterface::MPI_Waitall(int count, MPI_Request array_of_requests[],
 			{
 				array_of_statuses[i].MPI_ERROR = MPI_Wait(array_of_requests + i,
 				                                 array_of_statuses + i);
+
 				if (array_of_statuses[i].MPI_ERROR)
 					return array_of_statuses[i].MPI_ERROR;
 			}
@@ -631,8 +636,9 @@ int BasicInterface::MPI_Waitall(int count, MPI_Request array_of_requests[],
 	{
 		for (int i = 0; i < count; i++)
 		{
-			int rc = MPI_Wait(array_of_requests + i, nullptr);
-			if (rc != MPI_SUCCESS)
+			int rc = MPI_Wait(array_of_requests + i, MPI_STATUS_IGNORE);
+
+			if(rc != MPI_SUCCESS)
 				return rc;
 		}
 	}

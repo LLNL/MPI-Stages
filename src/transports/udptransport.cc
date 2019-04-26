@@ -180,7 +180,6 @@ Header_uptr UDPTransport::ordered_recv()
 		// store the data for later fill
 		if(payload_length > 0)
 		{
-			debug("payload received: " << ((int*)payload)[0]);
 			payload_buffer[header] = payload;
 		}
 	}
@@ -228,8 +227,6 @@ void UDPTransport::reliable_send(const Protocol protocol,
 	      " s " << request->envelope.source <<
 	      " d " << request->envelope.destination <<
 	      " t " << request->envelope.tag);
-
-	debug("sending payload " << ((int*)request->payload.buffer)[0]);
 
 	// payload length
 	// TODO datatype packing, gather
