@@ -1,5 +1,5 @@
-# AUMPI
-Auburn Next-Generation MPI Implementation
+# ExaMPI
+UTC-Auburn-LLNL Next-Generation MPI Implementation
 
 **Warning:  master is not yet stable**
 
