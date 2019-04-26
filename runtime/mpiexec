@@ -131,6 +131,19 @@ class RuntimeHandler(object):
 	def launch(self):
 		"""Launch the required environment launcher."""
 
+		# temporary warning
+		executable = self.arguments.program[0]
+
+		#if not os.path.isfile(executable):
+		#	print("Executable", executable, "not found...")
+		#	sys.exit(-1)
+
+		# this fixes the problem silently
+		#executable = os.path.abspath(executable)
+
+		if not os.path.isabs(executable) and executable[0:2] != './':
+			print "Cannot find executable: " + executable
+
 		# check if executable is valid
 		#if self.arguments.nocheckprogram:
 		#	executable = self.arguments.program[0]
