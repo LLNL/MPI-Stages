@@ -10,8 +10,8 @@ extern "C"
 
 	int PMPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm)
 	{
-		int rc = exampi::BasicInterface::get_instance().MPI_Comm_dup(comm, newcomm);
-		return rc;
+		exampi::Universe &universe = exampi::Universe::get_root_universe();
+		return universe.interface->MPI_Comm_dup(comm, newcomm);
 	}
 
 }

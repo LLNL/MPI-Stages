@@ -9,8 +9,8 @@ extern "C"
 
 	double PMPI_Wtime(void)
 	{
-		double ret = exampi::BasicInterface::get_instance().MPI_Wtime();
-		return ret;
+		exampi::Universe &universe = exampi::Universe::get_root_universe();
+		return universe.interface->MPI_Wtime();
 	}
 
 }

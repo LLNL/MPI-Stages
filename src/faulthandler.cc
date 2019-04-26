@@ -2,6 +2,8 @@
 
 #include "faulthandler.h"
 #include "universe.h"
+#include "daemon.h"
+//#include "engines/blockingprogress.h"
 
 namespace exampi
 {
@@ -24,8 +26,11 @@ void FaultHandler::setErr(int unused)
 {
 	is_errSet = 1;
 
-	//Universe &universe = Universe::get_root_universe();
-	//universe.halt();
+	Daemon &daemon = Daemon::get_instance();
+	daemon.send_clean_up();
+
+	Universe &universe = Universe::get_root_universe();
+	universe.progress->cleanup();
 }
 
 void FaultHandler::setErrToZero()

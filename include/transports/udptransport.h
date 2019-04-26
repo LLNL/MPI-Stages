@@ -65,10 +65,10 @@ class UDPTransportPayloadReceiveError: public std::exception
 
 struct UDPTransportPayload
 {
-	int payload[(1024 - sizeof(Header))/sizeof(int)];
+	int payload[(65507 - sizeof(Header))/sizeof(int)];
 };
 
-class UDPTransport: public Transport
+class UDPTransport: public Transport, virtual public Stages
 {
 private:
 	std::mutex guard;
@@ -86,6 +86,8 @@ private:
 
 	std::map<Protocol, size_t> available_protocols;
 
+	void cache_endpoints();
+
 public:
 	UDPTransport();
 	~UDPTransport();
@@ -95,6 +97,11 @@ public:
 	Header_uptr ordered_recv();
 	void fill(Header_uptr, Request *);
 	void reliable_send(const Protocol, const Request *);
+
+	int save(std::ostream &);
+	int load(std::istream &);
+	int cleanup();
+	int halt();
 };
 
 }

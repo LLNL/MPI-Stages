@@ -3,11 +3,12 @@
 
 #include "request.h"
 #include "header.h"
+#include "abstract/stages.h"
 
 namespace exampi
 {
 
-class Matcher
+class Matcher: virtual public Stages
 {
 public:
 	virtual void post_request(Request *) = 0;

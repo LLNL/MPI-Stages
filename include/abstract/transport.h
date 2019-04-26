@@ -8,11 +8,12 @@
 #include "header.h"
 #include "request.h"
 #include "protocol.h"
+#include "abstract/stages.h"
 
 namespace exampi
 {
 
-struct Transport
+struct Transport: virtual public Stages
 {
 	virtual ~Transport() {};
 

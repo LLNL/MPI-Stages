@@ -7,7 +7,7 @@ extern "C" {
 #pragma weak MPI_Barrier = PMPI_Barrier
 	int PMPI_Barrier(MPI_Comm comm)
 	{
-		int rc = exampi::BasicInterface::get_instance().MPI_Barrier(comm);
-		return rc;
+		exampi::Universe &universe = exampi::Universe::get_root_universe();
+		return universe.interface->MPI_Barrier(comm);
 	}
 }

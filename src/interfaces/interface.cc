@@ -16,14 +16,6 @@
 namespace exampi
 {
 
-BasicInterface &BasicInterface::get_instance()
-{
-	// todo get rid of interface singleton, should be part of universe
-	static BasicInterface instance;
-
-	return instance;
-}
-
 BasicInterface::BasicInterface()
 {
 	;
@@ -49,29 +41,27 @@ int BasicInterface::MPI_Init(int *argc, char ***argv)
 	Universe &universe = Universe::get_root_universe();
 	universe.initialize();
 
-	// checkpoint load or initialize for first run
-	// STAGES
-	//recovery_code = universe.checkpoint->load();
-	//if(recovery_code != MPI_SUCCESS)
-	//{
-	//	debug("unsuccessful checkpoint load");
-	//	return recovery_code;
-	//}
-	recovery_code = MPI_SUCCESS;
-
 	universe.progress = std::make_unique<BlockingProgress>();
 
-	// execute global barrier
-	// todo mpi stages move to checkpoint
-	if(universe.epoch == 0)
-	{
-		debug("executing daemon barrier " << universe.rank);
+	// MPI WORLD GROUP
+	debug("generating world group");
+	init_group();
 
-		Daemon &daemon = Daemon::get_instance();
-		daemon.barrier();
+	// MPI_COMM_WORLD
+	debug("generating world communicator");
+	init_communicator();
+
+	debug("generating universe datatypes");
+	init_datatype();
+
+	// execute global barrier
+	debug("executing daemon barrier " << universe.rank);
+
+	Daemon &daemon = Daemon::get_instance();
+	daemon.barrier();
 		// todo if done for udp non-recv reason, then this should live in udp transport
 		//      not all transports require a barrier
-	}
+	//}
 
 	// todo Nawrin?
 	/* Checkpoint/restart
@@ -79,8 +69,65 @@ int BasicInterface::MPI_Init(int *argc, char ***argv)
 	 * handler.setErrToHandle(SIGUSR2);
 	 */
 
-	debug("Finished MPI_Init with code: " << recovery_code);
-	return recovery_code;
+	//debug("Finished MPI_Init with code: " << recovery_code);
+	return MPI_SUCCESS;
+}
+
+void BasicInterface::init_group()
+{
+	Universe &universe = Universe::get_root_universe();
+	// NOTE this potentially becomes huge! millions++
+	std::list<int> rankList;
+	for(int idx = 0; idx < universe.world_size; ++idx)
+		rankList.push_back(idx);
+
+	universe.world_group = std::make_shared<Group>(rankList);
+	universe.groups.push_back(universe.world_group);
+}
+
+void BasicInterface::init_communicator()
+{
+	Universe &universe = Universe::get_root_universe();
+	universe.world_comm = std::make_shared<Comm>();
+
+	universe.world_comm->is_intra = true;
+	universe.world_comm->local = universe.world_group;
+	universe.world_comm->remote = universe.world_group;
+	universe.world_comm->set_rank(universe.rank);
+	universe.world_comm->set_context(0, 1);
+
+	universe.communicators.push_back(universe.world_comm);
+}
+
+void BasicInterface::init_datatype()
+{
+	Universe &universe = Universe::get_root_universe();
+	universe.datatypes =
+			{
+				{ MPI_BYTE, 			Datatype(MPI_BYTE,           sizeof(unsigned char),  true,  true, true)},
+				{ MPI_CHAR, 			Datatype(MPI_CHAR,           sizeof(char),           true,  true, true)},
+		#if 0
+				{ MPI_WCHAR, Datatype(MPI_WCHAR,          sizeof(wchar_t),        true,  true, true)},
+		#endif
+				{ MPI_UNSIGNED_CHAR, 	Datatype(MPI_UNSIGNED_CHAR,  sizeof(unsigned char),  true,  true, true)},
+				{ MPI_SHORT,         	Datatype(MPI_SHORT,          sizeof(short),          true,  true, true)},
+				{ MPI_UNSIGNED_SHORT,	Datatype(MPI_UNSIGNED_SHORT, sizeof(unsigned short), true,  true, true)},
+				{ MPI_INT,           	Datatype(MPI_INT,            sizeof(int),            true,  true, true)},
+				{ MPI_UNSIGNED_INT,  	Datatype(MPI_UNSIGNED_INT,   sizeof(unsigned int),   true,  true, true)},
+				{ MPI_LONG,          	Datatype(MPI_LONG,           sizeof(long),           true,  true, true)},
+				{ MPI_UNSIGNED_LONG, 	Datatype(MPI_UNSIGNED_LONG,  sizeof(unsigned long),  true,  true, true)},
+				{ MPI_FLOAT,         	Datatype(MPI_FLOAT,          sizeof(float),          false, true, true)},
+				{ MPI_DOUBLE,        	Datatype(MPI_DOUBLE,         sizeof(double),         false, true, true)},
+				{ MPI_LONG_LONG_INT, 	Datatype(MPI_LONG_LONG_INT,  sizeof(long long int),  false, true, true)},
+				{ MPI_LONG_LONG,     	Datatype(MPI_LONG_LONG,      sizeof(long long),      false, true, true)},
+				{ MPI_FLOAT_INT,		Datatype(MPI_FLOAT_INT,		 sizeof(float_int_type), false, false, false)},
+				{ MPI_LONG_INT,			Datatype(MPI_LONG_INT,		 sizeof(long_int_type),  false, false, false)},
+				{ MPI_DOUBLE_INT,		Datatype(MPI_DOUBLE_INT,	 sizeof(double_int_type),false, false, false)},
+				{ MPI_2INT,		    	Datatype(MPI_2INT,	 		 sizeof(int_int_type),   false, false, false)},
+		#if 0
+				{ MPI_LONG_DOUBLE, Datatype(MPI_LONG_DOUBLE,    sizeof(long double),    false, true, true)},
+		#endif
+			};
 }
 
 int BasicInterface::MPI_Initialized(int *flag)
@@ -95,10 +142,6 @@ int BasicInterface::MPI_Initialized(int *flag)
 int BasicInterface::MPI_Finalize()
 {
 	debug("MPI_Finalize");
-
-	// todo mpi stages shut down?
-	serialize_handlers.clear();
-	deserialize_handlers.clear();
 
 	return MPI_SUCCESS;
 }
@@ -367,8 +410,6 @@ int BasicInterface::MPI_Send_init(const void *buf, int count,
 	CHECK_TAG(tag);
 	CHECK_STAGES_ERROR();
 
-	Universe &universe = Universe::get_root_universe();
-
 	return construct_request(buf, count, datatype, universe.rank, dest, tag, comm,
 	                         request, Operation::Send);
 }
@@ -384,8 +425,6 @@ int BasicInterface::MPI_Bsend_init(const void *buf, int count,
 	CHECK_RANK(dest, comm);
 	CHECK_TAG(tag);
 	CHECK_STAGES_ERROR();
-
-	Universe &universe = Universe::get_root_universe();
 
 	return construct_request(buf, count, datatype, universe.rank, dest, tag, comm,
 	                         request, Operation::Bsend);
@@ -403,8 +442,6 @@ int BasicInterface::MPI_Rsend_init(const void *buf, int count,
 	CHECK_TAG(tag);
 	CHECK_STAGES_ERROR();
 
-	Universe &universe = Universe::get_root_universe();
-
 	return construct_request(buf, count, datatype, universe.rank, dest, tag, comm,
 	                         request, Operation::Rsend);
 }
@@ -420,8 +457,6 @@ int BasicInterface::MPI_Ssend_init(const void *buf, int count,
 	CHECK_RANK(dest, comm);
 	CHECK_TAG(tag);
 	CHECK_STAGES_ERROR();
-
-	Universe &universe = Universe::get_root_universe();
 
 	return construct_request(buf, count, datatype, universe.rank, dest, tag, comm,
 	                         request, Operation::Ssend);
@@ -439,8 +474,6 @@ int BasicInterface::MPI_Recv_init(const void *buf, int count,
 	CHECK_RANK(source, comm);
 	CHECK_TAG(tag);
 	CHECK_STAGES_ERROR();
-
-	Universe &universe = Universe::get_root_universe();
 
 	return construct_request(buf, count, datatype, source, universe.rank, tag, comm,
 	                         request, Operation::Receive);
@@ -469,7 +502,6 @@ int BasicInterface::MPI_Start(MPI_Request *request)
 	}
 
 	debug("posting request to progress");
-	Universe &universe = Universe::get_root_universe();
 
 	// todo try catch as preprocessors for safe vs unsafe
 	universe.progress->post_request(req);
@@ -574,39 +606,39 @@ int BasicInterface::MPI_Wait(MPI_Request *request, MPI_Status *status)
 	return finalize_request(request, req, status);
 }
 
-//int BasicInterface::MPI_Waitall(int count, MPI_Request array_of_requests[],
-//                                MPI_Status array_of_statuses[])
-//{
-//	// sanitize user input
-//	CHECK_REQUEST(request);
-//	CHECK_STATUS(status);//	// mpi stages error check
-//	CHECK_STAGES_ERROR();
-//
-//	if (array_of_statuses != MPI_STATUSES_IGNORE)
-//	{
-//		for (int i = 0; i < count; i++)
-//		{
-//			if (array_of_requests[i])
-//			{
-//				array_of_statuses[i].MPI_ERROR = MPI_Wait(array_of_requests + i,
-//				                                 array_of_statuses + i);
-//				if (array_of_statuses[i].MPI_ERROR)
-//					return -1;
-//			}
-//		}
-//	}
-//	else
-//	{
-//		for (int i = 0; i < count; i++)
-//		{
-//			int rc = MPI_Wait(array_of_requests + i, nullptr);
-//			if (rc)
-//				return rc;
-//		}
-//	}
-//	return MPI_SUCCESS;
-//	return -1;
-//}
+int BasicInterface::MPI_Waitall(int count, MPI_Request array_of_requests[],
+                                MPI_Status array_of_statuses[])
+{
+	// sanitize user input
+	CHECK_REQUEST(request);
+	CHECK_STATUS(status);//	// mpi stages error check
+	CHECK_STAGES_ERROR();
+
+	if (array_of_statuses != MPI_STATUSES_IGNORE)
+	{
+		for (int i = 0; i < count; i++)
+		{
+			if (array_of_requests[i])
+			{
+				array_of_statuses[i].MPI_ERROR = MPI_Wait(array_of_requests + i,
+				                                 array_of_statuses + i);
+				if (array_of_statuses[i].MPI_ERROR)
+					return array_of_statuses[i].MPI_ERROR;
+			}
+		}
+	}
+	else
+	{
+		for (int i = 0; i < count; i++)
+		{
+			int rc = MPI_Wait(array_of_requests + i, nullptr);
+			if (rc != MPI_SUCCESS)
+				return rc;
+		}
+	}
+
+	return MPI_SUCCESS;
+}
 
 //int BasicInterface::MPI_Waitany()
 //{
@@ -670,9 +702,6 @@ int BasicInterface::MPI_Comm_rank(MPI_Comm comm, int *r)
 {
 	CHECK_STAGES_ERROR();
 
-	// fetch root universe
-	Universe &universe = Universe::get_root_universe();
-
 	// communicator handle -> communicator object
 	std::shared_ptr<Comm> c = universe.communicators.at(comm);
 	*r = c->get_rank();
@@ -686,9 +715,6 @@ int BasicInterface::MPI_Comm_size(MPI_Comm comm, int *size)
 {
 	CHECK_STAGES_ERROR();
 
-	// fetch root universe
-	Universe &universe = Universe::get_root_universe();
-
 	// communicator handle -> communicator object
 	std::shared_ptr<Comm> c = universe.communicators.at(comm);
 	*size = c->get_local_group()->get_process_list().size();
@@ -701,8 +727,6 @@ int BasicInterface::MPI_Comm_size(MPI_Comm comm, int *size)
 int BasicInterface::MPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm)
 {
 	CHECK_STAGES_ERROR();
-
-	Universe &universe = Universe::get_root_universe();
 
 	// get communicator object
 	int rc;
@@ -729,7 +753,7 @@ int BasicInterface::MPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm)
 	// register duplicate communicator
 	universe.communicators.push_back(communicator);
 
-	// What is this doing?
+	// returns the handle of the communicator
 	auto it = std::find_if(universe.communicators.begin(),
 	                       universe.communicators.end(),
 	                       [communicator](const std::shared_ptr<Comm> i) -> bool {return i->get_context_id_pt2pt() == communicator->get_context_id_pt2pt();});
@@ -762,220 +786,10 @@ int BasicInterface::MPI_Comm_set_errhandler(MPI_Comm comm, MPI_Errhandler err)
 	return MPI_SUCCESS;
 }
 
-//#############################################################################
-
-//int BasicInterface::MPIX_Serialize_handles()
-//{
-//	CHECK_STAGES_ERROR();
-//
-//	Universe& universe = Universe::get_root_universe();
-//
-//	std::stringstream filename;
-//	filename << universe.epoch - 1 << "." << universe.rank << ".cp";
-//	std::ofstream t(filename.str(), std::ofstream::out | std::ofstream::app);
-//
-//	if (!serialize_handlers.empty())
-//	{
-//		for (auto it : serialize_handlers)
-//		{
-//			MPIX_Handles handles;
-//			(*it)(&handles);
-//			t.write(reinterpret_cast<char *>(&handles.comm_size), sizeof(int));
-//			for (int i = 0; i < handles.comm_size; i++)
-//			{
-//				Comm *c = universe.communicators.at(handles.comms[i]);
-//				int id = c->get_context_id_pt2pt();
-//				t.write(reinterpret_cast<char *>(&id), sizeof(int));
-//			}
-//
-//			t.write(reinterpret_cast<char *>(&handles.group_size), sizeof(int));
-//			for (int i = 0; i < handles.group_size; i++)
-//			{
-//				Group *g = universe.groups.at(handles.grps[i]);
-//				int id = g->get_group_id();
-//				t.write(reinterpret_cast<char *>(&id), sizeof(int));
-//			}
-//		}
-//	}
-//	t.close();
-//
-//	return MPI_SUCCESS;
-//	return MPI_ERR_DISABLED;
-//}
-//
-//int BasicInterface::MPIX_Deserialize_handles()
-//{
-//	CHECK_STAGES_ERROR();
-//
-//	Universe& universe = Universe::get_root_universe();
-//	std::stringstream filename;
-//	filename << universe.epoch - 1 << "." << universe.rank << ".cp";
-//	std::ifstream t(filename.str(), std::ifstream::in);
-//
-//	long long int pos;
-//	t.read(reinterpret_cast<char *>(&pos), sizeof(long long int));
-//	t.seekg(pos);
-//
-//	int size, id;
-//
-//	if (!deserialize_handlers.empty())
-//	{
-//		for (auto iter : deserialize_handlers)
-//		{
-//			MPIX_Handles handles;
-//			t.read(reinterpret_cast<char *>(&size), sizeof(int));
-//			handles.comm_size = size;
-//			if (handles.comm_size > 0)
-//			{
-//				handles.comms = (MPI_Comm *)malloc(size * sizeof(MPI_Comm));
-//				for (int i = 0; i < size; i++)
-//				{
-//					t.read(reinterpret_cast<char *>(&id), sizeof(int));
-//					auto it = std::find_if(universe.communicators.begin(),
-//					                       universe.communicators.end(),
-//					                       [id](const Comm *i) -> bool {return i->get_context_id_pt2pt() == id;});
-//					if (it == universe.communicators.end())
-//					{
-//						return MPIX_TRY_RELOAD;
-//					}
-//					else
-//					{
-//						handles.comms[i] = std::distance(universe.communicators.begin(), it);
-//					}
-//				}
-//			}
-//			t.read(reinterpret_cast<char *>(&size), sizeof(int));
-//			handles.group_size = size;
-//			if (handles.group_size > 0)
-//			{
-//				handles.grps = (MPI_Group *)malloc(size * sizeof(MPI_Group));
-//				for (int i = 0; i < size; i++)
-//				{
-//					t.read(reinterpret_cast<char *>(&id), sizeof(int));
-//					auto it = std::find_if(universe.groups.begin(),
-//					                       universe.groups.end(),
-//					                       [id](const Group *i) -> bool {return i->get_group_id() == id;});
-//					if (it == universe.groups.end())
-//					{
-//						return MPIX_TRY_RELOAD;
-//					}
-//					else
-//					{
-//						handles.grps[i] = std::distance(universe.groups.begin(), it);
-//					}
-//				}
-//			}
-//			(*iter)(handles);
-//		}
-//	}
-//
-//	t.close();
-//	return MPI_SUCCESS;
-//	return MPI_ERR_DISABLED;
-//}
-//
-//int BasicInterface::MPIX_Serialize_handler_register(const MPIX_Serialize_handler
-//        handler)
-//{
-//	CHECK_STAGES_ERROR();
-//
-//	Universe& universe = Universe::get_root_universe();
-//	if (universe.epoch == 0 && recovery_code == MPI_SUCCESS)
-//	{
-//		serialize_handlers.push_back(handler);
-//	}
-//	else if (universe.epoch > 0 && recovery_code == MPIX_SUCCESS_RESTART)
-//	{
-//		serialize_handlers.push_back(handler);
-//	}
-//
-//	return MPI_SUCCESS;
-//	return MPI_ERR_DISABLED;
-//}
-//
-//int BasicInterface::MPIX_Deserialize_handler_register(const
-//        MPIX_Deserialize_handler
-//        handler)
-//{
-//	CHECK_STAGES_ERROR();
-//
-//	Universe& universe = Universe::get_root_universe();
-//	if (universe.epoch == 0 && recovery_code == MPI_SUCCESS)
-//	{
-//		deserialize_handlers.push_back(handler);
-//	}
-//	else if (universe.epoch > 0 && recovery_code == MPIX_SUCCESS_RESTART)
-//	{
-//		deserialize_handlers.push_back(handler);
-//	}
-//
-//	return MPI_SUCCESS;
-//	return MPI_ERR_DISABLED;
-//}
-//
-//int BasicInterface::MPIX_Checkpoint_write()
-//{
-//	CHECK_STAGES_ERROR();
-//
-//	Universe &universe = Universe::get_root_universe();
-//	// STAGES
-//	universe.checkpoint->save();
-//
-//	return MPI_SUCCESS;
-//}
-//
-//int BasicInterface::MPIX_Checkpoint_read()
-//{
-//	// note no check since we are already in a fault
-//	//CHECK_STAGES_ERROR();
-//
-//	debug("checkpoint_read");
-//
-//	// note instead reset
-//	FaultHandler &faulthandler = FaultHandler::get_instance();
-//	if(faulthandler.isErrSet())
-//	{
-//		debug("resetting fault handler");
-//		faulthandler.setErrToZero();
-//	}
-//
-//	Universe &universe = Universe::get_root_universe();
-//	debug("surviving process restart " << universe.rank);
-//
-//	// wait for restarted process
-//	Daemon &daemon = Daemon::get_instance();
-//
-//	daemon.wait_commit();
-//	debug("commit epoch received " << universe.epoch);
-//
-//	// todo again why is there a barrier, due to transport? then should live in transport
-//	//      otherwise clarify and put in corrrect place instead of in interface, because
-//	//      the interface does not require it fundementally.
-//	debug("entering daemon barrier for restart");
-//	daemon.barrier();
-//
-//	return MPI_SUCCESS;
-//}
-//
-//int BasicInterface::MPIX_Get_fault_epoch(int *epoch)
-//{
-//	CHECK_STAGES_ERROR();
-//
-//	// fetch universe
-//	Universe &universe = Universe::get_root_universe();
-//	*epoch = universe.epoch;
-//	debug("current epoch " << *epoch);
-//
-//	return MPI_SUCCESS;
-//}
-
-//#############################################################################
-
 int BasicInterface::MPI_Barrier(MPI_Comm comm)
 {
 	CHECK_STAGES_ERROR();
 
-	Universe &universe = Universe::get_root_universe();
 	int rank, size;
 	MPI_Status status;
 	int coll_tag = 0;
@@ -1036,16 +850,12 @@ int BasicInterface::MPI_Barrier(MPI_Comm comm)
 	return MPI_SUCCESS;
 }
 
-
-
-
-
 int BasicInterface::MPI_Reduce(const void *s_buf, void *r_buf, int count,
                                MPI_Datatype type, MPI_Op op, int root, MPI_Comm comm)
 {
 
 	CHECK_STAGES_ERROR();
-	Universe &universe = Universe::get_root_universe();
+
 	int mask, comm_size, peer, peer_rank, peer_rel_rank, rc;
 	int rank, rel_rank;
 
@@ -1106,7 +916,6 @@ int BasicInterface::MPI_Allreduce(const void *s_buf, void *r_buf, int count,
 {
 	CHECK_STAGES_ERROR();
 
-	Universe &universe = Universe::get_root_universe();
 	int rc = MPI_Reduce(s_buf, r_buf, count, type, op, 0, comm);
 	if (rc != MPI_SUCCESS)
 	{
@@ -1122,8 +931,6 @@ int BasicInterface::MPI_Bcast(void *buf, int count, MPI_Datatype datatype,
                               MPI_Comm comm)
 {
 	CHECK_STAGES_ERROR();
-
-	Universe &universe = Universe::get_root_universe();
 
 	// todo this is an implementation, and therefore should be in progress engine
 	int rc;
@@ -1155,7 +962,6 @@ int BasicInterface::MPI_Get_count(MPI_Status *status, MPI_Datatype datatype,
 {
 	CHECK_STAGES_ERROR();
 
-	Universe &universe = Universe::get_root_universe();
 	Datatype type = universe.datatypes[datatype];
 	if (type.get_extent())
 	{

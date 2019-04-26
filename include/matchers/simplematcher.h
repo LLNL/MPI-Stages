@@ -9,7 +9,7 @@
 namespace exampi
 {
 
-class SimpleMatcher final: public Matcher
+class SimpleMatcher : public Matcher, virtual public Stages
 {
 private:
 	std::mutex guard;
@@ -26,6 +26,11 @@ public:
 	void post_header(Header_uptr header);
 
 	std::tuple<Header_uptr, Request *> progress();
+
+	int save(std::ostream &);
+	int load(std::istream &);
+	int cleanup();
+	int halt();
 };
 
 }

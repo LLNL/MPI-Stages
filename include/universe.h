@@ -6,7 +6,9 @@
 #include <exception>
 
 #include "abstract/progress.h"
-#include "abstract/transport.h"
+//#include "abstract/transport.h"
+#include "abstract/interface.h"
+#include "abstract/stages.h"
 #include "pool.h"
 #include "request.h"
 #include "communicator.h"
@@ -52,7 +54,10 @@ public:
 	int epoch;
 	std::string epoch_config;
 
+	bool mpi_stages;
+
 	std::unique_ptr<Progress> progress;
+	std::unique_ptr<Interface> interface;
 
 	// eventually Interface *interface
 

@@ -14,7 +14,7 @@
 namespace exampi
 {
 
-class BlockingProgress: public Progress
+class BlockingProgress: public Progress, virtual public Stages
 {
 private:
 	bool shutdown;
@@ -42,6 +42,11 @@ public:
 	~BlockingProgress();
 
 	void post_request(Request *request);
+
+	int save(std::ostream &);
+	int load(std::istream &);
+	int cleanup();
+	int halt();
 };
 
 }

@@ -9,8 +9,8 @@ extern "C"
 
 	int PMPI_Comm_size(MPI_Comm c, int *r)
 	{
-		int rc = exampi::BasicInterface::get_instance().MPI_Comm_size(c, r);
-		return rc;
+		exampi::Universe &universe = exampi::Universe::get_root_universe();
+		return universe.interface->MPI_Comm_size(c, r);
 	}
 
 

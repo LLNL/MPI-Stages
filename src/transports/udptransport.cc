@@ -54,8 +54,29 @@ UDPTransport::UDPTransport() : header_pool(32), payload_pool(32)
 	hdr.msg_controllen = 0;
 	hdr.msg_flags = 0;
 
+	if (universe.epoch == 0)
+		cache_endpoints();
+
+	// setting available protocols for UDPTransport
+	available_protocols[Protocol::EAGER]		= 65507 - sizeof(Header);
+	available_protocols[Protocol::EAGER_ACK]	= 65507 - sizeof(Header);
+
+	//cache_endpoints();
+
+	//available_protocols[Protocol::SEQ]			= std::numeric_limits<size_t>::max() - sizeof(Header);
+	//available_protocols[Protocol::SEQ_ACK]		= std::numeric_limits<size_t>::max() - sizeof(Header);
+}
+
+UDPTransport::~UDPTransport()
+{
+	close(socket_recv);
+}
+
+void UDPTransport::cache_endpoints()
+{
 	// cache remote addresses
 	// todo static connection building, don't do this forever
+	Universe &universe = Universe::get_root_universe();
 	Config &config = Config::get_instance();
 
 	for(long int rank = 0; rank < universe.world_size; ++rank)
@@ -72,18 +93,6 @@ UDPTransport::UDPTransport() : header_pool(32), payload_pool(32)
 
 		cache.insert({rank, addr});
 	}
-
-	// setting available protocols for UDPTransport
-	available_protocols[Protocol::EAGER]		= 65507 - sizeof(Header);
-	available_protocols[Protocol::EAGER_ACK]	= 65507 - sizeof(Header);
-
-	//available_protocols[Protocol::SEQ]			= std::numeric_limits<size_t>::max() - sizeof(Header);
-	//available_protocols[Protocol::SEQ_ACK]		= std::numeric_limits<size_t>::max() - sizeof(Header);
-}
-
-UDPTransport::~UDPTransport()
-{
-	close(socket_recv);
 }
 
 Header_uptr UDPTransport::ordered_recv()
@@ -258,45 +267,51 @@ const std::map<Protocol, size_t> &UDPTransport::provided_protocols() const
 	return available_protocols;
 }
 
-//int UDPTransport::save(std::ostream &r)
-//{
-//	return MPI_SUCCESS;
-//}
+int UDPTransport::save(std::ostream &t)
+{
+	int cache_size = cache.size();
 
-//int UDPTransport::load(std::istream &r)
-//{
-//	return MPI_SUCCESS;
-//}
+	t.write(reinterpret_cast<char *>(&cache_size), sizeof(int));
 
-//int UDPTransport::halt()
-//{
-	// todo mpi stages no idea what this does, from original udp transport
-//	//std::cout << debug() << "basic::Transport::receive(...)" << std::endl;
-//	char buffer[2];
-//	struct sockaddr_storage src_addr;
-//
-//	struct iovec iov[1];
-//	iov[0].iov_base=buffer;
-//	iov[0].iov_len=sizeof(buffer);
-//
-//	struct msghdr message;
-//	message.msg_name=&src_addr;
-//	message.msg_namelen=sizeof(src_addr);
-//	message.msg_iov=iov;
-//	message.msg_iovlen=1;
-//	message.msg_control=0;
-//	message.msg_controllen=0;
-//
-//
-//	//std::cout << debug() <<
-//	//          "basic::Transport::receive, constructed msg, calling msg.receive" << std::endl;
-//
-//	//std::cout << debug() << "basic::Transport::udp::recv\n";
-//
-//	recvmsg(recvSocket.getFd(), &message, MSG_WAITALL);
-//	//std::cout << debug() << "basic::Transport::udp::recv exiting\n";
-//	//std::cout << debug() << "basic::Transport::receive returning" << std::endl;
-//	return MPI_SUCCESS;
-//}
+	for (auto addr : cache)
+	{
+		auto key = addr.first;
+		auto value = addr.second;
+
+		t.write(reinterpret_cast<char *>(&key), sizeof(key));
+		t.write(reinterpret_cast<char *>(&value), sizeof(value));
+	}
+
+	return MPI_SUCCESS;
+}
+
+int UDPTransport::load(std::istream &t)
+{
+	struct sockaddr_in addr;
+	int cache_size;
+	long int rank;
+
+	t.read(reinterpret_cast<char *>(&cache_size), sizeof(int));
+
+	while (cache_size)
+	{
+		t.read(reinterpret_cast<char *>(&rank), sizeof(rank));
+		t.read(reinterpret_cast<char *>(&addr), sizeof(addr));
+		cache.insert({rank, addr});
+		cache_size--;
+	}
+
+	return MPI_SUCCESS;
+}
+
+int UDPTransport::halt()
+{
+	return MPI_SUCCESS;
+}
+
+int UDPTransport::cleanup()
+{
+	return MPI_SUCCESS;
+}
 
 }

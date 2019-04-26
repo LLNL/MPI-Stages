@@ -12,10 +12,10 @@ Protocol SimpleDecider::decide(const Request_ptr request,
 			return Protocol::EAGER_ACK;
 
 		case Operation::Send:
-			[[fallthrough]]
+			[[fallthrough]];
 
 		case Operation::Bsend:
-			[[fallthrough]]
+			[[fallthrough]];
 
 		case Operation::Rsend:
 			return Protocol::EAGER;

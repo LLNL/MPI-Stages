@@ -10,8 +10,8 @@ extern "C"
 
 	int PMPI_Wait(MPI_Request *request, MPI_Status *status)
 	{
-		int rc = exampi::BasicInterface::get_instance().MPI_Wait(request, status);
-		return rc;
+		exampi::Universe &universe = exampi::Universe::get_root_universe();
+		return universe.interface->MPI_Wait(request, status);
 	}
 
 }

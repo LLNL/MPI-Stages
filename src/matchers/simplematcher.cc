@@ -3,6 +3,7 @@
 #include "matchers/simplematcher.h"
 #include "debug.h"
 #include "universe.h"
+#include "faulthandler.h"
 
 namespace exampi
 {
@@ -27,6 +28,12 @@ void SimpleMatcher::post_header(Header_uptr header)
 	debug("posting message in matcher");
 
 	Universe &universe = Universe::get_root_universe();
+
+	if (header->envelope.tag == MPIX_CLEANUP_TAG)
+	{
+		debug("Cleanup request from fault handler");
+		halt();
+	}
 
 	if(header->envelope.epoch < universe.epoch)
 	{
@@ -115,24 +122,48 @@ std::tuple<Header_uptr, Request *> SimpleMatcher::progress()
 	return std::make_tuple(std::unique_ptr<Header>(nullptr), nullptr);
 }
 
-//void SimpleMatcher::halt()
-//{
-//	std::lock_guard<std::mutex> lock(guard);
-//
-//	// invalidate all requests
-//	for(auto req: posted_request_queue)
-//	{
-//		// todo do we need this? is what was given not good enough?
-//		//req->payload.count = 0;
-//		req->error = MPIX_TRY_RELOAD;
-//
-//		// finalize request
-//		req->release();
-//	}
-//
-//	// clear all queues
-//	posted_request_queue.clear();
-//	//received_message_queue.clear();
-//}
+int SimpleMatcher::cleanup()
+{
+	FaultHandler &faulthandler = FaultHandler::get_instance();
+	Universe &universe = Universe::get_root_universe();
+	if (posted_request_queue.size() > 0)
+	{
+		faulthandler.setErrToZero();
+		universe.interface->MPI_Send((void *)0, 0, MPI_INT, universe.rank, MPIX_CLEANUP_TAG, MPI_COMM_WORLD);
+		faulthandler.setErrToOne();
+	}
+	return MPI_SUCCESS;
+}
+
+int SimpleMatcher::halt()
+{
+	std::lock_guard<std::mutex> lock(guard);
+
+	// invalidate all requests
+	for(auto req: posted_request_queue)
+	{
+		// todo do we need this? is what was given not good enough?
+		//req->payload.count = 0;
+		req->error = MPIX_TRY_RELOAD;
+
+		// finalize request
+		req->release();
+	}
+
+	// clear all queues
+	posted_request_queue.clear();
+	//received_message_queue.clear();
+	return MPI_SUCCESS;
+}
+
+int SimpleMatcher::save(std::ostream &)
+{
+	return MPI_SUCCESS;
+}
+
+int SimpleMatcher::load(std::istream &)
+{
+	return MPI_SUCCESS;
+}
 
 }

@@ -23,7 +23,7 @@ int check_comm(MPI_Comm comm)
 
 int check_count(int count)
 {
-	if(count > 0)
+	if(count >= 0)
 		return MPI_SUCCESS;
 	else
 		return MPI_ERR_COUNT;

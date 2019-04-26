@@ -4,11 +4,12 @@
 #include <mpi.h>
 
 #include "request.h"
+#include "abstract/stages.h"
 
 namespace exampi
 {
 
-class Progress
+class Progress: virtual public Stages
 {
 public:
 	virtual ~Progress() {}

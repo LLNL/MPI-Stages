@@ -9,8 +9,8 @@ extern "C"
 
 	int PMPI_Finalize(void)
 	{
-		int rc = exampi::BasicInterface::get_instance().MPI_Finalize();
-		return rc;
+		exampi::Universe &universe = exampi::Universe::get_root_universe();
+		return universe.interface->MPI_Finalize();
 	}
 
 }

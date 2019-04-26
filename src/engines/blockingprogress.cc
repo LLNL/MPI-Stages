@@ -20,7 +20,7 @@ BlockingProgress::BlockingProgress() :
 	    std::unique_ptr<Decider>(new SimpleDecider())
 	)
 {
-	;
+
 }
 
 BlockingProgress::BlockingProgress(std::unique_ptr<Matcher> matcher,
@@ -244,122 +244,33 @@ void BlockingProgress::handle_send(Request *request)
 	request->release();
 }
 
-//int BlockingProgress::halt()
-//{
-//	// stop all progress threads
-//	debug("stopping all progress threads");
-//	shutdown = true;
-//
-//	// todo mpi stages unify with deconstruction
-//	for(auto &&thr : this->progress_threads)
-//	{
-//		thr.join();
-//	}
-//
-//	debug("joined all threads");
-//
-//	int err = MPI_SUCCESS;
-//	// todo mpi stages
-//	//err = matcher->halt();
-//	matcher->halt();
-//	if(err != MPI_SUCCESS)
-//	{
-//		debug("failed to halt matcher");
-//		return err;
-//	}
-//
-//	err = transporter->halt();
-//	if(err != MPI_SUCCESS)
-//	{
-//		debug("failed to halt transporter");
-//		return err;
-//	}
-//
-//	return err;
-//}
+int BlockingProgress::halt()
+{
+	return MPI_SUCCESS;
+}
 
-//int BlockingProgress::save(std::ostream &t)
-//{
-//	// delegate further
-//	int err = MPI_SUCCESS;
-//
-//	// todo mpi stages save endpoints?
-//	//err = transporter->save(t);
-//
-//	//err = matcher->save(t);
-//
-//	return err;
-//}
+int BlockingProgress::cleanup()
+{
+	return matcher->cleanup();
+}
 
-//int BlockingProgress::load(std::istream &t)
-//{
-//	int comm_size, group_size;
-//	int r, p2p, coll, id;
-//	bool intra;
-//	int num_of_processes;
-//	std::list<int> ranks;
-//	int rank;
-//	exampi::Group *grp;
-//	//restore group
-//	t.read(reinterpret_cast<char *>(&group_size), sizeof(int));
-//	while(group_size)
-//	{
-//		// todo heap allocation
-//		grp = new exampi::Group();
-//
-//		t.read(reinterpret_cast<char *>(&id), sizeof(int));
-//		grp->set_group_id(id);
-//		t.read(reinterpret_cast<char *>(&num_of_processes), sizeof(int));
-//		for (int i = 0; i < num_of_processes; i++)
-//		{
-//			t.read(reinterpret_cast<char *>(&rank), sizeof(int));
-//			ranks.push_back(rank);
-//		}
-//		grp->set_process_list(ranks);
-//		exampi::groups.push_back(grp);
-//		group_size--;
-//	}
-//	//restore communicator
-//	t.read(reinterpret_cast<char *>(&comm_size), sizeof(int));
-//
-//	while(comm_size)
-//	{
-//		exampi::Comm *com = new exampi::Comm();
-//		t.read(reinterpret_cast<char *>(&r), sizeof(int));
-//		com->set_rank(r);
-//		t.read(reinterpret_cast<char *>(&p2p), sizeof(int));
-//		t.read(reinterpret_cast<char *>(&coll), sizeof(int));
-//		com->set_context(p2p, coll);
-//		t.read(reinterpret_cast<char *>(&intra), sizeof(bool));
-//		com->set_is_intra(intra);
-//		t.read(reinterpret_cast<char *>(&id), sizeof(int));
-//
-//		auto it = std::find_if(exampi::groups.begin(),
-//		                       exampi::groups.end(),
-//		                       [id](const Group *i) -> bool {return i->get_group_id() == id;});
-//		if (it == exampi::groups.end())
-//		{
-//			return MPIX_TRY_RELOAD;
-//		}
-//		else
-//		{
-//			com->set_local_group(*it);
-//		}
-//		t.read(reinterpret_cast<char *>(&id), sizeof(int));
-//		it = std::find_if(exampi::groups.begin(), exampi::groups.end(),
-//		                  [id](const Group *i) -> bool {return i->get_group_id() == id;});
-//		if (it == exampi::groups.end())
-//		{
-//			return MPIX_TRY_RELOAD;
-//		}
-//		else
-//		{
-//			com->set_remote_group(*it);
-//		}
-//		exampi::communicators.push_back(com);
-//		comm_size--;
-//	}
-//	return MPI_SUCCESS;
-//}
+int BlockingProgress::save(std::ostream &t)
+{
+	// delegate further
+	int err = MPI_SUCCESS;
+
+	err = transporter->save(t);
+
+	return err;
+}
+
+int BlockingProgress::load(std::istream &t)
+{
+	int err = MPI_SUCCESS;
+
+	err = transporter->load(t);
+
+	return err;
+}
 
 } // exampi

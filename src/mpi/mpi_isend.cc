@@ -11,10 +11,10 @@ extern "C"
 	int PMPI_Isend(void *buf, int count, MPI_Datatype datatype, int dest, int tag,
 	               MPI_Comm comm, MPI_Request *request)
 	{
-		int rc = exampi::BasicInterface::get_instance().MPI_Isend(buf, count, datatype,
+		exampi::Universe &universe = exampi::Universe::get_root_universe();
+		return universe.interface->MPI_Isend(buf, count, datatype,
 		         dest, tag,
 		         comm, request);
-		return rc;
 	}
 
 }
