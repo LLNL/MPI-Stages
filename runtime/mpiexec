@@ -196,7 +196,7 @@ class RuntimeHandler(object):
 				env['EXAMPI_LOG_CONTROLLER_DAEMON'] = 'TRUE'
 				
 			if arguments.enable_stages:
-				env['MPI_STAGES'] = 'TRUE'
+				env['EXAMPI_STAGES'] = 'TRUE'
 
 			env['EXAMPI_LOCALID'] = str(rank)
 			env['EXAMPI_RANK'] = str(rank)
@@ -306,7 +306,7 @@ class RuntimeHandler(object):
 			env['EXAMPI_LOG_CONTROLLER_DAEMON'] = 'TRUE'
 			
 		if arguments.enable_stages:
-			env['MPI_STAGES'] = 'TRUE'
+			env['EXAMPI_STAGES'] = 'TRUE'
 
 		self.log.info('srun command: %s', str(command))
 

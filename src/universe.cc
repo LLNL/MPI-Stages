@@ -59,7 +59,7 @@ Universe::Universe() : request_pool(128), initialized(false)
 	world_size = std::stoi(std::string(variable));
 	debug("world size " << world_size);
 
-	// parse MPI_STAGES environment variable
+	// parse EXAMPI_STAGES environment variable
 	mpi_stages = std::getenv("EXAMPI_STAGES");
 	debug("mpi stages" << mpi_stages);
 
