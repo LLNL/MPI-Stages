@@ -136,8 +136,8 @@ public:
 
 	void deallocate(T *t)
 	{
-		debug("freeing item, now at " << this->allocated_items << " : " <<
-		      this->allocated_arenas);
+		debug("freeing item, now at " << this->allocated_items << " items : arenas " <<
+		      this->allocated_arenas << " pointer " << t);
 
 		// avoid nullptr freeing
 		if(t == nullptr)

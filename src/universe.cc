@@ -61,7 +61,7 @@ Universe::Universe() : request_pool(128), initialized(false)
 
 	// parse EXAMPI_STAGES environment variable
 	mpi_stages = std::getenv("EXAMPI_STAGES");
-	debug("mpi stages" << mpi_stages);
+	debug("mpi stages enabled " << mpi_stages);
 
 	if (mpi_stages)
 		interface = std::make_unique<StagesInterface>();

@@ -292,13 +292,14 @@ int StagesInterface::checkpoint_write()
 
 	std::stringstream filename;
 	filename << universe.epoch << "." << universe.rank << ".cp";
+	debug("opening file " << filename.str());
+
 	std::ofstream output_file(filename.str(), std::ofstream::out);
 
-	if (!output_file)
-	{
-		debug("error opening checkpoint file");
-		return MPIX_TRY_RELOAD;
-	}
+	if(!output_file.is_open())
+		//debug("error opening checkpoint file");
+		//return MPIX_TRY_RELOAD;
+		throw std::runtime_error("Opening checkpoint file failed during writing.");
 
 	long long int size = 0;
 	long long int begin = output_file.tellp();
@@ -345,13 +346,14 @@ int StagesInterface::checkpoint_read()
 	// get a file.  this is actually nontrivial b/c of shared filesystems;
 	std::stringstream filename;
 	filename << universe.epoch - 1 << "." << universe.rank << ".cp";
+	debug("opening file " << filename.str());
+
 	std::ifstream input_file(filename.str(), std::ifstream::in);
 
-	if (!input_file)
-	{
-		debug("error opening checkpoint file");
-		return MPIX_TRY_RELOAD;
-	}
+	if(!input_file.is_open())
+		//debug("error opening checkpoint file");
+		//return MPIX_TRY_RELOAD;
+		throw std::runtime_error("Opening checkpoint file failed during reading.");
 
 	long long int pos;
 	input_file.read(reinterpret_cast<char *>(&pos), sizeof(long long int));
