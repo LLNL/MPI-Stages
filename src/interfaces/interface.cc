@@ -413,6 +413,8 @@ int BasicInterface::MPI_Send_init(const void *buf, int count,
 	CHECK_RANK(dest, comm);
 	CHECK_TAG(tag);
 	CHECK_STAGES_ERROR();
+	
+	Universe &universe = Universe::get_root_universe();
 
 	return construct_request(buf, count, datatype, universe.rank, dest, tag, comm,
 	                         request, Operation::Send);
@@ -429,6 +431,8 @@ int BasicInterface::MPI_Bsend_init(const void *buf, int count,
 	CHECK_RANK(dest, comm);
 	CHECK_TAG(tag);
 	CHECK_STAGES_ERROR();
+	
+	Universe &universe = Universe::get_root_universe();
 
 	return construct_request(buf, count, datatype, universe.rank, dest, tag, comm,
 	                         request, Operation::Bsend);
@@ -445,6 +449,8 @@ int BasicInterface::MPI_Rsend_init(const void *buf, int count,
 	CHECK_RANK(dest, comm);
 	CHECK_TAG(tag);
 	CHECK_STAGES_ERROR();
+	
+	Universe &universe = Universe::get_root_universe();
 
 	return construct_request(buf, count, datatype, universe.rank, dest, tag, comm,
 	                         request, Operation::Rsend);
@@ -461,6 +467,8 @@ int BasicInterface::MPI_Ssend_init(const void *buf, int count,
 	CHECK_RANK(dest, comm);
 	CHECK_TAG(tag);
 	CHECK_STAGES_ERROR();
+	
+	Universe &universe = Universe::get_root_universe();
 
 	return construct_request(buf, count, datatype, universe.rank, dest, tag, comm,
 	                         request, Operation::Ssend);
@@ -479,6 +487,8 @@ int BasicInterface::MPI_Recv_init(const void *buf, int count,
 	CHECK_TAG(tag);
 	CHECK_STAGES_ERROR();
 
+	Universe &universe = Universe::get_root_universe();
+
 	return construct_request(buf, count, datatype, source, universe.rank, tag, comm,
 	                         request, Operation::Receive);
 }
@@ -490,6 +500,8 @@ int BasicInterface::MPI_Start(MPI_Request *request)
 	// sanitize user input
 	CHECK_REQUEST(request);
 	CHECK_STAGES_ERROR();
+	
+	Universe &universe = Universe::get_root_universe();
 
 	// hand request to progress engine
 	// todo this is dereferencing already anyways, might as well dereference to unique pointer?
@@ -707,6 +719,8 @@ int BasicInterface::MPI_Test(MPI_Request *request, int *flag,
 int BasicInterface::MPI_Comm_rank(MPI_Comm comm, int *r)
 {
 	CHECK_STAGES_ERROR();
+	
+	Universe &universe = Universe::get_root_universe();
 
 	// communicator handle -> communicator object
 	std::shared_ptr<Comm> c = universe.communicators.at(comm);
@@ -720,6 +734,8 @@ int BasicInterface::MPI_Comm_rank(MPI_Comm comm, int *r)
 int BasicInterface::MPI_Comm_size(MPI_Comm comm, int *size)
 {
 	CHECK_STAGES_ERROR();
+	
+	Universe &universe = Universe::get_root_universe();
 
 	// communicator handle -> communicator object
 	std::shared_ptr<Comm> c = universe.communicators.at(comm);
@@ -733,6 +749,8 @@ int BasicInterface::MPI_Comm_size(MPI_Comm comm, int *size)
 int BasicInterface::MPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm)
 {
 	CHECK_STAGES_ERROR();
+	
+	Universe &universe = Universe::get_root_universe();
 
 	// get communicator object
 	int rc;
@@ -861,6 +879,8 @@ int BasicInterface::MPI_Reduce(const void *s_buf, void *r_buf, int count,
 {
 
 	CHECK_STAGES_ERROR();
+	
+	Universe &universe = Universe::get_root_universe();
 
 	int mask, comm_size, peer, peer_rank, peer_rel_rank, rc;
 	int rank, rel_rank;
@@ -938,6 +958,8 @@ int BasicInterface::MPI_Bcast(void *buf, int count, MPI_Datatype datatype,
 {
 	CHECK_STAGES_ERROR();
 
+	Universe &universe = Universe::get_root_universe();
+
 	// todo this is an implementation, and therefore should be in progress engine
 	int rc;
 	if (universe.rank == root)
@@ -967,6 +989,8 @@ int BasicInterface::MPI_Get_count(MPI_Status *status, MPI_Datatype datatype,
                                   int *count)
 {
 	CHECK_STAGES_ERROR();
+	
+	Universe &universe = Universe::get_root_universe();
 
 	Datatype type = universe.datatypes[datatype];
 	if (type.get_extent())

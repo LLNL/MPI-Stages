@@ -11,8 +11,8 @@ namespace exampi
 //#ifdef MPI_STAGES
 
 #define CHECK_STAGES_ERROR() 	debug("checking mpi stages error state"); \
-								Universe &universe = Universe::get_root_universe(); \
-								if (universe.mpi_stages) {FaultHandler &faulthandler = FaultHandler::get_instance();\
+								Universe &u = Universe::get_root_universe(); \
+								if (u.mpi_stages) {FaultHandler &faulthandler = FaultHandler::get_instance();\
 															if(faulthandler.isErrSet()) {return MPIX_TRY_RELOAD;}}
 
 

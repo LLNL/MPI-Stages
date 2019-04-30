@@ -95,7 +95,7 @@ int StagesInterface::MPIX_Serialize_handles()
 {
 	CHECK_STAGES_ERROR();
 
-	//Universe& universe = Universe::get_root_universe();
+	Universe& universe = Universe::get_root_universe();
 
 	std::stringstream filename;
 	filename << universe.epoch - 1 << "." << universe.rank << ".cp";
@@ -135,7 +135,7 @@ int StagesInterface::MPIX_Deserialize_handles()
 {
 	CHECK_STAGES_ERROR();
 
-	//Universe& universe = Universe::get_root_universe();
+	Universe& universe = Universe::get_root_universe();
 	std::stringstream filename;
 	filename << universe.epoch - 1 << "." << universe.rank << ".cp";
 	std::ifstream t(filename.str(), std::ifstream::in);
@@ -206,7 +206,7 @@ int StagesInterface::MPIX_Serialize_handler_register(const MPIX_Serialize_handle
 {
 	CHECK_STAGES_ERROR();
 
-	//Universe& universe = Universe::get_root_universe();
+	Universe& universe = Universe::get_root_universe();
 	if (universe.epoch == 0 && recovery_code == MPI_SUCCESS)
 	{
 		serialize_handlers.push_back(handler);
@@ -223,7 +223,7 @@ int StagesInterface::MPIX_Deserialize_handler_register(const
 {
 	CHECK_STAGES_ERROR();
 
-	//Universe& universe = Universe::get_root_universe();
+	Universe& universe = Universe::get_root_universe();
 	if (universe.epoch == 0 && recovery_code == MPI_SUCCESS)
 	{
 		deserialize_handlers.push_back(handler);
@@ -277,7 +277,7 @@ int StagesInterface::MPIX_Get_fault_epoch(int *epoch)
 	CHECK_STAGES_ERROR();
 
 	// fetch universe
-	//Universe &universe = Universe::get_root_universe();
+	Universe &universe = Universe::get_root_universe();
 	*epoch = universe.epoch;
 	debug("current epoch " << *epoch);
 
