@@ -137,8 +137,8 @@ int SimpleMatcher::cleanup()
 
 int SimpleMatcher::halt()
 {
-	std::lock_guard<std::mutex> lock(guard);
-
+	//std::lock_guard<std::mutex> lock(guard);
+	debug("posted_queue_size: " << posted_request_queue.size());
 	// invalidate all requests
 	for(auto req: posted_request_queue)
 	{
