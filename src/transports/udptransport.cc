@@ -251,6 +251,7 @@ void UDPTransport::reliable_send(const Protocol protocol,
 	int err = sendmsg(socket_recv, &hdr, 0);
 	if(err <= 0)
 	{
+		debug("send failure in " << request->envelope.source << " " << request->envelope.destination);
 		throw UDPTransportSendError();
 	}
 	else

@@ -21,7 +21,6 @@ private:
 	int maximum_progress_cycles;
 
 	std::vector<std::thread> progress_threads;
-
 	std::mutex outbox_guard;
 	std::queue<Request *> outbox;
 
@@ -42,7 +41,7 @@ public:
 	~BlockingProgress();
 
 	void post_request(Request *request);
-
+	
 	int save(std::ostream &);
 	int load(std::istream &);
 	int cleanup();

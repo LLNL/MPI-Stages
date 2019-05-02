@@ -73,11 +73,15 @@ Universe::Universe() : request_pool(128), initialized(false)
 
 Universe::~Universe()
 {
-	debug("universe being destroyed, deleting all communicators");
-	communicators.clear();
+	Progress *engine = progress.get();
+	progress.release();
 
-	debug("deleting all groups");
-	groups.clear();
+	delete engine;
+	//debug("universe being destroyed, deleting all communicators");
+	//communicators.clear();
+
+	//debug("deleting all groups");
+	//groups.clear();
 
 	debug("terminating universe");
 }

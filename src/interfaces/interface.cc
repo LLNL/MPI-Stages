@@ -142,7 +142,10 @@ int BasicInterface::MPI_Initialized(int *flag)
 int BasicInterface::MPI_Finalize()
 {
 	debug("MPI_Finalize");
-
+	Universe &universe = Universe::get_root_universe();
+	universe.communicators.clear();
+	universe.groups.clear();
+	debug("Finalize returns");
 	return MPI_SUCCESS;
 }
 
@@ -820,26 +823,26 @@ int BasicInterface::MPI_Barrier(MPI_Comm comm)
 	int rc;
 	MPI_Comm_rank(comm, &rank);
 	MPI_Comm_size(comm, &size);
-
+	int msg = 1;
 	if (rank == 0)
 	{
-		rc = MPI_Send((void *) 0, 0, MPI_INT, (rank + 1) % size, coll_tag, comm);
+		rc = MPI_Send(&msg, 1, MPI_INT, (rank + 1) % size, coll_tag, comm);
 		if (rc == MPIX_TRY_RELOAD)
 		{
 			return MPIX_TRY_RELOAD;
 		}
-		rc = MPI_Recv((void *) 0, 0, MPI_INT, (rank + size - 1) % size, coll_tag,
+		rc = MPI_Recv(&msg, 1, MPI_INT, (rank + size - 1) % size, coll_tag,
 		              comm, &status);
 		if (rc == MPIX_TRY_RELOAD)
 		{
 			return MPIX_TRY_RELOAD;
 		}
-		rc = MPI_Send((void *) 0, 0, MPI_INT, (rank + 1) % size, coll_tag, comm);
+		rc = MPI_Send(&msg, 1, MPI_INT, (rank + 1) % size, coll_tag, comm);
 		if (rc == MPIX_TRY_RELOAD)
 		{
 			return MPIX_TRY_RELOAD;
 		}
-		rc = MPI_Recv((void *) 0, 0, MPI_INT, (rank + size - 1) % size, coll_tag,
+		rc = MPI_Recv(&msg, 1, MPI_INT, (rank + size - 1) % size, coll_tag,
 		              comm, &status);
 		if (rc == MPIX_TRY_RELOAD)
 		{
@@ -848,29 +851,30 @@ int BasicInterface::MPI_Barrier(MPI_Comm comm)
 	}
 	else
 	{
-		rc = MPI_Recv((void *) 0, 0, MPI_INT, (rank + size - 1) % size, coll_tag,
+		rc = MPI_Recv(&msg, 1, MPI_INT, (rank + size - 1) % size, coll_tag,
 		              comm, &status);
 		if (rc == MPIX_TRY_RELOAD)
 		{
 			return MPIX_TRY_RELOAD;
 		}
-		rc = MPI_Send((void *) 0, 0, MPI_INT, (rank + 1) % size, coll_tag, comm);
+		rc = MPI_Send(&msg, 1, MPI_INT, (rank + 1) % size, coll_tag, comm);
 		if (rc == MPIX_TRY_RELOAD)
 		{
 			return MPIX_TRY_RELOAD;
 		}
-		rc = MPI_Recv((void *) 0, 0, MPI_INT, (rank + size - 1) % size, coll_tag,
+		rc = MPI_Recv(&msg, 1, MPI_INT, (rank + size - 1) % size, coll_tag,
 		              comm, &status);
 		if (rc == MPIX_TRY_RELOAD)
 		{
 			return MPIX_TRY_RELOAD;
 		}
-		rc = MPI_Send((void *) 0, 0, MPI_INT, (rank + 1) % size, coll_tag, comm);
+		rc = MPI_Send(&msg, 1, MPI_INT, (rank + 1) % size, coll_tag, comm);
 		if (rc == MPIX_TRY_RELOAD)
 		{
 			return MPIX_TRY_RELOAD;
 		}
 	}
+	debug("End of MPI_Barrier");
 	return MPI_SUCCESS;
 }
 
@@ -940,6 +944,7 @@ int BasicInterface::MPI_Reduce(const void *s_buf, void *r_buf, int count,
 int BasicInterface::MPI_Allreduce(const void *s_buf, void *r_buf, int count,
                                   MPI_Datatype type, MPI_Op op, MPI_Comm comm)
 {
+	debug("Starting MPI_Allreduce");
 	CHECK_STAGES_ERROR();
 
 	int rc = MPI_Reduce(s_buf, r_buf, count, type, op, 0, comm);

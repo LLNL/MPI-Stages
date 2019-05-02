@@ -107,7 +107,7 @@ std::tuple<Header_uptr, Request *> SimpleMatcher::progress()
 				received_header_queue.erase(iterator);
 
 				debug("matching complete, found match");
-
+				
 				return std::make_tuple(std::move(header), req);
 			}
 			else
