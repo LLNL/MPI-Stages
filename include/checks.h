@@ -8,8 +8,6 @@
 namespace exampi
 {
 
-
-
 #ifdef RUNTIME_ARGUMENT_CHECK
 
 int check_buffer(void *buf);

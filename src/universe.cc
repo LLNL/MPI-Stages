@@ -73,16 +73,7 @@ Universe::Universe() : request_pool(128), initialized(false)
 
 Universe::~Universe()
 {
-	Progress *engine = progress.get();
-	progress.release();
-
-	delete engine;
-
-	//debug("universe being destroyed, deleting all communicators");
-	//communicators.clear();
-
-	//debug("deleting all groups");
-	//groups.clear();
+	this->finalize();
 
 	debug("terminating universe");
 }
@@ -94,14 +85,17 @@ void Universe::initialize()
 
 void Universe::finalize()
 {
+	debug("universe finalize called");
+
 	initialized = false;
 
+	debug("progress engine being removed");
 	Progress *engine = progress.get();
 	progress.release();
 
 	delete engine;
 
-	debug("universe being destroyed, deleting all communicators");
+	debug("deleting all communicators");
 	communicators.clear();
 
 	debug("deleting all groups");

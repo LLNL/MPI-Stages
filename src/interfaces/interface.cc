@@ -144,7 +144,6 @@ int BasicInterface::MPI_Finalize()
 	debug("MPI_Finalize");
 
 	Universe &universe = Universe::get_root_universe();
-
 	universe.finalize();
 
 	debug("Finalize returns");
