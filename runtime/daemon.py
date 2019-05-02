@@ -7,7 +7,8 @@ errorcodes = {
 	'MPI_SUCCESS': 0,
 	'MPI_ABORT': 255,
 	'MPI_FAULT': 124,
-	'MPIX_TRY_RELOAD': 101
+	'MPIX_TRY_RELOAD': 101,
+	'SEGFAULT': -11
 }
 errornames = {v: k for k, v in errorcodes.iteritems()}
 

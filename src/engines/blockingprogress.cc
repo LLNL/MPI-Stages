@@ -126,7 +126,7 @@ void BlockingProgress::progress()
 		}
 
 		// match message if any, this is inflow
-		if(auto [header, request] = matcher->progress(); request != nullptr)
+		else if(auto [header, request] = matcher->progress(); request != nullptr)
 		{
 			debug("progress thread, matched header " << header.get() << " == request " << request);
 
@@ -134,7 +134,7 @@ void BlockingProgress::progress()
 		}
 
 		// emit message if any, this is outflow
-		if(outbox.size() > 0)
+		else if(outbox.size() > 0)
 		{
 			debug("progress thread, handling request");
 

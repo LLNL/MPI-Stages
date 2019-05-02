@@ -392,14 +392,7 @@ class HeadDaemon(object):
 		self.fault_daemons[rank] = {'rank':rank, 'errorcode':errorcode, 'epoch':epoch, 'socket':sokt}
 
 		# process errorcode
-		if errorcode == daemon.errorcodes['MPIX_TRY_RELOAD']:
-			msg = 'process_exit %s %i %i %i\0' % (self.hostname, rank, errorcode, epoch)
-			self.log.info('forwarding exit to controller: %s', msg)
-
-			data = msg.ljust(64).encode('utf-8')
-			self.send_to_controller(data)
-
-		elif errorcode == daemon.errorcodes['MPI_SUCCESS']:
+		if errorcode == daemon.errorcodes['MPI_SUCCESS']:
 			# if MPI_SUCCESS don't forward until later
 			# register successful exit
 			# if all exited successfully sent node_success
@@ -424,11 +417,11 @@ class HeadDaemon(object):
 				self.send_to_controller(data)
 
 		else:
-			self.log.error('unknown errorcode received %s', contents)
+			msg = 'process_exit %s %i %i %i\0' % (self.hostname, rank, errorcode, epoch)
+			self.log.info('forwarding exit to controller: %s', msg)
 
-			# TODO shut everything down
-
-			raise ValueError
+			data = msg.ljust(64).encode('utf-8')
+			self.send_to_controller(data)
 
 	def process_shutdown(self, sokt, contents):
 		"""Handle shutdown packet from controller daemon."""

@@ -227,7 +227,8 @@ void UDPTransport::reliable_send(const Protocol protocol,
 	iovs[1].iov_base = (void *)&request->envelope;
 	iovs[1].iov_len = sizeof(Envelope);
 
-	debug("envelope to send: e " << request->envelope.epoch <<
+	debug("envelope to send: " << 
+		  " e " << request->envelope.epoch <<
 	      " c " << request->envelope.context <<
 	      " s " << request->envelope.source <<
 	      " d " << request->envelope.destination <<
@@ -253,6 +254,7 @@ void UDPTransport::reliable_send(const Protocol protocol,
 	hdr.msg_name = &addr;
 	hdr.msg_namelen = sizeof(addr);
 
+	// TODO resend on error
 	int err = sendmsg(socket_recv, &hdr, 0);
 	if(err < 0)
 	{
