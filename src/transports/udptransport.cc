@@ -3,6 +3,7 @@
 #include <arpa/inet.h>
 #include <cstring>
 #include <limits>
+#include <errno.h>
 
 #include "transports/udptransport.h"
 #include "universe.h"
@@ -19,7 +20,8 @@ UDPTransport::UDPTransport() : header_pool(32), payload_pool(32)
 	{
 		debug("ERROR: socket creation failed: " << socket_recv);
 
-		throw UDPTransportCreationException();
+		//throw UDPTransportCreationException();
+		throw std::runtime_error("UDPTransport failed to create socket.");
 	}
 
 	// setsockopt to reuse address/port
@@ -43,7 +45,8 @@ UDPTransport::UDPTransport() : header_pool(32), payload_pool(32)
 	{
 		debug("ERROR: socket binding failed");
 
-		throw UDPTransportBindingException();
+		//throw UDPTransportBindingException();
+		throw std::runtime_error("UDPTransport failed to bind socket.");
 	}
 
 	// prepare msg header
@@ -169,8 +172,9 @@ Header_uptr UDPTransport::ordered_recv()
 			if(payload_length > 0)
 				payload_pool.deallocate(payload);
 
-			debug("throwing UDPTransportPayloadReceiveError");
-			throw UDPTransportPayloadReceiveError();
+			//debug("throwing UDPTransportPayloadReceiveError");
+			//throw UDPTransportPayloadReceiveError();
+			throw std::runtime_error("UDPTransport failed to receive payload.");
 		}
 		else
 		{
@@ -195,7 +199,8 @@ void UDPTransport::fill(Header_uptr header, Request *request)
 	void *err = std::memcpy((void *)request->payload.buffer, payload, sizeof(int));
 	if(err == nullptr)
 	{
-		throw UDPTransportFillError();
+		throw std::runtime_error("UDPTransport failed to fill.");
+		//throw UDPTransportFillError();
 	}
 	else
 	{
@@ -249,10 +254,14 @@ void UDPTransport::reliable_send(const Protocol protocol,
 	hdr.msg_namelen = sizeof(addr);
 
 	int err = sendmsg(socket_recv, &hdr, 0);
-	if(err <= 0)
+	if(err < 0)
 	{
 		debug("send failure in " << request->envelope.source << " " << request->envelope.destination);
-		throw UDPTransportSendError();
+		int errnum = errno;
+		debug("error: " << strerror(errnum));
+
+		throw std::runtime_error("UDPTransport failed to send.");
+		//throw UDPTransportSendError();
 	}
 	else
 	{

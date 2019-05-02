@@ -14,54 +14,54 @@
 namespace exampi
 {
 
-class UDPTransportCreationException: public std::exception
-{
-	const char *what() const noexcept override
-	{
-		return "UDPTransport failed to create socket.";
-	}
-};
-
-class UDPTransportBindingException: public std::exception
-{
-	const char *what() const noexcept override
-	{
-		return "UDPTransport failed to bind socket.";
-	}
-};
-
-class UDPTransportSendError: public std::exception
-{
-	const char *what() const noexcept override
-	{
-		return "UDPTransport reliable send failed.";
-	}
-};
-
-class UDPTransportFillError: public std::exception
-{
-	const char *what() const noexcept override
-	{
-		return "UDPTransport failed to fill payload of request with message.";
-	}
-};
-
-class UDPTransportHeaderReceiveError: public std::exception
-{
-	const char *what() const noexcept override
-	{
-		return "UDPTransport failed to receive header.";
-	}
-};
-
-
-class UDPTransportPayloadReceiveError: public std::exception
-{
-	const char *what() const noexcept override
-	{
-		return "UDPTransport failed to receive payload.";
-	}
-};
+//class UDPTransportCreationException: public std::exception
+//{
+//	const char *what() const noexcept override
+//	{
+//		return "UDPTransport failed to create socket.";
+//	}
+//};
+//
+//class UDPTransportBindingException: public std::exception
+//{
+//	const char *what() const noexcept override
+//	{
+//		return "UDPTransport failed to bind socket.";
+//	}
+//};
+//
+//class UDPTransportSendError: public std::exception
+//{
+//	const char *what() const noexcept override
+//	{
+//		return "UDPTransport reliable send failed.";
+//	}
+//};
+//
+//class UDPTransportFillError: public std::exception
+//{
+//	const char *what() const noexcept override
+//	{
+//		return "UDPTransport failed to fill payload of request with message.";
+//	}
+//};
+//
+//class UDPTransportHeaderReceiveError: public std::exception
+//{
+//	const char *what() const noexcept override
+//	{
+//		return "UDPTransport failed to receive header.";
+//	}
+//};
+//
+//
+//class UDPTransportPayloadReceiveError: public std::exception
+//{
+//	const char *what() const noexcept override
+//	{
+//		return "UDPTransport failed to receive payload.";
+//	}
+//};
 
 struct UDPTransportPayload
 {
