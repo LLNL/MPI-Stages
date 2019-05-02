@@ -17,8 +17,6 @@ private:
 	std::list<Request_ptr> posted_request_queue;
 	std::list<Header_uptr> received_header_queue;
 
-	bool change;
-
 public:
 	SimpleMatcher();
 

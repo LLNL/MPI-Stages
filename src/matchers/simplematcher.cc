@@ -8,7 +8,7 @@
 namespace exampi
 {
 
-SimpleMatcher::SimpleMatcher() : change(false)
+SimpleMatcher::SimpleMatcher()
 {
 	;
 }
@@ -19,7 +19,6 @@ void SimpleMatcher::post_request(Request_ptr request)
 	debug("posting request in matcher");
 
 	posted_request_queue.push_back(request);
-	change = true;
 }
 
 void SimpleMatcher::post_header(Header_uptr header)
@@ -42,8 +41,6 @@ void SimpleMatcher::post_header(Header_uptr header)
 	}
 
 	received_header_queue.push_back(std::move(header));
-
-	change = true;
 }
 
 std::tuple<Header_uptr, Request *> SimpleMatcher::progress()
@@ -51,11 +48,9 @@ std::tuple<Header_uptr, Request *> SimpleMatcher::progress()
 	std::lock_guard<std::mutex> lock(guard);
 
 	// check if work is actually available
-	if(change && (posted_request_queue.size() > 0)
-	        && (received_header_queue.size() > 0))
+	if((posted_request_queue.size() > 0)
+	    && (received_header_queue.size() > 0))
 	{
-		change = false;
-
 		debug("found requests and messages to match");
 
 		typedef std::list<Header_uptr>::iterator hdr_iter;
