@@ -142,10 +142,13 @@ int BasicInterface::MPI_Initialized(int *flag)
 int BasicInterface::MPI_Finalize()
 {
 	debug("MPI_Finalize");
+
 	Universe &universe = Universe::get_root_universe();
-	universe.communicators.clear();
-	universe.groups.clear();
+
+	universe.finalize();
+
 	debug("Finalize returns");
+
 	return MPI_SUCCESS;
 }
 

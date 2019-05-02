@@ -38,6 +38,7 @@ public:
 	static Universe &get_root_universe();
 
 	void initialize();
+	void finalize();
 
 	std::shared_ptr<Group>	world_group;
 	std::shared_ptr<Comm>	world_comm;

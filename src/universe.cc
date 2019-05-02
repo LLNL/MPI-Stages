@@ -77,6 +77,7 @@ Universe::~Universe()
 	progress.release();
 
 	delete engine;
+
 	//debug("universe being destroyed, deleting all communicators");
 	//communicators.clear();
 
@@ -90,6 +91,23 @@ void Universe::initialize()
 {
 	initialized = true;
 }
+
+void Universe::finalize()
+{
+	initialized = false;
+
+	Progress *engine = progress.get();
+	progress.release();
+
+	delete engine;
+
+	debug("universe being destroyed, deleting all communicators");
+	communicators.clear();
+
+	debug("deleting all groups");
+	groups.clear();
+}
+
 Request_ptr Universe::allocate_request()
 {
 	debug("allocating request from memory pool");
