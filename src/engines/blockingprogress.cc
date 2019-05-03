@@ -161,6 +161,8 @@ void BlockingProgress::progress()
 			std::this_thread::yield();
 		}
 	}
+
+	debug("progress thread exiting " << std::this_thread::get_id());
 }
 
 void BlockingProgress::handle_match(Header_uptr header, Request *request)

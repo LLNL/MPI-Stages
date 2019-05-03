@@ -180,12 +180,15 @@ int BasicInterface::MPI_Request_free(MPI_Request *request)
 
 		Universe &universe = Universe::get_root_universe();
 		universe.deallocate_request(req);
-
 	}
 
 	// invalidate user MPI_Request handle
 	debug("invalidating user MPI_Request handle: addr " << request);
+
+	debug("request pointer " << req);
+	debug("request " << *request);
 	*request = MPI_REQUEST_NULL;
+	debug("request " << *request);
 
 	return MPI_SUCCESS;
 }
@@ -264,6 +267,7 @@ int BasicInterface::offload_persistent_wait(const void *buf, int count, MPI_Data
 
 	if(err != MPI_SUCCESS)
 	{
+		debug("MPI_Wait completed with error " << err);
 		MPI_Request_free(&request);
 	}
 
@@ -540,7 +544,7 @@ int BasicInterface::finalize_request(MPI_Request *request, Request *req,
                                      MPI_Status *status)
 {
 	// set status if required
-	if(status != MPI_STATUS_IGNORE)
+	if(MPI_STATUS_IGNORE != status)
 	{
 		status->count = req->payload.count;
 		status->cancelled = static_cast<int>(req->cancelled);
@@ -553,15 +557,16 @@ int BasicInterface::finalize_request(MPI_Request *request, Request *req,
 	if(req->persistent)
 	{
 		req->active = false;
+
+		return MPI_SUCCESS;
 	}
+
 	// otherwise deallocate and set to REQUEST_NULL
 	else
 	{
-		MPI_Request_free(request);
+		debug("finalizing by freeing");
+		return MPI_Request_free(request);
 	}
-
-	debug("returning with error: " << req->error);
-	return req->error;
 }
 
 int BasicInterface::MPI_Wait(MPI_Request *request, MPI_Status *status)
@@ -574,7 +579,7 @@ int BasicInterface::MPI_Wait(MPI_Request *request, MPI_Status *status)
 
 	// MPI_REQUEST_NULL check
 	debug("checking " << request << " == MPI_REQUEST_NULL " << MPI_REQUEST_NULL);
-	if(request == MPI_REQUEST_NULL)
+	if(MPI_REQUEST_NULL == request)
 	{
 		debug("early exit due to MPI_REQUEST_NULL");
 		return MPI_SUCCESS;

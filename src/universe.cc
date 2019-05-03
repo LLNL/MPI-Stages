@@ -16,7 +16,7 @@ Universe &Universe::get_root_universe()
 	return root;
 }
 
-Universe::Universe() : request_pool(128), initialized(false)
+Universe::Universe() : request_pool(20), initialized(false)
 {
 	debug("creating universe");
 
@@ -34,28 +34,28 @@ Universe::Universe() : request_pool(128), initialized(false)
 	// parse EXAMPI_RANK environment variable
 	variable = std::getenv("EXAMPI_RANK");
 	if(variable == nullptr)
-		throw UniverseEnvironmentException();
+		throw std::runtime_error("Universe is not able to find EXAMPI_RANK");
 	rank = std::stoi(std::string(variable));
 	debug("rank " << rank);
 
 	// parse EXAMPI_EPOCH_FILE environment variable
 	variable = std::getenv("EXAMPI_EPOCH_FILE");
 	if(variable == nullptr)
-		throw UniverseEnvironmentException();
+		throw std::runtime_error("Universe is not able to find EXAMPI_EPOCH_FILE");
 	epoch_config = std::string(variable);
 	debug("epoch file " << epoch_config);
 
 	// parse EXAMPI_EPOCH environment variable
 	variable = std::getenv("EXAMPI_EPOCH");
 	if(variable == nullptr)
-		throw UniverseEnvironmentException();
+		throw std::runtime_error("Universe is not able to find EXAMPI_EPOCH");
 	epoch = std::stoi(std::string(variable));
 	debug("epoch " << epoch);
 
 	// parse EXAMPI_WORLD_SIZE environment variable
 	variable = std::getenv("EXAMPI_WORLD_SIZE");
 	if(variable == nullptr)
-		throw UniverseEnvironmentException();
+		throw std::runtime_error("Universe is not able to find EXAMPI_WORLD_SIZE");
 	world_size = std::stoi(std::string(variable));
 	debug("world size " << world_size);
 

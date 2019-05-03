@@ -11,7 +11,7 @@ CXXFLAGS += -Wno-unused-parameter -Wno-unused-function -Wno-unused-variable -Wno
 
 CXXFLAGS += -std=c++17 -g -pthread 
 
-CXXFLAGS += -O3 -funroll-loops
+#CXXFLAGS += -O3 -funroll-loops
 
 CXXFLAGS += -DDEBUG 
 

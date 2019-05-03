@@ -16,13 +16,13 @@
 namespace exampi
 {
 
-class UniverseEnvironmentException: public std::exception
-{
-	const char *what() const noexcept override
-	{
-		return "Universe failed to find required environment variables.";
-	}
-};
+//class UniverseEnvironmentException: public std::exception
+//{
+//	const char *what() const noexcept override
+//	{
+//		return "Universe failed to find required environment variables.";
+//	}
+//};
 
 // note: make singleton at the moment
 class Universe
