@@ -254,21 +254,34 @@ void UDPTransport::reliable_send(const Protocol protocol,
 	hdr.msg_name = &addr;
 	hdr.msg_namelen = sizeof(addr);
 
-	// TODO resend on error
-	int err = sendmsg(socket_recv, &hdr, 0);
-	if(err < 0)
-	{
-		debug("send failure in " << request->envelope.source << " " << request->envelope.destination);
-		int errnum = errno;
-		debug("error: " << strerror(errnum));
+	// resend on error a couple times
+	int bytes = -1;
+	int cycles = 0;
 
-		throw std::runtime_error("UDPTransport failed to send.");
-		//throw UDPTransportSendError();
-	}
-	else
+	do
 	{
-		debug("sent " << err << " bytes");
+		bytes = sendmsg(socket_recv, &hdr, 0);
+		cycles++;
+
+		if(bytes < 0)
+		{
+			debug("send failure in " << request->envelope.source << " " << request->envelope.destination);
+
+			int errnum = errno;
+			debug("error: " << strerror(errnum));
+
+			debug("attempting resend");
+		}
+		else
+		{
+			debug("sent " << bytes << " bytes");
+		}
 	}
+	// TODO tunable, resends 5 hardcoded
+	while((bytes < 0) && cycles < 5);
+	
+	if((bytes < 0) && (cycles >= 5))
+		throw std::runtime_error("UDPTransport failed to send after resends.");
 }
 
 const std::map<Protocol, size_t> &UDPTransport::provided_protocols() const
