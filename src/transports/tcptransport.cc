@@ -394,19 +394,23 @@ void TCPTransport::reliable_send(const Protocol protocol, const Request *request
 	}
 }
 
-//int TCPTransport::save(std::ostream &t)
-//{
-//	return MPI_SUCCESS;
-//}
-//
-//int TCPTransport::load(std::istream &t)
-//{
-//	return MPI_SUCCESS;
-//}
-//
-//int TCPTransport::halt()
-//{
-//	return MPI_SUCCESS;
-//}
+int TCPTransport::save(std::ostream &t)
+{
+	return MPI_SUCCESS;
+}
+
+int TCPTransport::load(std::istream &t)
+{
+	return MPI_SUCCESS;
+}
+
+int TCPTransport::cleanup()
+{
+	return MPI_SUCCESS;
+}
+int TCPTransport::halt()
+{
+	return MPI_SUCCESS;
+}
 
 }
