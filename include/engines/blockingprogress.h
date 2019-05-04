@@ -41,7 +41,7 @@ public:
 	~BlockingProgress();
 
 	void post_request(Request *request);
-	
+
 	int save(std::ostream &);
 	int load(std::istream &);
 	int cleanup();

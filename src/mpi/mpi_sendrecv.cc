@@ -13,8 +13,8 @@ extern "C"
 	{
 		exampi::Universe &universe = exampi::Universe::get_root_universe();
 		return universe.interface->MPI_Sendrecv(sendbuf,
-		         sendcount, sendtype,
-		         dest, sendtag, recvbuf, recvcount, recvtype, source, recvtag, comm, status);
+		                                        sendcount, sendtype,
+		                                        dest, sendtag, recvbuf, recvcount, recvtype, source, recvtag, comm, status);
 	}
 
 }

@@ -59,8 +59,8 @@ int BasicInterface::MPI_Init(int *argc, char ***argv)
 
 	Daemon &daemon = Daemon::get_instance();
 	daemon.barrier();
-		// todo if done for udp non-recv reason, then this should live in udp transport
-		//      not all transports require a barrier
+	// todo if done for udp non-recv reason, then this should live in udp transport
+	//      not all transports require a barrier
 	//}
 
 	// todo Nawrin?
@@ -103,36 +103,36 @@ void BasicInterface::init_datatype()
 {
 	Universe &universe = Universe::get_root_universe();
 	universe.datatypes =
-			{
-				{ MPI_BYTE, 			Datatype(MPI_BYTE,           sizeof(unsigned char),  true,  true, true)},
-				{ MPI_CHAR, 			Datatype(MPI_CHAR,           sizeof(char),           true,  true, true)},
-		#if 0
-				{ MPI_WCHAR, Datatype(MPI_WCHAR,          sizeof(wchar_t),        true,  true, true)},
-		#endif
-				{ MPI_UNSIGNED_CHAR, 	Datatype(MPI_UNSIGNED_CHAR,  sizeof(unsigned char),  true,  true, true)},
-				{ MPI_SHORT,         	Datatype(MPI_SHORT,          sizeof(short),          true,  true, true)},
-				{ MPI_UNSIGNED_SHORT,	Datatype(MPI_UNSIGNED_SHORT, sizeof(unsigned short), true,  true, true)},
-				{ MPI_INT,           	Datatype(MPI_INT,            sizeof(int),            true,  true, true)},
-				{ MPI_UNSIGNED_INT,  	Datatype(MPI_UNSIGNED_INT,   sizeof(unsigned int),   true,  true, true)},
-				{ MPI_LONG,          	Datatype(MPI_LONG,           sizeof(long),           true,  true, true)},
-				{ MPI_UNSIGNED_LONG, 	Datatype(MPI_UNSIGNED_LONG,  sizeof(unsigned long),  true,  true, true)},
-				{ MPI_FLOAT,         	Datatype(MPI_FLOAT,          sizeof(float),          false, true, true)},
-				{ MPI_DOUBLE,        	Datatype(MPI_DOUBLE,         sizeof(double),         false, true, true)},
-				{ MPI_LONG_LONG_INT, 	Datatype(MPI_LONG_LONG_INT,  sizeof(long long int),  false, true, true)},
-				{ MPI_LONG_LONG,     	Datatype(MPI_LONG_LONG,      sizeof(long long),      false, true, true)},
-				{ MPI_FLOAT_INT,		Datatype(MPI_FLOAT_INT,		 sizeof(float_int_type), false, false, false)},
-				{ MPI_LONG_INT,			Datatype(MPI_LONG_INT,		 sizeof(long_int_type),  false, false, false)},
-				{ MPI_DOUBLE_INT,		Datatype(MPI_DOUBLE_INT,	 sizeof(double_int_type),false, false, false)},
-				{ MPI_2INT,		    	Datatype(MPI_2INT,	 		 sizeof(int_int_type),   false, false, false)},
-		#if 0
-				{ MPI_LONG_DOUBLE, Datatype(MPI_LONG_DOUBLE,    sizeof(long double),    false, true, true)},
-		#endif
-			};
+	{
+		{ MPI_BYTE, 			Datatype(MPI_BYTE,           sizeof(unsigned char),  true,  true, true)},
+		{ MPI_CHAR, 			Datatype(MPI_CHAR,           sizeof(char),           true,  true, true)},
+#if 0
+		{ MPI_WCHAR, Datatype(MPI_WCHAR,          sizeof(wchar_t),        true,  true, true)},
+#endif
+		{ MPI_UNSIGNED_CHAR, 	Datatype(MPI_UNSIGNED_CHAR,  sizeof(unsigned char),  true,  true, true)},
+		{ MPI_SHORT,         	Datatype(MPI_SHORT,          sizeof(short),          true,  true, true)},
+		{ MPI_UNSIGNED_SHORT,	Datatype(MPI_UNSIGNED_SHORT, sizeof(unsigned short), true,  true, true)},
+		{ MPI_INT,           	Datatype(MPI_INT,            sizeof(int),            true,  true, true)},
+		{ MPI_UNSIGNED_INT,  	Datatype(MPI_UNSIGNED_INT,   sizeof(unsigned int),   true,  true, true)},
+		{ MPI_LONG,          	Datatype(MPI_LONG,           sizeof(long),           true,  true, true)},
+		{ MPI_UNSIGNED_LONG, 	Datatype(MPI_UNSIGNED_LONG,  sizeof(unsigned long),  true,  true, true)},
+		{ MPI_FLOAT,         	Datatype(MPI_FLOAT,          sizeof(float),          false, true, true)},
+		{ MPI_DOUBLE,        	Datatype(MPI_DOUBLE,         sizeof(double),         false, true, true)},
+		{ MPI_LONG_LONG_INT, 	Datatype(MPI_LONG_LONG_INT,  sizeof(long long int),  false, true, true)},
+		{ MPI_LONG_LONG,     	Datatype(MPI_LONG_LONG,      sizeof(long long),      false, true, true)},
+		{ MPI_FLOAT_INT,		Datatype(MPI_FLOAT_INT,		 sizeof(float_int_type), false, false, false)},
+		{ MPI_LONG_INT,			Datatype(MPI_LONG_INT,		 sizeof(long_int_type),  false, false, false)},
+		{ MPI_DOUBLE_INT,		Datatype(MPI_DOUBLE_INT,	 sizeof(double_int_type),false, false, false)},
+		{ MPI_2INT,		    	Datatype(MPI_2INT,	 		 sizeof(int_int_type),   false, false, false)},
+#if 0
+		{ MPI_LONG_DOUBLE, Datatype(MPI_LONG_DOUBLE,    sizeof(long double),    false, true, true)},
+#endif
+	};
 }
 
 int BasicInterface::MPI_Initialized(int *flag)
 {
-	Universe &universe = Universe::get_root_universe();	
+	Universe &universe = Universe::get_root_universe();
 
 	*flag = static_cast<int>(universe.initialized);
 
@@ -163,7 +163,7 @@ int BasicInterface::MPI_Request_free(MPI_Request *request)
 	// lock request
 	std::lock_guard<std::mutex> lock(req->guard);
 
-	// 
+	//
 	if(!req->complete && req->persistent && req->active)
 	{
 		debug("marking request as freed, but active/incomplete");
@@ -172,7 +172,7 @@ int BasicInterface::MPI_Request_free(MPI_Request *request)
 		req->freed = true;
 		// todo where do we clean freed requests?
 	}
-	
+
 	// complete or inactive request
 	else
 	{
@@ -193,7 +193,9 @@ int BasicInterface::MPI_Request_free(MPI_Request *request)
 	return MPI_SUCCESS;
 }
 
-int BasicInterface::offload_persistent(const void *buf, int count, MPI_Datatype datatype, int rank, int tag, MPI_Comm comm, Operation operation, MPI_Request *request)
+int BasicInterface::offload_persistent(const void *buf, int count,
+                                       MPI_Datatype datatype, int rank, int tag, MPI_Comm comm, Operation operation,
+                                       MPI_Request *request)
 {
 	// offload into persistent path
 	int err;
@@ -236,7 +238,7 @@ int BasicInterface::offload_persistent(const void *buf, int count, MPI_Datatype 
 			break;
 		}
 	}
-	
+
 	if(err != MPI_SUCCESS) return err;
 
 	// disable persistence
@@ -253,12 +255,14 @@ int BasicInterface::offload_persistent(const void *buf, int count, MPI_Datatype 
 	return err;
 }
 
-int BasicInterface::offload_persistent_wait(const void *buf, int count, MPI_Datatype datatype, int rank, int tag, MPI_Comm comm, Operation operation)
+int BasicInterface::offload_persistent_wait(const void *buf, int count,
+        MPI_Datatype datatype, int rank, int tag, MPI_Comm comm, Operation operation)
 {
 	debug("offloading persistent path with wait");
 
 	MPI_Request request;
-	int err = offload_persistent(buf, count, datatype, rank, tag, comm, operation, &request);
+	int err = offload_persistent(buf, count, datatype, rank, tag, comm, operation,
+	                             &request);
 	if(err != MPI_SUCCESS) return err;
 	// request is garunteed to be cleaned up
 
@@ -277,38 +281,51 @@ int BasicInterface::offload_persistent_wait(const void *buf, int count, MPI_Data
 int BasicInterface::MPI_Send(const void *buf, int count, MPI_Datatype datatype,
                              int dest, int tag, MPI_Comm comm)
 {
-	debug("entry MPI_Send with buf " << buf << " count " << count << " dest " << dest << " tag " << tag); 	
+	debug("entry MPI_Send with buf " << buf << " count " << count << " dest " <<
+	      dest << " tag " << tag);
 
-	return offload_persistent_wait(buf, count, datatype, dest, tag, comm, Operation::Send);
+	return offload_persistent_wait(buf, count, datatype, dest, tag, comm,
+	                               Operation::Send);
 }
 
-int BasicInterface::MPI_Bsend(const void *buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm)
-{	
-	debug("entry MPI_Bsend with buf " << buf << " count " << count << " dest " << dest << " tag " << tag); 	
+int BasicInterface::MPI_Bsend(const void *buf, int count, MPI_Datatype datatype,
+                              int dest, int tag, MPI_Comm comm)
+{
+	debug("entry MPI_Bsend with buf " << buf << " count " << count << " dest " <<
+	      dest << " tag " << tag);
 
-	return offload_persistent_wait(buf, count, datatype, dest, tag, comm, Operation::Bsend);
+	return offload_persistent_wait(buf, count, datatype, dest, tag, comm,
+	                               Operation::Bsend);
 }
 
-int BasicInterface::MPI_Ssend(const void *buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm)
-{	
-	debug("entry MPI_Ssend with buf " << buf << " count " << count << " dest " << dest << " tag " << tag); 	
+int BasicInterface::MPI_Ssend(const void *buf, int count, MPI_Datatype datatype,
+                              int dest, int tag, MPI_Comm comm)
+{
+	debug("entry MPI_Ssend with buf " << buf << " count " << count << " dest " <<
+	      dest << " tag " << tag);
 
-	return offload_persistent_wait(buf, count, datatype, dest, tag, comm, Operation::Ssend);
+	return offload_persistent_wait(buf, count, datatype, dest, tag, comm,
+	                               Operation::Ssend);
 }
 
-int BasicInterface::MPI_Rsend(const void *buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm)
-{	
-	debug("entry MPI_Rsend with buf " << buf << " count " << count << " dest " << dest << " tag " << tag); 	
+int BasicInterface::MPI_Rsend(const void *buf, int count, MPI_Datatype datatype,
+                              int dest, int tag, MPI_Comm comm)
+{
+	debug("entry MPI_Rsend with buf " << buf << " count " << count << " dest " <<
+	      dest << " tag " << tag);
 
-	return offload_persistent_wait(buf, count, datatype, dest, tag, comm, Operation::Rsend);
+	return offload_persistent_wait(buf, count, datatype, dest, tag, comm,
+	                               Operation::Rsend);
 }
 
 int BasicInterface::MPI_Recv(void *buf, int count, MPI_Datatype datatype,
                              int source, int tag, MPI_Comm comm, MPI_Status *status)
 {
-	debug("entry MPI_Recv with buf " << buf << " count " << count << " src " << source << " tag " << tag); 	
+	debug("entry MPI_Recv with buf " << buf << " count " << count << " src " <<
+	      source << " tag " << tag);
 
-	return offload_persistent_wait(buf, count, datatype, source, tag, comm, Operation::Receive);
+	return offload_persistent_wait(buf, count, datatype, source, tag, comm,
+	                               Operation::Receive);
 }
 
 int BasicInterface::MPI_Sendrecv(const void *sendbuf, int sendcount,
@@ -318,7 +335,8 @@ int BasicInterface::MPI_Sendrecv(const void *sendbuf, int sendcount,
 {
 	MPI_Request recvreq;
 
-	int rc = MPI_Irecv(recvbuf, recvcount, recvtype, source, recvtag, comm, &recvreq);
+	int rc = MPI_Irecv(recvbuf, recvcount, recvtype, source, recvtag, comm,
+	                   &recvreq);
 	rc = MPI_Send(sendbuf, sendcount, sendtype, dest, sendtag, comm);
 
 	MPI_Wait(&recvreq, status);
@@ -329,35 +347,45 @@ int BasicInterface::MPI_Sendrecv(const void *sendbuf, int sendcount,
 int BasicInterface::MPI_Isend(const void *buf, int count, MPI_Datatype datatype,
                               int dest, int tag, MPI_Comm comm, MPI_Request *request)
 {
-	debug("entry MPI_Isend with buf " << buf << " count " << count << " dest " << dest << " tag " << tag); 	
+	debug("entry MPI_Isend with buf " << buf << " count " << count << " dest " <<
+	      dest << " tag " << tag);
 
-	return offload_persistent(buf, count, datatype, dest, tag, comm, Operation::Send, request);
+	return offload_persistent(buf, count, datatype, dest, tag, comm,
+	                          Operation::Send, request);
 }
 
-int BasicInterface::MPI_Ibsend(const void *buf, int count, MPI_Datatype datatype, int dest, int tag,
-           MPI_Comm comm, MPI_Request *request)
+int BasicInterface::MPI_Ibsend(const void *buf, int count,
+                               MPI_Datatype datatype, int dest, int tag,
+                               MPI_Comm comm, MPI_Request *request)
 {
-	return offload_persistent(buf, count, datatype, dest, tag, comm, Operation::Bsend, request);
+	return offload_persistent(buf, count, datatype, dest, tag, comm,
+	                          Operation::Bsend, request);
 }
 
-int BasicInterface::MPI_Issend(const void *buf, int count, MPI_Datatype datatype, int dest, int tag,
-           MPI_Comm comm, MPI_Request *request)
+int BasicInterface::MPI_Issend(const void *buf, int count,
+                               MPI_Datatype datatype, int dest, int tag,
+                               MPI_Comm comm, MPI_Request *request)
 {
-	return offload_persistent(buf, count, datatype, dest, tag, comm, Operation::Ssend, request);
+	return offload_persistent(buf, count, datatype, dest, tag, comm,
+	                          Operation::Ssend, request);
 }
 
-int BasicInterface::MPI_Irsend(const void *buf, int count, MPI_Datatype datatype, int dest, int tag,
-           MPI_Comm comm, MPI_Request *request)
+int BasicInterface::MPI_Irsend(const void *buf, int count,
+                               MPI_Datatype datatype, int dest, int tag,
+                               MPI_Comm comm, MPI_Request *request)
 {
-	return offload_persistent(buf, count, datatype, dest, tag, comm, Operation::Rsend, request);
+	return offload_persistent(buf, count, datatype, dest, tag, comm,
+	                          Operation::Rsend, request);
 }
 
 int BasicInterface::MPI_Irecv(void *buf, int count, MPI_Datatype datatype,
                               int source, int tag, MPI_Comm comm, MPI_Request *request)
 {
-	debug("entry MPI_Irend with buf " << buf << " count " << count << " src " << source << " tag " << tag); 	
+	debug("entry MPI_Irend with buf " << buf << " count " << count << " src " <<
+	      source << " tag " << tag);
 
-	return offload_persistent(buf, count, datatype, source, tag, comm, Operation::Receive, request);
+	return offload_persistent(buf, count, datatype, source, tag, comm,
+	                          Operation::Receive, request);
 }
 
 //#############################################################################
@@ -398,7 +426,7 @@ int BasicInterface::construct_request(const void *buf, int count,
 	req->envelope.tag = tag;
 
 	// data description
-	req->payload.datatype = &universe.datatypes[datatype]; 
+	req->payload.datatype = &universe.datatypes[datatype];
 	req->payload.count = count;
 	req->payload.buffer = buf;
 
@@ -422,7 +450,7 @@ int BasicInterface::MPI_Send_init(const void *buf, int count,
 	CHECK_RANK(dest, comm);
 	CHECK_TAG(tag);
 	CHECK_STAGES_ERROR();
-	
+
 	Universe &universe = Universe::get_root_universe();
 
 	return construct_request(buf, count, datatype, universe.rank, dest, tag, comm,
@@ -440,7 +468,7 @@ int BasicInterface::MPI_Bsend_init(const void *buf, int count,
 	CHECK_RANK(dest, comm);
 	CHECK_TAG(tag);
 	CHECK_STAGES_ERROR();
-	
+
 	Universe &universe = Universe::get_root_universe();
 
 	return construct_request(buf, count, datatype, universe.rank, dest, tag, comm,
@@ -458,7 +486,7 @@ int BasicInterface::MPI_Rsend_init(const void *buf, int count,
 	CHECK_RANK(dest, comm);
 	CHECK_TAG(tag);
 	CHECK_STAGES_ERROR();
-	
+
 	Universe &universe = Universe::get_root_universe();
 
 	return construct_request(buf, count, datatype, universe.rank, dest, tag, comm,
@@ -476,7 +504,7 @@ int BasicInterface::MPI_Ssend_init(const void *buf, int count,
 	CHECK_RANK(dest, comm);
 	CHECK_TAG(tag);
 	CHECK_STAGES_ERROR();
-	
+
 	Universe &universe = Universe::get_root_universe();
 
 	return construct_request(buf, count, datatype, universe.rank, dest, tag, comm,
@@ -509,7 +537,7 @@ int BasicInterface::MPI_Start(MPI_Request *request)
 	// sanitize user input
 	CHECK_REQUEST(request);
 	CHECK_STAGES_ERROR();
-	
+
 	Universe &universe = Universe::get_root_universe();
 
 	// hand request to progress engine
@@ -729,7 +757,7 @@ int BasicInterface::MPI_Test(MPI_Request *request, int *flag,
 int BasicInterface::MPI_Comm_rank(MPI_Comm comm, int *r)
 {
 	CHECK_STAGES_ERROR();
-	
+
 	Universe &universe = Universe::get_root_universe();
 
 	// communicator handle -> communicator object
@@ -744,7 +772,7 @@ int BasicInterface::MPI_Comm_rank(MPI_Comm comm, int *r)
 int BasicInterface::MPI_Comm_size(MPI_Comm comm, int *size)
 {
 	CHECK_STAGES_ERROR();
-	
+
 	Universe &universe = Universe::get_root_universe();
 
 	// communicator handle -> communicator object
@@ -759,7 +787,7 @@ int BasicInterface::MPI_Comm_size(MPI_Comm comm, int *size)
 int BasicInterface::MPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm)
 {
 	CHECK_STAGES_ERROR();
-	
+
 	Universe &universe = Universe::get_root_universe();
 
 	// get communicator object
@@ -814,7 +842,7 @@ int BasicInterface::MPI_Comm_set_errhandler(MPI_Comm comm, MPI_Errhandler err)
 	FaultHandler &faulthandler = FaultHandler::get_instance();
 	// todo should this be per Comm?
 	faulthandler.setErrToHandle(SIGUSR2);
-	
+
 	debug("set error handler");
 
 	return MPI_SUCCESS;
@@ -890,7 +918,7 @@ int BasicInterface::MPI_Reduce(const void *s_buf, void *r_buf, int count,
 {
 
 	CHECK_STAGES_ERROR();
-	
+
 	Universe &universe = Universe::get_root_universe();
 
 	int mask, comm_size, peer, peer_rank, peer_rel_rank, rc;
@@ -1001,7 +1029,7 @@ int BasicInterface::MPI_Get_count(MPI_Status *status, MPI_Datatype datatype,
                                   int *count)
 {
 	CHECK_STAGES_ERROR();
-	
+
 	Universe &universe = Universe::get_root_universe();
 
 	Datatype type = universe.datatypes[datatype];

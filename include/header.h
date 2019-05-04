@@ -1,6 +1,8 @@
 #ifndef __EXAMPI_HEADER_H
 #define __EXAMPI_HEADER_H
 
+#include <functional>
+
 #include "protocol.h"
 #include "envelope.h"
 

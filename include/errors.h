@@ -10,7 +10,7 @@ enum Errors: int
 {
 	// MPI defined
 	MPI_SUCCESS = 0,
-	
+
 	// MPI declared
 	MPI_ERR_BUFFER,
 	MPI_ERR_COUNT,

@@ -95,7 +95,7 @@ int StagesInterface::MPIX_Serialize_handles()
 {
 	CHECK_STAGES_ERROR();
 
-	Universe& universe = Universe::get_root_universe();
+	Universe &universe = Universe::get_root_universe();
 
 	std::stringstream filename;
 	filename << universe.epoch - 1 << "." << universe.rank << ".cp";
@@ -135,7 +135,7 @@ int StagesInterface::MPIX_Deserialize_handles()
 {
 	CHECK_STAGES_ERROR();
 
-	Universe& universe = Universe::get_root_universe();
+	Universe &universe = Universe::get_root_universe();
 	std::stringstream filename;
 	filename << universe.epoch - 1 << "." << universe.rank << ".cp";
 	std::ifstream t(filename.str(), std::ifstream::in);
@@ -179,7 +179,7 @@ int StagesInterface::MPIX_Deserialize_handles()
 				handles.grps = (MPI_Group *)malloc(size * sizeof(MPI_Group));
 				for (int i = 0; i < size; i++)
 				{
-      				t.read(reinterpret_cast<char *>(&id), sizeof(int));
+					t.read(reinterpret_cast<char *>(&id), sizeof(int));
 					auto it = std::find_if(universe.groups.begin(),
 					                       universe.groups.end(),
 					                       [id](std::shared_ptr<Group> &i) -> bool {return i->get_group_id() == id;});
@@ -201,12 +201,13 @@ int StagesInterface::MPIX_Deserialize_handles()
 	return MPI_SUCCESS;
 }
 
-int StagesInterface::MPIX_Serialize_handler_register(const MPIX_Serialize_handler
+int StagesInterface::MPIX_Serialize_handler_register(const
+        MPIX_Serialize_handler
         handler)
 {
 	CHECK_STAGES_ERROR();
 
-	Universe& universe = Universe::get_root_universe();
+	Universe &universe = Universe::get_root_universe();
 	if (universe.epoch == 0 && recovery_code == MPI_SUCCESS)
 	{
 		serialize_handlers.push_back(handler);
@@ -223,7 +224,7 @@ int StagesInterface::MPIX_Deserialize_handler_register(const
 {
 	CHECK_STAGES_ERROR();
 
-	Universe& universe = Universe::get_root_universe();
+	Universe &universe = Universe::get_root_universe();
 	if (universe.epoch == 0 && recovery_code == MPI_SUCCESS)
 	{
 		deserialize_handlers.push_back(handler);
@@ -325,7 +326,7 @@ int StagesInterface::checkpoint_write()
 
 		// write out epoch number
 		debug("incrementing and outputting epoch " << universe.epoch << " -> " <<
-				(universe.epoch+1));
+		      (universe.epoch+1));
 		universe.epoch++;
 
 		std::ofstream epoch_config(universe.epoch_config);
@@ -381,7 +382,7 @@ int StagesInterface::checkpoint_read()
 
 int StagesInterface::save(std::ostream &t)
 {
-	Universe& universe = Universe::get_root_universe();
+	Universe &universe = Universe::get_root_universe();
 
 	// save groups
 	int group_size = universe.groups.size();
@@ -422,7 +423,7 @@ int StagesInterface::save(std::ostream &t)
 
 int StagesInterface::load(std::istream &t)
 {
-	Universe& universe = Universe::get_root_universe();
+	Universe &universe = Universe::get_root_universe();
 
 	int comm_size, group_size;
 	int r, p2p, coll, id;
@@ -444,59 +445,59 @@ int StagesInterface::load(std::istream &t)
 		t.read(reinterpret_cast<char *>(&id), sizeof(int));
 		//grp->set_group_id(id);
 		t.read(reinterpret_cast<char *>(&num_of_processes), sizeof(int));
-			for (int i = 0; i < num_of_processes; i++)
-			{
-				t.read(reinterpret_cast<char *>(&rank), sizeof(int));
-				ranklist.push_back(rank);
-			}
-			//grp->set_process_list(ranks);
-			//exampi::groups.push_back(grp);
-			grp = std::make_shared<Group>(ranklist);
-			grp->set_group_id(id);
-			universe.groups.push_back(grp);
-			group_size--;
-		}
-		//restore communicator
-		t.read(reinterpret_cast<char *>(&comm_size), sizeof(int));
-
-		while(comm_size)
+		for (int i = 0; i < num_of_processes; i++)
 		{
-			com = std::make_shared<Comm>();
-			t.read(reinterpret_cast<char *>(&r), sizeof(int));
-			com->set_rank(r);
-			t.read(reinterpret_cast<char *>(&p2p), sizeof(int));
-			t.read(reinterpret_cast<char *>(&coll), sizeof(int));
-			com->set_context(p2p, coll);
-			t.read(reinterpret_cast<char *>(&intra), sizeof(bool));
-			com->set_is_intra(intra);
-			t.read(reinterpret_cast<char *>(&id), sizeof(int));
-
-			auto it = std::find_if(universe.groups.begin(),
-			                       universe.groups.end(),
-			                       [id](std::shared_ptr<Group> const& i) -> bool {return i->get_group_id() == id;});
-			if (it == universe.groups.end())
-			{
-				return MPIX_TRY_RELOAD;
-			}
-			else
-			{
-				com->set_local_group(*it);
-			}
-			t.read(reinterpret_cast<char *>(&id), sizeof(int));
-			it = std::find_if(universe.groups.begin(), universe.groups.end(),
-			                  [id](std::shared_ptr<Group> const& i) -> bool {return i->get_group_id() == id;});
-			if (it == universe.groups.end())
-			{
-				return MPIX_TRY_RELOAD;
-			}
-			else
-			{
-				com->set_remote_group(*it);
-			}
-			universe.communicators.push_back(com);
-			comm_size--;
+			t.read(reinterpret_cast<char *>(&rank), sizeof(int));
+			ranklist.push_back(rank);
 		}
-		return MPI_SUCCESS;
+		//grp->set_process_list(ranks);
+		//exampi::groups.push_back(grp);
+		grp = std::make_shared<Group>(ranklist);
+		grp->set_group_id(id);
+		universe.groups.push_back(grp);
+		group_size--;
+	}
+	//restore communicator
+	t.read(reinterpret_cast<char *>(&comm_size), sizeof(int));
+
+	while(comm_size)
+	{
+		com = std::make_shared<Comm>();
+		t.read(reinterpret_cast<char *>(&r), sizeof(int));
+		com->set_rank(r);
+		t.read(reinterpret_cast<char *>(&p2p), sizeof(int));
+		t.read(reinterpret_cast<char *>(&coll), sizeof(int));
+		com->set_context(p2p, coll);
+		t.read(reinterpret_cast<char *>(&intra), sizeof(bool));
+		com->set_is_intra(intra);
+		t.read(reinterpret_cast<char *>(&id), sizeof(int));
+
+		auto it = std::find_if(universe.groups.begin(),
+		                       universe.groups.end(),
+		                       [id](std::shared_ptr<Group> const& i) -> bool {return i->get_group_id() == id;});
+		if (it == universe.groups.end())
+		{
+			return MPIX_TRY_RELOAD;
+		}
+		else
+		{
+			com->set_local_group(*it);
+		}
+		t.read(reinterpret_cast<char *>(&id), sizeof(int));
+		it = std::find_if(universe.groups.begin(), universe.groups.end(),
+		                  [id](std::shared_ptr<Group> const& i) -> bool {return i->get_group_id() == id;});
+		if (it == universe.groups.end())
+		{
+			return MPIX_TRY_RELOAD;
+		}
+		else
+		{
+			com->set_remote_group(*it);
+		}
+		universe.communicators.push_back(com);
+		comm_size--;
+	}
+	return MPI_SUCCESS;
 }
 
 int StagesInterface::cleanup()

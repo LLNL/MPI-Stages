@@ -10,7 +10,7 @@ extern "C"
 	{
 		exampi::Universe &universe = exampi::Universe::get_root_universe();
 		return universe.interface->MPIX_Deserialize_handler_register(
-	             handler);
+		           handler);
 	}
 
 }

@@ -16,9 +16,11 @@ TCPTransport::TCPTransport() :
 	header_pool(32)
 {
 	// set available protocols
-	available_protocols[Protocol::EAGER]		= std::numeric_limits<size_t>::max() - sizeof(Header);
-	available_protocols[Protocol::EAGER_ACK]	= std::numeric_limits<size_t>::max() - sizeof(Header);
-	
+	available_protocols[Protocol::EAGER]		= std::numeric_limits<size_t>::max() -
+	        sizeof(Header);
+	available_protocols[Protocol::EAGER_ACK]	= std::numeric_limits<size_t>::max() -
+	        sizeof(Header);
+
 	// create socket
 	debug("creating server_socket socket");
 	server_socket = socket(AF_INET, SOCK_STREAM, 0);
@@ -29,25 +31,26 @@ TCPTransport::TCPTransport() :
 
 	// set non-blocking server socket
 	//int flags;
-	//if((flags = fcntl(server_socket, F_GETFL, 0)) < 0) 
+	//if((flags = fcntl(server_socket, F_GETFL, 0)) < 0)
 	//{
 	//	throw TCPTransportNonBlockError();
-	//} 
-	//if(fcntl(server_socket, F_SETFL, flags | O_NONBLOCK) < 0) 
-	//{ 
+	//}
+	//if(fcntl(server_socket, F_SETFL, flags | O_NONBLOCK) < 0)
+	//{
 	//	throw TCPTransportNonBlockError();
-	//} 
-	
+	//}
+
 	// bind socket
 	Universe &universe = Universe::get_root_universe();
-	int port = std::stoi(std::string(std::getenv("EXAMPI_TCP_TRANSPORT_BASE"))) + universe.rank;
+	int port = std::stoi(std::string(std::getenv("EXAMPI_TCP_TRANSPORT_BASE"))) +
+	           universe.rank;
 	debug("tcp transport port: " << port);
 
 	struct sockaddr_in local;
 	local.sin_family = AF_INET;
 	local.sin_addr.s_addr = INADDR_ANY;
 	local.sin_port = htons(port);
-	
+
 	if(bind(server_socket, (sockaddr *)&local, sizeof(local)) < 0)
 	{
 		throw TCPTransportBindError();
@@ -62,7 +65,7 @@ TCPTransport::TCPTransport() :
 	// prepare header
 	hdr.msg_name = NULL;
 	hdr.msg_namelen = 0;
-	
+
 	hdr.msg_control = NULL;
 	hdr.msg_controllen = 0;
 	hdr.msg_flags = 0;
@@ -88,7 +91,8 @@ TCPTransport::TCPTransport() :
 
 		sockaddr_in addr;
 		unsigned int addrlen = sizeof(addr);
-		int client = accept4(server_socket, (sockaddr*)&addr, (socklen_t*)&addrlen, SOCK_NONBLOCK);
+		int client = accept4(server_socket, (sockaddr *)&addr, (socklen_t *)&addrlen,
+		                     SOCK_NONBLOCK);
 
 		// recv rank
 		// ordering is not garunteed, especially with dynamic connections
@@ -110,7 +114,7 @@ TCPTransport::TCPTransport() :
 
 		// insert into connections
 		connections[rank_recv] = client;
-		
+
 		struct pollfd pfd;
 		pfd.fd = connections[rank];
 		pfd.events = POLLIN;
@@ -174,7 +178,7 @@ int TCPTransport::rank_connect(int world_rank)
 		}
 		else
 		{
-			connected = true; 
+			connected = true;
 		}
 	}
 
@@ -199,8 +203,8 @@ Header_uptr TCPTransport::iterate()
 	}
 
 	// iterate for first one
-	for(auto& pollfd: fds)
-	{	
+	for(auto &pollfd: fds)
+	{
 		if(pollfd.revents != 0)
 		{
 			// if server_socket then accept connection
@@ -209,7 +213,7 @@ Header_uptr TCPTransport::iterate()
 				debug("found server socket with poll");
 				// todo dynamic connection building
 			}
-			
+
 			// otherwise receive message
 			else
 			{
@@ -219,13 +223,13 @@ Header_uptr TCPTransport::iterate()
 				iovec iovs[2];
 
 				// protocol field
-				iovs[0].iov_base = (void*)&header->protocol;
+				iovs[0].iov_base = (void *)&header->protocol;
 				iovs[0].iov_len = sizeof(Protocol);
-				
+
 				// envelope field
-				iovs[1].iov_base = (void*)&header->envelope;
+				iovs[1].iov_base = (void *)&header->envelope;
 				iovs[1].iov_len = sizeof(Envelope);
-				
+
 				// fill msghdr
 				hdr.msg_iov = iovs;
 				hdr.msg_iovlen = 2;
@@ -242,8 +246,8 @@ Header_uptr TCPTransport::iterate()
 					// only process first socket
 					pollfd.revents = 0;
 					peeked += 1;
-					
-					return Header_uptr(header, [this] (Header *header) -> void { this->header_pool.deallocate(header); }); 
+
+					return Header_uptr(header, [this] (Header *header) -> void { this->header_pool.deallocate(header); });
 				}
 			}
 
@@ -264,7 +268,7 @@ Header_uptr TCPTransport::ordered_recv()
 		debug("found arrivals already present");
 		return iterate();
 	}
-	
+
 	// if no known messages
 	else if(arrivals == 0)
 	{
@@ -301,21 +305,22 @@ void TCPTransport::fill(Header_uptr header, Request *request)
 	iovec iovs[4];
 
 	// protocol field
-	iovs[0].iov_base = (void*)&header->protocol;
+	iovs[0].iov_base = (void *)&header->protocol;
 	iovs[0].iov_len = sizeof(Protocol);
-	
+
 	// envelope field
-	iovs[1].iov_base = (void*)&header->envelope;
+	iovs[1].iov_base = (void *)&header->envelope;
 	iovs[1].iov_len = sizeof(Envelope);
-	
+
 	// message size field
 	//size_t payload_size;
 	//iovs[2].iov_base = (void*)&payload_size;
 	//iovs[2].iov_len = sizeof(size_t);
 
 	// message data
-	iovs[2].iov_base = (void*)request->payload.buffer; 
-	iovs[2].iov_len = request->payload.count * request->payload.datatype->get_extent();
+	iovs[2].iov_base = (void *)request->payload.buffer;
+	iovs[2].iov_len = request->payload.count *
+	                  request->payload.datatype->get_extent();
 	// todo how to deal with underwriting/overwriting? valid MPI
 
 	hdr.msg_iov = iovs;
@@ -329,15 +334,17 @@ void TCPTransport::fill(Header_uptr header, Request *request)
 	}
 	else
 	{
-		debug("filled message from rank " << header->envelope.source << " request " << request);
+		debug("filled message from rank " << header->envelope.source << " request " <<
+		      request);
 	}
-	
+
 	// finalize message arrival
 	peeked -= 1;
 	arrivals -= 1;
 }
 
-void TCPTransport::reliable_send(const Protocol protocol, const Request *request)
+void TCPTransport::reliable_send(const Protocol protocol,
+                                 const Request *request)
 {
 	std::lock_guard<std::mutex> lock(guard);
 
@@ -360,27 +367,28 @@ void TCPTransport::reliable_send(const Protocol protocol, const Request *request
 	iovec iovs[4];
 
 	// fill protocol field
-	iovs[0].iov_base = (void*)&protocol;
+	iovs[0].iov_base = (void *)&protocol;
 	iovs[0].iov_len = sizeof(Protocol);
-	
+
 	// fill envelope field
-	iovs[1].iov_base = (void*)&request->envelope;
+	iovs[1].iov_base = (void *)&request->envelope;
 	iovs[1].iov_len = sizeof(Envelope);
-	
+
 	// fill message size field
 	//size_t payload_size = request->payload.count * request->payload.datatype->get_extent();
 	//iovs[2].iov_base = (void*)&payload_size;
 	//iovs[2].iov_len = sizeof(size_t);
 
 	// fill message data
-	iovs[2].iov_base = (void*)request->payload.buffer; 
-	iovs[2].iov_len = request->payload.count * request->payload.datatype->get_extent();
-	
+	iovs[2].iov_base = (void *)request->payload.buffer;
+	iovs[2].iov_len = request->payload.count *
+	                  request->payload.datatype->get_extent();
+
 	// fill msghdr
 	hdr.msg_iov = iovs;
 	hdr.msg_iovlen = 3;
 
-	// send msg across wire	
+	// send msg across wire
 	debug("sendmsg to rank " << request->envelope.destination);
 	int err = sendmsg(client, &hdr, 0);
 	if(err <= 0)
@@ -389,7 +397,7 @@ void TCPTransport::reliable_send(const Protocol protocol, const Request *request
 	}
 	else
 	{
-		debug("sent " << err << " bytes over tcptransport to world_rank " << 
+		debug("sent " << err << " bytes over tcptransport to world_rank " <<
 		      world_rank << " : comm_rank " << request->envelope.destination);
 	}
 }

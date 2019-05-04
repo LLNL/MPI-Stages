@@ -12,7 +12,7 @@ extern "C"
 	{
 		exampi::Universe &universe = exampi::Universe::get_root_universe();
 		return universe.interface->MPI_Comm_set_errhandler(comm,
-		         err);
+		        err);
 	}
 
 }

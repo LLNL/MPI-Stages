@@ -24,7 +24,8 @@ public:
 	virtual int MPI_Start(MPI_Request *request) =0;
 
 	virtual int MPI_Wait(MPI_Request *request, MPI_Status *status) = 0;
-	virtual int MPI_Waitall(int count, MPI_Request array_of_requests[], MPI_Status array_of_statuses[]) = 0;
+	virtual int MPI_Waitall(int count, MPI_Request array_of_requests[],
+	                        MPI_Status array_of_statuses[]) = 0;
 
 	virtual double MPI_Wtime(void) = 0;
 
@@ -75,19 +76,40 @@ public:
 	                       MPI_Datatype type, MPI_Op op, int root, MPI_Comm comm) = 0;
 
 	// stages
-	virtual int MPIX_Checkpoint_write(void) {return MPI_SUCCESS;}
+	virtual int MPIX_Checkpoint_write(void)
+	{
+		return MPI_SUCCESS;
+	}
 
-	virtual int MPIX_Checkpoint_read(void) {return MPI_SUCCESS;}
+	virtual int MPIX_Checkpoint_read(void)
+	{
+		return MPI_SUCCESS;
+	}
 
-	virtual int MPIX_Get_fault_epoch(int *epoch) {return MPI_SUCCESS;}
+	virtual int MPIX_Get_fault_epoch(int *epoch)
+	{
+		return MPI_SUCCESS;
+	}
 
-	virtual int MPIX_Deserialize_handles() {return MPI_SUCCESS;}
+	virtual int MPIX_Deserialize_handles()
+	{
+		return MPI_SUCCESS;
+	}
 
-	virtual int MPIX_Deserialize_handler_register(const MPIX_Deserialize_handler) {return MPI_SUCCESS;}
+	virtual int MPIX_Deserialize_handler_register(const MPIX_Deserialize_handler)
+	{
+		return MPI_SUCCESS;
+	}
 
-	virtual int MPIX_Serialize_handles() {return MPI_SUCCESS;}
+	virtual int MPIX_Serialize_handles()
+	{
+		return MPI_SUCCESS;
+	}
 
-	virtual int MPIX_Serialize_handler_register(const MPIX_Serialize_handler) {return MPI_SUCCESS;}
+	virtual int MPIX_Serialize_handler_register(const MPIX_Serialize_handler)
+	{
+		return MPI_SUCCESS;
+	}
 };
 
 } // exampi

@@ -11,8 +11,8 @@ extern "C"
 	{
 		exampi::Universe &universe = exampi::Universe::get_root_universe();
 		return universe.interface->MPI_Recv(buf, count, datatype,
-		         dest, tag,
-		         comm, status);
+		                                    dest, tag,
+		                                    comm, status);
 	}
 
 }

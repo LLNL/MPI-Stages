@@ -128,7 +128,8 @@ void BlockingProgress::progress()
 		// match message if any, this is inflow
 		else if(auto [header, request] = matcher->progress(); request != nullptr)
 		{
-			debug("progress thread, matched header " << header.get() << " == request " << request);
+			debug("progress thread, matched header " << header.get() << " == request " <<
+			      request);
 
 			handle_match(std::move(header), request);
 		}

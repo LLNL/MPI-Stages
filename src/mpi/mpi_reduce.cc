@@ -12,8 +12,8 @@ extern "C"
 	{
 		exampi::Universe &universe = exampi::Universe::get_root_universe();
 		return universe.interface->MPI_Reduce(s_buf, r_buf, count,
-		         type, op,
-		         root, comm);
+		                                      type, op,
+		                                      root, comm);
 	}
 
 }

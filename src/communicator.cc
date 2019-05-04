@@ -10,7 +10,7 @@ Comm::Comm()
 }
 
 Comm::Comm(bool _isintra, std::shared_ptr<Group> _local,
-	 std::shared_ptr<Group> _remote) :
+           std::shared_ptr<Group> _remote) :
 	is_intra(_isintra), local(_local), remote(_remote)
 {
 }

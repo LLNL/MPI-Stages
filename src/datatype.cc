@@ -8,7 +8,8 @@ Datatype::Datatype()
 	;
 }
 
-Datatype::Datatype(MPI_Datatype datatype, size_t extent, bool assoc, bool wassoc, bool comm) :
+Datatype::Datatype(MPI_Datatype datatype, size_t extent, bool assoc,
+                   bool wassoc, bool comm) :
 	datatype(datatype),
 	extent(extent),
 	associative(assoc),

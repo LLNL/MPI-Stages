@@ -145,10 +145,10 @@ Header_uptr UDPTransport::ordered_recv()
 	{
 		debug("received header + size of size " << err);
 		debug("header: e " << header->envelope.epoch <<
-		      			" c " << header->envelope.context <<
-		      			" s " << header->envelope.source <<
-		      			" d " << header->envelope.destination <<
-		      			" t " << header->envelope.tag);
+		      " c " << header->envelope.context <<
+		      " s " << header->envelope.source <<
+		      " d " << header->envelope.destination <<
+		      " t " << header->envelope.tag);
 		debug("payload length " << payload_length);
 
 		UDPTransportPayload *payload = nullptr;
@@ -227,8 +227,8 @@ void UDPTransport::reliable_send(const Protocol protocol,
 	iovs[1].iov_base = (void *)&request->envelope;
 	iovs[1].iov_len = sizeof(Envelope);
 
-	debug("envelope to send: " << 
-		  " e " << request->envelope.epoch <<
+	debug("envelope to send: " <<
+	      " e " << request->envelope.epoch <<
 	      " c " << request->envelope.context <<
 	      " s " << request->envelope.source <<
 	      " d " << request->envelope.destination <<
@@ -236,13 +236,15 @@ void UDPTransport::reliable_send(const Protocol protocol,
 
 	// payload length
 	// TODO datatype packing, gather
-	int payload_size = request->payload.count * request->payload.datatype->get_extent();
+	int payload_size = request->payload.count *
+	                   request->payload.datatype->get_extent();
 	iovs[2].iov_base = (void *)&payload_size;
 	iovs[2].iov_len = sizeof(int);
 
 	// request->buffer;
 	iovs[3].iov_base = (void *)request->payload.buffer;
-	iovs[3].iov_len = request->payload.count * request->payload.datatype->get_extent();
+	iovs[3].iov_len = request->payload.count *
+	                  request->payload.datatype->get_extent();
 
 	// todo rank -> root commmunicator -> address
 	// note this currently works, because comm_dup is the only communicator construction allowed
@@ -265,7 +267,8 @@ void UDPTransport::reliable_send(const Protocol protocol,
 
 		if(bytes < 0)
 		{
-			debug("send failure in " << request->envelope.source << " " << request->envelope.destination);
+			debug("send failure in " << request->envelope.source << " " <<
+			      request->envelope.destination);
 
 			int errnum = errno;
 			debug("error: " << strerror(errnum));
@@ -279,7 +282,7 @@ void UDPTransport::reliable_send(const Protocol protocol,
 	}
 	// TODO tunable, resends 5 hardcoded
 	while((bytes < 0) && cycles < 5);
-	
+
 	if((bytes < 0) && (cycles >= 5))
 		throw std::runtime_error("UDPTransport failed to send after resends.");
 }

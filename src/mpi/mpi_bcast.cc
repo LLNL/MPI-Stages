@@ -12,7 +12,7 @@ extern "C"
 	{
 		exampi::Universe &universe = exampi::Universe::get_root_universe();
 		return universe.interface->MPI_Bcast(buf, count, datatype,
-		         root, comm);
+		                                     root, comm);
 	}
 
 }

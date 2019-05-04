@@ -49,7 +49,7 @@ std::tuple<Header_uptr, Request *> SimpleMatcher::progress()
 
 	// check if work is actually available
 	if((posted_request_queue.size() > 0)
-	    && (received_header_queue.size() > 0))
+	        && (received_header_queue.size() > 0))
 	{
 		debug("found requests and messages to match");
 
@@ -74,8 +74,8 @@ std::tuple<Header_uptr, Request *> SimpleMatcher::progress()
 
 				// minimal matching condition set
 				bool condition = (req->envelope.epoch			== header->envelope.epoch) &&
-								(req->envelope.context 			== header->envelope.context) &&
-							(req->envelope.destination			== header->envelope.destination);
+				(req->envelope.context 			== header->envelope.context) &&
+				(req->envelope.destination			== header->envelope.destination);
 
 				// check for MPI_ANY_SOURCE
 				if(req->envelope.source != MPI_ANY_SOURCE)
@@ -102,7 +102,7 @@ std::tuple<Header_uptr, Request *> SimpleMatcher::progress()
 				received_header_queue.erase(iterator);
 
 				debug("matching complete, found match");
-				
+
 				return std::make_tuple(std::move(header), req);
 			}
 			else
@@ -124,7 +124,8 @@ int SimpleMatcher::cleanup()
 	if (posted_request_queue.size() > 0)
 	{
 		faulthandler.setErrToZero();
-		universe.interface->MPI_Send((void *)0, 0, MPI_INT, universe.rank, MPIX_CLEANUP_TAG, MPI_COMM_WORLD);
+		universe.interface->MPI_Send((void *)0, 0, MPI_INT, universe.rank,
+		                             MPIX_CLEANUP_TAG, MPI_COMM_WORLD);
 		faulthandler.setErrToOne();
 	}
 	return MPI_SUCCESS;

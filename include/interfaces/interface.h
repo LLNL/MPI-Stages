@@ -25,8 +25,10 @@ private:
 	                      Operation operation);
 	int finalize_request(MPI_Request *request, Request *req, MPI_Status *status);
 
-	int offload_persistent(const void *, int, MPI_Datatype, int, int, MPI_Comm, Operation, MPI_Request *);
-	int offload_persistent_wait(const void *, int, MPI_Datatype, int, int, MPI_Comm, Operation);
+	int offload_persistent(const void *, int, MPI_Datatype, int, int, MPI_Comm,
+	                       Operation, MPI_Request *);
+	int offload_persistent_wait(const void *, int, MPI_Datatype, int, int, MPI_Comm,
+	                            Operation);
 
 protected:
 	void init_group();
@@ -45,9 +47,12 @@ public:
 	// blocking
 	int MPI_Send(const void *buf, int count, MPI_Datatype datatype,
 	             int dest, int tag, MPI_Comm comm);
-	int MPI_Bsend(const void *buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm);
-	int MPI_Ssend(const void *buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm);
-	int MPI_Rsend(const void *buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm);
+	int MPI_Bsend(const void *buf, int count, MPI_Datatype datatype, int dest,
+	              int tag, MPI_Comm comm);
+	int MPI_Ssend(const void *buf, int count, MPI_Datatype datatype, int dest,
+	              int tag, MPI_Comm comm);
+	int MPI_Rsend(const void *buf, int count, MPI_Datatype datatype, int dest,
+	              int tag, MPI_Comm comm);
 	int MPI_Recv(void *buf, int count, MPI_Datatype datatype,
 	             int source, int tag, MPI_Comm comm, MPI_Status *status);
 	int MPI_Sendrecv(const void *sendbuf, int sendcount,
@@ -58,12 +63,15 @@ public:
 	// non-blocking
 	int MPI_Isend(const void *buf, int count, MPI_Datatype datatype,
 	              int dest, int tag, MPI_Comm comm, MPI_Request *request);
-	int MPI_Ibsend(const void *buf, int count, MPI_Datatype datatype, int dest, int tag,
-               MPI_Comm comm, MPI_Request *request);
-	int MPI_Issend(const void *buf, int count, MPI_Datatype datatype, int dest, int tag,
-               MPI_Comm comm, MPI_Request *request);
-	int MPI_Irsend(const void *buf, int count, MPI_Datatype datatype, int dest, int tag,
-               MPI_Comm comm, MPI_Request *request);
+	int MPI_Ibsend(const void *buf, int count, MPI_Datatype datatype, int dest,
+	               int tag,
+	               MPI_Comm comm, MPI_Request *request);
+	int MPI_Issend(const void *buf, int count, MPI_Datatype datatype, int dest,
+	               int tag,
+	               MPI_Comm comm, MPI_Request *request);
+	int MPI_Irsend(const void *buf, int count, MPI_Datatype datatype, int dest,
+	               int tag,
+	               MPI_Comm comm, MPI_Request *request);
 	int MPI_Irecv(void *buf, int count, MPI_Datatype datatype,
 	              int source, int tag, MPI_Comm comm, MPI_Request *request);
 
@@ -79,12 +87,13 @@ public:
 	int MPI_Recv_init(const void *buf, int count, MPI_Datatype datatype, int source,
 	                  int tag, MPI_Comm comm, MPI_Request *request);
 
-	
+
 	// ...
 	int MPI_Start(MPI_Request *request);
 
 	int MPI_Wait(MPI_Request *request, MPI_Status *status);
-	int MPI_Waitall(int count, MPI_Request array_of_requests[], MPI_Status array_of_statuses[]);
+	int MPI_Waitall(int count, MPI_Request array_of_requests[],
+	                MPI_Status array_of_statuses[]);
 
 	int MPI_Test(MPI_Request *request, int *flag, MPI_Status *status);
 
@@ -112,10 +121,22 @@ public:
 	int MPI_Get_count(MPI_Status *status, MPI_Datatype datatype, int *count);
 	int MPI_Abort(MPI_Comm comm, int errorcode);
 
-	int save(std::ostream &) {return MPI_SUCCESS;}
-	int load(std::istream &) {return MPI_SUCCESS;}
-	int cleanup() {return MPI_SUCCESS;}
-	int halt() {return MPI_SUCCESS;}
+	int save(std::ostream &)
+	{
+		return MPI_SUCCESS;
+	}
+	int load(std::istream &)
+	{
+		return MPI_SUCCESS;
+	}
+	int cleanup()
+	{
+		return MPI_SUCCESS;
+	}
+	int halt()
+	{
+		return MPI_SUCCESS;
+	}
 };
 
 } // namespace exampi

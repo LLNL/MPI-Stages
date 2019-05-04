@@ -14,7 +14,7 @@ namespace exampi
 								Universe &u = Universe::get_root_universe(); \
 								if (u.mpi_stages) {FaultHandler &faulthandler = FaultHandler::get_instance();\
 															if(faulthandler.isErrSet()) {return MPIX_TRY_RELOAD;}}
-								//else {return MPI_SUCCESS;}
+//else {return MPI_SUCCESS;}
 
 
 //#else
