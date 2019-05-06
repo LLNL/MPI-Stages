@@ -48,10 +48,10 @@ std::tuple<Header_uptr, Request *> SimpleMatcher::progress()
 	std::lock_guard<std::mutex> lock(guard);
 
 	// check if work is actually available
-	if((posted_request_queue.size() > 0)
-	        && (received_header_queue.size() > 0))
+	if((posted_request_queue.size() > 0) && (received_header_queue.size() > 0))
 	{
 		debug("found requests and messages to match");
+		debug("requests " << posted_request_queue.size() << " : headers " << received_header_queue.size()); 
 
 		typedef std::list<Header_uptr>::iterator hdr_iter;
 
@@ -73,9 +73,9 @@ std::tuple<Header_uptr, Request *> SimpleMatcher::progress()
 				debug("testing match between request <-> header: epoch " << req->envelope.epoch << " == " << header->envelope.epoch << ", comm " << req->envelope.context << " == " << header->envelope.context << ", source " << req->envelope.source << " == " << header->envelope.source << ", dest " << req->envelope.destination << " == " << header->envelope.destination << ", tag " << req->envelope.tag << " == " << header->envelope.tag);
 
 				// minimal matching condition set
-				bool condition = (req->envelope.epoch			== header->envelope.epoch) &&
-				(req->envelope.context 			== header->envelope.context) &&
-				(req->envelope.destination			== header->envelope.destination);
+				bool condition = (req->envelope.epoch               == header->envelope.epoch) &&
+				                 (req->envelope.context             == header->envelope.context) &&
+				                 (req->envelope.destination         == header->envelope.destination);
 
 				// check for MPI_ANY_SOURCE
 				if(req->envelope.source != MPI_ANY_SOURCE)

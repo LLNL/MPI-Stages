@@ -122,8 +122,8 @@ Header_uptr UDPTransport::ordered_recv()
 	iovs[0].iov_base = header;
 	iovs[0].iov_len = sizeof(Header);
 
-	int payload_length;
-	iovs[1].iov_base = &payload_length;
+	int payload_size;
+	iovs[1].iov_base = &payload_size;
 	iovs[1].iov_len = sizeof(int);
 
 	hdr.msg_iov = iovs;
@@ -149,16 +149,19 @@ Header_uptr UDPTransport::ordered_recv()
 		      " s " << header->envelope.source <<
 		      " d " << header->envelope.destination <<
 		      " t " << header->envelope.tag);
-		debug("payload length " << payload_length);
+		debug("payload length bytes " << payload_size);
 
 		UDPTransportPayload *payload = nullptr;
-		if(payload_length > 0)
+		if(payload_size > 0)
 		{
+			debug("copying payload into buffer");
+
 			payload = payload_pool.allocate();
+			payload->payload_size = payload_size;
 
 			// prepare receive payload
-			iovs[2].iov_base = payload;
-			iovs[2].iov_len = payload_length;
+			iovs[2].iov_base = &(payload->payload);
+			iovs[2].iov_len = payload_size;
 
 			hdr.msg_iovlen = 3;
 		}
@@ -169,7 +172,7 @@ Header_uptr UDPTransport::ordered_recv()
 		int err = recvmsg(socket_recv, &hdr, 0);
 		if(err <= 0)
 		{
-			if(payload_length > 0)
+			if(payload_size > 0)
 				payload_pool.deallocate(payload);
 
 			//debug("throwing UDPTransportPayloadReceiveError");
@@ -182,7 +185,7 @@ Header_uptr UDPTransport::ordered_recv()
 		}
 
 		// store the data for later fill
-		if(payload_length > 0)
+		if(payload_size > 0)
 		{
 			payload_buffer[header] = payload;
 		}
@@ -193,10 +196,16 @@ Header_uptr UDPTransport::ordered_recv()
 
 void UDPTransport::fill(Header_uptr header, Request *request)
 {
+	debug("udp transport filling " << request << " <- header " << header.get());
+
 	// look up payload with respect to header
 	UDPTransportPayload *payload = payload_buffer[header.get()];
 
-	void *err = std::memcpy((void *)request->payload.buffer, payload, sizeof(int));
+	debug("header " << header->envelope.source << " payload " << ((int*)payload->payload)[0]);
+	debug("payload size " << payload->payload_size);
+
+	// todo eventually we ask datatype to fill itself!
+	void *err = std::memcpy((void *)request->payload.buffer, payload->payload, payload->payload_size);
 	if(err == nullptr)
 	{
 		throw std::runtime_error("UDPTransport failed to fill.");
@@ -243,8 +252,7 @@ void UDPTransport::reliable_send(const Protocol protocol,
 
 	// request->buffer;
 	iovs[3].iov_base = (void *)request->payload.buffer;
-	iovs[3].iov_len = request->payload.count *
-	                  request->payload.datatype->get_extent();
+	iovs[3].iov_len = payload_size;
 
 	// todo rank -> root commmunicator -> address
 	// note this currently works, because comm_dup is the only communicator construction allowed

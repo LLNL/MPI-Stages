@@ -185,10 +185,11 @@ int BasicInterface::MPI_Request_free(MPI_Request *request)
 	// invalidate user MPI_Request handle
 	debug("invalidating user MPI_Request handle: addr " << request);
 
-	debug("request pointer " << req);
-	debug("request " << *request);
+	debug("request pointer " << req << " value 0x" << std::hex << ((long*)req)[0]);
+	debug("request handle " << *request);
 	*request = MPI_REQUEST_NULL;
-	debug("request " << *request);
+	debug("request handle " << *request);
+	debug("request pointer " << req << " value 0x" << std::hex << ((long*)req)[0]);
 
 	return MPI_SUCCESS;
 }
@@ -592,7 +593,7 @@ int BasicInterface::finalize_request(MPI_Request *request, Request *req,
 	// otherwise deallocate and set to REQUEST_NULL
 	else
 	{
-		debug("finalizing by freeing");
+		debug("finalizing request by freeing");
 		return MPI_Request_free(request);
 	}
 }
