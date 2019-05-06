@@ -67,9 +67,7 @@ namespace exampi
 template <typename T> class MemoryPool
 {
 private:
-	// MR 5/5/19: Premature optimization with union. Caused threading+mutex+union bug, mutex is first
-	// object inside Request object, caused partial null of this/next pointer.
-	struct minipool_item
+	union minipool_item
 	{
 private:
 		using StorageType = alignas(alignof(T)) char[sizeof(T)];
@@ -95,6 +93,7 @@ public:
 		static minipool_item *storage_to_item(T *t)
 		{
 			minipool_item *current_item = reinterpret_cast<minipool_item *>(t);
+
 			return current_item;
 		}
 	};

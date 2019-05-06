@@ -161,16 +161,17 @@ int BasicInterface::MPI_Request_free(MPI_Request *request)
 	Request_ptr req = reinterpret_cast<Request_ptr>(*request);
 
 	// lock request
-	std::lock_guard<std::mutex> lock(req->guard);
+	std::unique_lock<std::mutex> lock(req->guard);
 
-	//
+	// persistent path
+	// TODO this needs to be considered more!
 	if(!req->complete && req->persistent && req->active)
 	{
 		debug("marking request as freed, but active/incomplete");
 
 		// marked as freed
 		req->freed = true;
-		// todo where do we clean freed requests?
+		// TODO where do we clean freed requests?
 	}
 
 	// complete or inactive request
@@ -179,6 +180,8 @@ int BasicInterface::MPI_Request_free(MPI_Request *request)
 		debug("deallocating request immediately");
 
 		Universe &universe = Universe::get_root_universe();
+
+		lock.unlock();
 		universe.deallocate_request(req);
 	}
 
