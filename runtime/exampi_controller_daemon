@@ -107,8 +107,8 @@ class ControllerDaemon(object):
 
 		self.shutdown = False
 		while not self.shutdown:
-			# wait for sockets
-			readables, writables, exceptionals = select.select(self.sockets, [], [])
+			# wait for sockets, with timeout of 1 second
+			readables, writables, exceptionals = select.select(self.sockets, [], [], 1.0)
 
 			for readable in readables:
 				if readable is self.server_socket:
@@ -140,6 +140,12 @@ class ControllerDaemon(object):
 						else:
 							self.log.error('failed to handle: %s', packet)
 							raise ValueError
+
+			# check for orphaned process
+			if os.getppid() == 1:
+				# this is an orphaned process
+				self.log.info('detected that this process is orphaned. starting shutdown...')
+				self.shutdown = True
 
 		self.log.info('shutting down ControllerDaemon')
 

@@ -275,6 +275,11 @@ class HeadDaemon(object):
 			for exceptional in exceptionals:
 				pass
 
+			# check for orphaned process
+			if os.getppid() == 1:
+				self.log.info('detected this process is orphaned. Shutting down now...')
+				self.shutdown = True
+
 		self.log.info('shutting down HeadDaemon')
 
 	def send_to_controller(self, data):
