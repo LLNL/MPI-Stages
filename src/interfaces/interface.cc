@@ -181,6 +181,7 @@ int BasicInterface::MPI_Request_free(MPI_Request *request)
 
 		Universe &universe = Universe::get_root_universe();
 
+		// MR 5/5/19 lock needs to be unlocked before freeing, otherwise we are writing to unallocated memory when freeing!
 		lock.unlock();
 		universe.deallocate_request(req);
 	}
@@ -341,11 +342,16 @@ int BasicInterface::MPI_Sendrecv(const void *sendbuf, int sendcount,
 
 	int rc = MPI_Irecv(recvbuf, recvcount, recvtype, source, recvtag, comm,
 	                   &recvreq);
+	if(MPI_SUCCESS != rc)
+		return rc;
+
 	rc = MPI_Send(sendbuf, sendcount, sendtype, dest, sendtag, comm);
+	if(MPI_SUCCESS != rc)
+		return rc;
 
-	MPI_Wait(&recvreq, status);
+	rc = MPI_Wait(&recvreq, status);
 
-	return MPI_SUCCESS;
+	return rc;
 }
 
 int BasicInterface::MPI_Isend(const void *buf, int count, MPI_Datatype datatype,
@@ -362,6 +368,9 @@ int BasicInterface::MPI_Ibsend(const void *buf, int count,
                                MPI_Datatype datatype, int dest, int tag,
                                MPI_Comm comm, MPI_Request *request)
 {
+	debug("entry MPI_Ibsend with buf " << buf << " count " << count << " dest " <<
+	      dest << " tag " << tag);
+
 	return offload_persistent(buf, count, datatype, dest, tag, comm,
 	                          Operation::Bsend, request);
 }
@@ -370,6 +379,9 @@ int BasicInterface::MPI_Issend(const void *buf, int count,
                                MPI_Datatype datatype, int dest, int tag,
                                MPI_Comm comm, MPI_Request *request)
 {
+	debug("entry MPI_Issend with buf " << buf << " count " << count << " dest " <<
+	      dest << " tag " << tag);
+
 	return offload_persistent(buf, count, datatype, dest, tag, comm,
 	                          Operation::Ssend, request);
 }
@@ -378,6 +390,9 @@ int BasicInterface::MPI_Irsend(const void *buf, int count,
                                MPI_Datatype datatype, int dest, int tag,
                                MPI_Comm comm, MPI_Request *request)
 {
+	debug("entry MPI_Irsend with buf " << buf << " count " << count << " dest " <<
+	      dest << " tag " << tag);
+
 	return offload_persistent(buf, count, datatype, dest, tag, comm,
 	                          Operation::Rsend, request);
 }
@@ -385,7 +400,7 @@ int BasicInterface::MPI_Irsend(const void *buf, int count,
 int BasicInterface::MPI_Irecv(void *buf, int count, MPI_Datatype datatype,
                               int source, int tag, MPI_Comm comm, MPI_Request *request)
 {
-	debug("entry MPI_Irend with buf " << buf << " count " << count << " src " <<
+	debug("entry MPI_Irecv with buf " << buf << " count " << count << " src " <<
 	      source << " tag " << tag);
 
 	return offload_persistent(buf, count, datatype, source, tag, comm,
