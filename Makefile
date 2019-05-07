@@ -13,7 +13,7 @@ CXXFLAGS += -std=c++17 -g -pthread
 
 #CXXFLAGS += -O3 -funroll-loops
 
-#CXXFLAGS += -DDEBUG 
+CXXFLAGS += -DDEBUG 
 
 LDFLAGS = 
 

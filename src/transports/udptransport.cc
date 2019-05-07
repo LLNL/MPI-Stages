@@ -187,7 +187,7 @@ Header_uptr UDPTransport::ordered_recv()
 		{
 			payload_buffer[header] = payload;
 
-			debug("receive header " << header->envelope.source << " payload " << ((int*)payload->payload)[0]);
+			//TODO count == 0 fails debug("receive header " << header->envelope.source << " payload " << ((int*)payload->payload)[0]);
 		}
 	}
 
@@ -254,7 +254,7 @@ void UDPTransport::reliable_send(const Protocol protocol,
 	iovs[3].iov_len = payload_size;
 
 	debug("payload address " << request->payload.buffer);
-	debug("sent payload " << ((int*)request->payload.buffer)[0]);
+	//TODO count == 0 fails debug("sent payload " << ((int*)request->payload.buffer)[0]);
 
 	// todo rank -> root commmunicator -> address
 	// note this currently works, because comm_dup is the only communicator construction allowed
