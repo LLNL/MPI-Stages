@@ -354,7 +354,7 @@ def parse_arguments():
 	#parser.add_argument('--retries', type=int)
 	
 	# MPI Stages enabled
-	parser.add_argument('--enable_stages', default=False, action='store_true')
+	parser.add_argument('--enable_stages', default=True, action='store_true')
 
 	# connection building
 	# TODO complete dynamic connection building task
