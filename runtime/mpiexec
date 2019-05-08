@@ -114,6 +114,52 @@ class RuntimeHandler(object):
 
 		self.log.info('control daemon port set to: %i', self.controller_daemon_port)
 
+	def set_base_udp_port(self):
+		"""Set UDP base port for MPI session."""
+
+		self.log.info('setting udp base port')
+
+		# argument provided port
+		if self.arguments.udpbaseport != None:
+			self.udp_base_port = self.arguments.udpbaseport
+
+			if not self.test_bind(self.udp_base_port):
+				self.log.error('prescribed udp port is not able to be bound!')
+				raise OSError
+
+		# random port needed
+		else:
+			while True:
+				self.udp_base_port = random.randint(40001, 45000)
+
+				if self.test_bind(self.udp_base_port):
+					break
+
+		self.log.info('udp base port set to: %i', self.udp_base_port)
+	
+	def set_base_tcp_port(self):
+		"""Set TCP base port for MPI session."""
+
+		self.log.info('setting tcp base port')
+
+		# argument provided port
+		if self.arguments.tcpbaseport != None:
+			self.tcp_base_port = self.arguments.tcpbaseport
+
+			if not self.test_bind(self.tcp_base_port):
+				self.log.error('prescribed tcp port is not able to be bound!')
+				raise OSError
+
+		# random port needed
+		else:
+			while True:
+				self.tcp_base_port = random.randint(45001, 50000)
+
+				if self.test_bind(self.tcp_base_port):
+					break
+
+		self.log.info('tcp base port set to: %i', self.tcp_base_port)
+
 	def detect_environment(self):
 		"""Detect what environment is present by environment variables."""
 
