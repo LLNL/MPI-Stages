@@ -17,9 +17,9 @@ class FaultDaemon(object):
 	"""FaultDaemon is the class representing the FaultDaemon wrapper around an MPI Stages enabled
 	application. FaultDaemon also instantiates HeadDaemon and ControllerDaemon."""
 
-	def __init__(self, udp_transport_base=33421, tcp_transport_base=33421):
-		self.udp_transport_base = udp_transport_base
-		self.tcp_transport_base = tcp_transport_base
+	def __init__(self):
+		self.udp_transport_base = None
+		self.tcp_transport_base = None
 
 		self.rank = None
 		self.job_id = None
@@ -114,6 +114,9 @@ class FaultDaemon(object):
 	def read_environment(self):
 		"""Read data from environment variables for fault daemon to function."""
 
+		self.udp_transport_base = int(os.environ['EXAMPI_UDP_TRANSPORT_BASE'])
+		self.tcp_transport_base = int(os.environ['EXAMPI_TCP_TRANSPORT_BASE']) 
+
 		if os.environ['EXAMPI_ENV'] == 'slurm':
 			self.rank = int(os.environ['SLURM_PROCID'])
 			self.job_id = int(os.environ['SLURM_JOB_ID'])
@@ -188,10 +191,6 @@ class FaultDaemon(object):
 			self.sub_env['EXAMPI_GTIDS'] = ','.join(str(rank) for rank in xrange(self.world_size))
 			self.sub_env['EXAMPI_NODELIST'] = str(self.hostname)
 			self.sub_env['EXAMPI_TASKS_PER_NODE'] = str(self.world_size)
-
-		# announce daemon socket port
-		self.sub_env['EXAMPI_UDP_TRANSPORT_BASE'] = str(self.udp_transport_base)
-		self.sub_env['EXAMPI_TCP_TRANSPORT_BASE'] = str(self.tcp_transport_base)
 
 	def set_epoch(self, epoch):
 		"""Sets the epoch in which we are starting."""
