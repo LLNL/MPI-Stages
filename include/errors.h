@@ -6,7 +6,7 @@ extern "C"
 {
 #endif
 
-enum Errors: int
+enum Errors
 {
 	// MPI defined
 	MPI_SUCCESS = 0,
