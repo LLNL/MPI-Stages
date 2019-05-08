@@ -263,6 +263,7 @@ class FaultDaemon(object):
 		# read in last epoch from epoch file
 		# TODO remove files, use socket informing from application on checkpoint
 		self.epoch_file = open(self.epoch_name, 'r')
+		# TODO check if file exists
 		epoch = self.epoch_file.readline()
 		self.log.info('read epoch file: %s', str(epoch))
 
