@@ -43,6 +43,11 @@ def find_library(arguments):
 			print 'MPI_LIB is not defined in the environment variables.'
 			sys.exit(1)
 
+	# check existance of library file
+	if not os.path.isfile(paths['library']):
+		print MPI_LIB, ' does not provide file.'
+		sys.exit(3)
+
 	if arguments.inc is not None:
 		# find from arguments
 		paths['include'] = arguments.inc
@@ -55,6 +60,11 @@ def find_library(arguments):
 		except KeyError:
 			print 'MPI_INC is not defined in the environment variables.'
 			sys.exit(2)
+
+	# check existance of include directory
+	if not os.path.isdir(paths['include']):
+		print MPI_INC, ' is not a directory.'
+		sys.exit(4)
 
 	return paths
 
