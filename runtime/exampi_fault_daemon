@@ -12,6 +12,7 @@ import socket
 #import signal
 import logging
 import time
+import json
 
 class FaultDaemon(object):
 	"""FaultDaemon is the class representing the FaultDaemon wrapper around an MPI Stages enabled
@@ -202,9 +203,9 @@ class FaultDaemon(object):
 		self.sub_env['EXAMPI_EPOCH'] = str(self.epoch)
 
 	def write_configuration(self):
-		"""Write configuration file for ExaMPI Stages."""
+		"""Write JSON configuration file for ExaMPI Stages."""
 
-		config = ''
+		config = {'ranks':[]}
 
 		# static connection building
 		self.establish_head_connection()
@@ -219,13 +220,18 @@ class FaultDaemon(object):
 			contents = msg.split(' ')
 			address = contents[3]
 
-			config += '%i:%s:%i\n' % (irank, address, self.udp_transport_base + irank)
+			#config += '%i:%s:%i\n' % (irank, address, self.udp_transport_base + irank)
+			config['ranks'].append({
+				'rank':irank,
+				'address':address,
+				'udp':self.udp_transport_base + irank, 
+				'tcp':self.tcp_transport_base + irank})
 
 		self.terminate_head_connection()
 
 		#
-		self.log.info(config)
-		self.config_file.write(config)
+		self.log.info("JSON Config " + json.dumps(config))
+		self.config_file.write(json.dumps(config, indent=1))
 		self.config_file.close()
 
 	def establish_head_connection(self):
