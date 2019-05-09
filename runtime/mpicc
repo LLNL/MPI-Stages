@@ -105,8 +105,6 @@ def assemble(compilers, paths, output, promoted):
 
 	command.extend(promoted)
 
-	print command
-
 	# execute compiler
 	return subprocess.call(command)
 
@@ -127,8 +125,6 @@ def link_pure(compilers, paths, output, promoted):
 	command.append('-lexampi')
 	command.append('-pthread')
 	
-	print command
-
 	# execute compiler
 	return subprocess.call(command)
 
@@ -150,8 +146,6 @@ def link(compilers, paths, output, promoted):
 		# C files passed -> intermediate compiling -> C++ linking
 		sources = [source for source in promoted if source.endswith('.c')]
 		separate = [sep for sep in promoted if not sep.endswith('.c')]
-
-		print sources, separate
 
 		object_files = []
 
@@ -182,6 +176,16 @@ def main():
 	parser = generate_parser()
 	arguments, unknown = parser.parse_known_args()
 
+	if '-o' in arguments.other:
+		# -o output can be in other due to ordering of command
+		# move output into arguments.output
+
+		output_idx = arguments.other.index('-o') + 1 
+		arguments.output = arguments.other[output_idx]
+
+		arguments.other.pop(output_idx)
+		arguments.other.remove('-o')
+
 	# find C compiler
 	compilers = determine_compilers(arguments)
 
@@ -210,7 +214,6 @@ def main():
 		sys.exit(error_code)
 
 	else:
-		print arguments.other, unknown
 		error_code = link(compilers, paths, arguments.output, unknown + arguments.other)
 
 		sys.exit(error_code)
