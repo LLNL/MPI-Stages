@@ -124,7 +124,7 @@ def link_pure(compilers, paths, output, promoted):
 
 	command.append('-lexampi')
 	command.append('-pthread')
-	
+
 	# execute compiler
 	return subprocess.call(command)
 
@@ -176,15 +176,18 @@ def main():
 	parser = generate_parser()
 	arguments, unknown = parser.parse_known_args()
 
+	if type(arguments.output) is list:
+		 arguments.output = arguments.output[0]
+
 	if '-o' in arguments.other:
 		# -o output can be in other due to ordering of command
 		# move output into arguments.output
-
 		output_idx = arguments.other.index('-o') + 1 
 		arguments.output = arguments.other[output_idx]
 
 		arguments.other.pop(output_idx)
 		arguments.other.remove('-o')
+
 
 	# find C compiler
 	compilers = determine_compilers(arguments)
