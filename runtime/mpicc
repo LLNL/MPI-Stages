@@ -44,8 +44,8 @@ def find_library(arguments):
 			sys.exit(1)
 
 	# check existance of library file
-	if not os.path.isfile(paths['library']):
-		print MPI_LIB, ' does not provide file.'
+	if not os.path.isdir(paths['library']):
+		print paths['library'], ' is not a directory.'
 		sys.exit(3)
 
 	if arguments.inc is not None:
@@ -63,7 +63,7 @@ def find_library(arguments):
 
 	# check existance of include directory
 	if not os.path.isdir(paths['include']):
-		print MPI_INC, ' is not a directory.'
+		print paths['include'], ' is not a directory.'
 		sys.exit(4)
 
 	return paths
@@ -99,7 +99,7 @@ def determine_compilers(arguments):
 		# use system standard C compiler
 		compilers['cxx'] = 'c++'
 
-	return compilers	
+	return compilers
 
 def assemble(compilers, paths, output, promoted):
 	"""Call C compiler to assemble C source files."""
@@ -134,16 +134,16 @@ def link_pure(compilers, paths, output, promoted):
 
 	command.append('-lexampi')
 	command.append('-pthread')
-	
+
 	# execute compiler
 	return subprocess.call(command)
 
 def random_string(length=10):
-    """Generate a random string of fixed length """
+	"""Generate a random string of fixed length """
 
-    letters = string.ascii_lowercase
+	letters = string.ascii_lowercase
 
-    return ''.join(random.choice(letters) for i in xrange(length))
+	return ''.join(random.choice(letters) for i in xrange(length))
 
 def link(compilers, paths, output, promoted):
 	"""Call C++ Compiler to assemble final ExaMPI executable."""
@@ -152,33 +152,32 @@ def link(compilers, paths, output, promoted):
 		# no C files passed -> C++ linking
 		return link_pure(compilers, paths, output, promoted)
 
-	else:
-		# C files passed -> intermediate compiling -> C++ linking
-		sources = [source for source in promoted if source.endswith('.c')]
-		separate = [sep for sep in promoted if not sep.endswith('.c')]
+	# C files passed -> intermediate compiling -> C++ linking
+	sources = [source for source in promoted if source.endswith('.c')]
+	separate = [sep for sep in promoted if not sep.endswith('.c')]
 
-		object_files = []
+	object_files = []
 
-		for source in sources:
-			# produce intermediate object file
-			object_filename = 'exampi_' + random_string() + '.o'
+	for source in sources:
+		# produce intermediate object file
+		object_filename = 'exampi_' + random_string() + '.o'
 
-			error_code = assemble(compilers, paths, object_filename, separate + ['-c', source])
+		error_code = assemble(compilers, paths, object_filename, separate + ['-c', source])
 
-			# check for intermediate product failure
-			if error_code != 0:
-				return error_code
+		# check for intermediate product failure
+		if error_code != 0:
+			return error_code
 
-			object_files.append(object_filename)
+		object_files.append(object_filename)
 
-		# link all outputs
-		error_code = link_pure(compilers, paths, output, separate + object_files)
-		
-		# delete intermediate objects
-		for object_file in object_files:
-			os.remove(object_file)
+	# link all outputs
+	error_code = link_pure(compilers, paths, output, separate + object_files)
 
-		return error_code
+	# delete intermediate objects
+	for object_file in object_files:
+		os.remove(object_file)
+
+	return error_code
 
 def main():
 	"""Main function for mpicc."""
@@ -190,7 +189,7 @@ def main():
 		# -o output can be in other due to ordering of command
 		# move output into arguments.output
 
-		output_idx = arguments.other.index('-o') + 1 
+		output_idx = arguments.other.index('-o') + 1
 		arguments.output = arguments.other[output_idx]
 
 		arguments.other.pop(output_idx)
@@ -206,7 +205,7 @@ def main():
 	if unknown and not arguments.other:
 		# flags of compiler
 		error_code = assemble(compilers, paths, None, unknown)
-		
+
 		sys.exit(error_code)
 
 	# require a command from user
