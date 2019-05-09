@@ -1,24 +1,222 @@
-#!/bin/bash
+#!/usr/bin/env python2
 
-# set base and derivative directories
-#basedir=$(dirname "$(dirname "$0")")
+"""ExaMPI provided C compiler wrapper script to ease linking to C++ ExaMPI."""
 
-#libdir=$basedir/lib
-libdir=$MPI_LIB
-#incdir=$basedir/include
-incdir=$MPI_INC
+import os
+import sys
+import argparse
+import subprocess
+import string
+import random
 
-# assign CC if not defined externally
-if [ -z "$CC" ]; then
-	CC="cc"
-fi
+def generate_parser():
+	"""Generate mpicc argument parser."""
 
-## require arguments, something to compile
-if [ "$#" -eq 0 ]; then
-	$CC
-	exit
-fi
+	parser = argparse.ArgumentParser(description='MPI C compiler wrapper from ExaMPI.')
 
-$CC "$@" -I$incdir -L$libdir -lexampi -pthread
+	parser.add_argument('--CC', default=None)
+	parser.add_argument('--CXX', default=None)
+	parser.add_argument('--lib', default=None)
+	parser.add_argument('--inc', default=None)
+	parser.add_argument('-o', dest='output', nargs=1)
 
-exit $?
+	parser.add_argument('other', nargs=argparse.REMAINDER)
+
+	return parser
+
+def find_library(arguments):
+	"""Read MPI_LIB and MPI_INC from the environment variables."""
+
+	paths = {}
+
+	# find library
+	if arguments.lib is not None:
+		# find from arguments
+		paths['library'] = arguments.lib
+
+	else:
+		# find from environment
+		try:
+			paths['library'] = os.environ['MPI_LIB']
+
+		except KeyError:
+			print 'MPI_LIB is not defined in the environment variables.'
+			sys.exit(1)
+
+	if arguments.inc is not None:
+		# find from arguments
+		paths['include'] = arguments.inc
+
+	else:
+		# find from environment
+		try:
+			paths['include'] = os.environ['MPI_INC']
+
+		except KeyError:
+			print 'MPI_INC is not defined in the environment variables.'
+			sys.exit(2)
+
+	return paths
+
+def determine_compilers(arguments):
+	"""Determine C compiler from arguments and environment."""
+
+	compilers = {}
+
+	# determine C compiler
+	if arguments.CC is not None:
+		# read C compiler from arguments
+		compilers['cc'] = arguments.CC
+
+	elif 'CC' in os.environ:
+		# use standard compiler
+		compilers['cc'] = os.environ['CC']
+
+	else:
+		# use system standard C compiler
+		compilers['cc'] = 'cc'
+
+	# determine C++ compiler
+	if arguments.CXX is not None:
+		# read C compiler from arguments
+		compilers['cxx'] = arguments.CXX
+
+	elif 'CXX' in os.environ:
+		# use standard compiler
+		compilers['cxx'] = os.environ['CXX']
+
+	else:
+		# use system standard C compiler
+		compilers['cxx'] = 'c++'
+
+	return compilers	
+
+def assemble(compilers, paths, output, promoted):
+	"""Call C compiler to assemble C source files."""
+
+	# assemble C compile command
+	command = []
+	command.append(compilers['cc'])
+
+	command.extend(['-I', paths['include']])
+
+	if output:
+		command.extend(['-o', output])
+
+	command.extend(promoted)
+
+	# execute compiler
+	return subprocess.call(command)
+
+def link_pure(compilers, paths, output, promoted):
+	"""Call C++ compiler to link object files with ExaMPI."""
+
+	# assemble c++ link command
+	command = []
+	command.append(compilers['cxx'])
+
+	command.extend(['-L', paths['library']])
+
+	if output:
+		command.extend(['-o', output])
+
+	command.extend(promoted)
+
+	command.append('-lexampi')
+	command.append('-pthread')
+	
+	# execute compiler
+	return subprocess.call(command)
+
+def random_string(length=10):
+    """Generate a random string of fixed length """
+
+    letters = string.ascii_lowercase
+
+    return ''.join(random.choice(letters) for i in xrange(length))
+
+def link(compilers, paths, output, promoted):
+	"""Call C++ Compiler to assemble final ExaMPI executable."""
+
+	if not any(source.endswith('.c') for source in promoted):
+		# no C files passed -> C++ linking
+		return link_pure(compilers, paths, output, promoted)
+
+	else:
+		# C files passed -> intermediate compiling -> C++ linking
+		sources = [source for source in promoted if source.endswith('.c')]
+		separate = [sep for sep in promoted if not sep.endswith('.c')]
+
+		object_files = []
+
+		for source in sources:
+			# produce intermediate object file
+			object_filename = 'exampi_' + random_string() + '.o'
+
+			error_code = assemble(compilers, paths, object_filename, separate + ['-c', source])
+
+			# check for intermediate product failure
+			if error_code != 0:
+				return error_code
+
+			object_files.append(object_filename)
+
+		# link all outputs
+		error_code = link_pure(compilers, paths, output, separate + object_files)
+		
+		# delete intermediate objects
+		for object_file in object_files:
+			os.remove(object_file)
+
+		return error_code
+
+def main():
+	"""Main function for mpicc."""
+
+	parser = generate_parser()
+	arguments, unknown = parser.parse_known_args()
+
+	if '-o' in arguments.other:
+		# -o output can be in other due to ordering of command
+		# move output into arguments.output
+
+		output_idx = arguments.other.index('-o') + 1 
+		arguments.output = arguments.other[output_idx]
+
+		arguments.other.pop(output_idx)
+		arguments.other.remove('-o')
+
+	# find C compiler
+	compilers = determine_compilers(arguments)
+
+	# find ExaMPI library
+	paths = find_library(arguments)
+
+	# user only executed with flags
+	if unknown and not arguments.other:
+		# flags of compiler
+		error_code = assemble(compilers, paths, None, unknown)
+		
+		sys.exit(error_code)
+
+	# require a command from user
+	if not arguments.other and not unknown:
+		# mpicc is being executed without commands
+		parser.print_usage()
+
+		sys.exit()
+
+	# execute command
+	if any((flag in unknown or flag in arguments.other) for flag in ['-E', '-S', '-c']):
+		# user is requesting preprocessing, compiling or assembling only
+		error_code = assemble(compilers, paths, arguments.output, unknown + arguments.other)
+
+		sys.exit(error_code)
+
+	else:
+		error_code = link(compilers, paths, arguments.output, unknown + arguments.other)
+
+		sys.exit(error_code)
+
+if __name__ == '__main__':
+	main()

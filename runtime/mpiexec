@@ -434,6 +434,9 @@ def parse_arguments():
 	# allow explicit controller daemon port setting
 	parser.add_argument('--controlport', type=int, default=None)
 
+	parser.add_argument('--udpbaseport', type=int, default=None)
+	parser.add_argument('--tcpbaseport', type=int, default=None)
+
 	# separate executable
 	parser.add_argument('--other', type=str, default=None, help='Only supported locally.')
 
