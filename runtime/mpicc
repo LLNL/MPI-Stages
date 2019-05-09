@@ -44,8 +44,8 @@ def find_library(arguments):
 			sys.exit(1)
 
 	# check existance of library file
-	if not os.path.isfile(paths['library']):
-		print MPI_LIB, ' does not provide file.'
+	if not os.path.isdir(paths['library']):
+		print paths['library'], ' is not a directory.'
 		sys.exit(3)
 
 	if arguments.inc is not None:
@@ -63,7 +63,7 @@ def find_library(arguments):
 
 	# check existance of include directory
 	if not os.path.isdir(paths['include']):
-		print MPI_INC, ' is not a directory.'
+		print paths['include'], ' is not a directory.'
 		sys.exit(4)
 
 	return paths
