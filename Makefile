@@ -31,8 +31,11 @@ libdir = lib
 blddir = build
 srcdir = src
 incdir = include
+trddir = third-party
 tstdir = tests
 docdir = docs
+
+HDRFLAGS = -I$(trddir) -I$(incdir)
 
 # detect files
 headers = $(wildcard $(incdir)/*.h) $(wildcard $(incdir)/*/*.h)
@@ -61,10 +64,10 @@ $(shlib): $(objects)
 
 # object building rules
 $(blddir)/%.o: $(srcdir)/%.cc $(headers) | directories
-	$(CXX) -I$(incdir) -c $(CXXFLAGS) $< -o $@
+	$(CXX) $(HDRFLAGS) -c $(CXXFLAGS) $< -o $@
 
 $(blddir)/*/%.o: $(srcdir)/*/%.cc $(headers) | directories
-	$(CXX) -I$(incdir) -c $(CXXFLAGS) $< -o $@
+	$(CXX) $(HDRFLAGS) -c $(CXXFLAGS) $< -o $@
 
 ### directory rules
 
