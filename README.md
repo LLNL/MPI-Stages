@@ -28,11 +28,18 @@ Contributions must be MIT/BSD like licenses.
 A vague style guide is present under docs/. Astyle is used to iterate the code and style it according to
 the determined standard. `make style` can be used to apply the style.
 
-## Citation
+## How to cite
 
+This work can be cited via:
+
+* https://dl.acm.org/citation.cfm?id=3236385
+* https://www.sciencedirect.com/science/article/pii/S0167819118303260
 
 ## Notes
 1. Every time a new shell is opened you must run `./runtime/environment` in order to force your system to use ExaMPI's mpicc and mpiexec.
 
 ## License
+
+View the LICENSE-\* and COPYRIGHT files.
+
 LLNL release number: LLNL-CODE-770619
