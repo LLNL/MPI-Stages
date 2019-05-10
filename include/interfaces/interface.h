@@ -7,7 +7,6 @@
 #include "funcType.h"
 #include "abstract/interface.h"
 #include "daemon.h"
-#include "config.h"
 #include "errors.h"
 #include "pool.h"
 #include "stages.h"

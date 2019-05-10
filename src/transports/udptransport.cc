@@ -7,7 +7,7 @@
 
 #include "transports/udptransport.h"
 #include "universe.h"
-#include "config.h"
+#include "configuration.h"
 
 namespace exampi
 {
@@ -80,19 +80,25 @@ void UDPTransport::cache_endpoints()
 	// cache remote addresses
 	// todo static connection building, don't do this forever
 	Universe &universe = Universe::get_root_universe();
-	Config &config = Config::get_instance();
+
+	// todo static connection building, don't do this
+	Configuration &config = Configuration::get_instance();
 
 	for(long int rank = 0; rank < universe.world_size; ++rank)
 	{
-		std::string descriptor = config[std::to_string(rank)];
-		size_t delimiter = descriptor.find_first_of(":");
-		std::string ip = descriptor.substr(0, delimiter);
-		int port = std::stoi(descriptor.substr(delimiter+1));
+		// TODO remove now
+//		std::string descriptor = config[std::to_string(rank)];
+//		size_t delimiter = descriptor.find_first_of(":");
+//
+//		std::string ip = descriptor.substr(0, delimiter);
+//		int port = std::stoi(descriptor.substr(delimiter+1));
+
+		const auto& descriptor = config[std::to_string(rank)];
 
 		struct sockaddr_in addr;
 		addr.sin_family = AF_INET;
-		addr.sin_addr.s_addr = inet_addr(ip.c_str());
-		addr.sin_port = htons(port);
+		addr.sin_addr.s_addr = inet_addr(descriptor["address"].get<std::string>().c_str());
+		addr.sin_port = htons(descriptor["udp_port"].get<int>());
 
 		cache.insert({rank, addr});
 	}
