@@ -1,0 +1,35 @@
+0.1: 6/10/2019
+	Subset of MPI3 functions supported:
+	
+	MPI_Abort
+	MPI_Allreduce
+	MPI_Barrier
+	MPI_Bcast
+	MPI_Comm_dup
+	MPI_Comm_rank
+	MPI_Comm_set_errhandler
+	MPI_Comm_size
+	MPI_Finalize
+	MPI_Get_count
+	MPI_Init
+	MPI_Irecv
+	MPI_Isend
+	MPI_Recv
+	MPI_Reduce
+	MPI_Send
+	MPI_Sendrecv
+	MPI_Waitall
+	MPI_Wait
+	MPI_Wtime
+
+	MPI Stages supported functions:
+
+	MPIX_Checkpoint_read
+	MPIX_Checkpoint_write
+	MPIX_Deserialize_handler_register
+	MPIX_Deserialize_handles
+	MPIX_Get_fault_epoch
+	MPIX_Serialize_handler_register
+	MPIX_Serialize_handles
+
+	Currently only transports over UDP/TCP are available.
