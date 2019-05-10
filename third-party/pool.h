@@ -1,15 +1,3 @@
-#ifndef __EXAMPI_MEMORY_POOL_H
-#define __EXAMPI_MEMORY_POOL_H
-
-#include <cassert>
-#include <cstddef>
-#include <memory>
-#include <new>
-#include <utility>
-#include <mutex>
-
-#include "debug.h"
-
 /*
 MIT License
 
@@ -60,6 +48,19 @@ SOFTWARE.
  * arithmetic) and then we put this item at the beginning of the free list.
  *
  */
+
+#ifndef __EXAMPI_MEMORY_POOL_H
+#define __EXAMPI_MEMORY_POOL_H
+
+#include <cassert>
+#include <cstddef>
+#include <memory>
+#include <new>
+#include <utility>
+#include <mutex>
+
+#include "debug.h"
+
 
 namespace exampi
 {
@@ -146,8 +147,8 @@ public:
 		debug("this " << this);
 	}
 
-	//template <typename... Args> T *allocate(Args &&... args)
-	T *allocate()
+	template <typename... Args> T *allocate(Args &&... args)
+	//T *allocate()
 	{
 		std::lock_guard<std::mutex> lock(guard);
 
@@ -169,8 +170,8 @@ public:
 		T *result = current_item->get_storage();
 
 		debug("constructing new object in allocated space");
-		//new (result) T(std::forward<Args>(args)...);
-		new (result) T();
+		new (result) T(std::forward<Args>(args)...);
+		//new (result) T();
 
 		return result;
 	}
