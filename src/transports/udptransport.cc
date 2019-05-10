@@ -67,12 +67,12 @@ UDPTransport::UDPTransport() : header_pool(32), payload_pool(32)
 //		std::string ip = descriptor.substr(0, delimiter);
 //		int port = std::stoi(descriptor.substr(delimiter+1));
 
-		auto& descriptor = config[rank];
+		const auto& descriptor = config[rank];
 
 		struct sockaddr_in addr;
 		addr.sin_family = AF_INET;
-		addr.sin_addr.s_addr = inet_addr(descriptor["address"].c_str());
-		addr.sin_port = htons(descriptor["udp_port"]);
+		addr.sin_addr.s_addr = inet_addr(descriptor["address"].get<std::string>().c_str());
+		addr.sin_port = htons(descriptor["udp_port"].get<int>());
 
 		cache.insert({rank, addr});
 	}

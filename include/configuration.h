@@ -19,11 +19,7 @@ public:
 	Configuration(const Configuration &c) 				= delete;
 	Configuration &operator=(const Configuration &c)	= delete;
 
-	//std::map<std::string,std::string> asMap();
-
-	//const std::string &operator[](const std::string &i);
-
-	const auto &operator[](int rank);
+	const nlohmann::json &operator[](int rank);
 
 private:
 	nlohmann::json data;
