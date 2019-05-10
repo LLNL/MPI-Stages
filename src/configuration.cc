@@ -1,0 +1,56 @@
+#include "config.h"
+
+#include "json.hpp"
+
+namespace exampi
+{
+
+Config &Config::get_instance()
+{
+	static Config instance;
+
+	return instance;
+}
+
+Config::Config()
+{
+	// load configuration file from environment variable
+	std::string filename = std::string(std::getenv("EXAMPI_CONFIG_FILE"));
+	debug("config loading " << filename);
+
+	load(filename);
+}
+
+void Configuration::load(std::string filename)
+{
+	// read configuration file
+	std::ifstream file(filename, std::ifstream::in);
+
+	if(!file.is_open())
+	{
+		throw std::runtime_error("Configuration could not be loaded: " << filename);
+	}
+
+	file >> data;
+}
+
+//void Config::parse(std::string line)
+//{
+//	//std::size_t delim = line.find_first_of(":");
+//	//std::string key = line.substr(0, delim);
+//	//std::string val = line.substr(delim + 1);
+//
+//	//dict[key] = val;
+//}
+
+//std::map<std::string, std::string> Config::asMap()
+//{
+//	return dict;
+//}
+
+const auto &Config::operator[](int rank)
+{
+	return data[rank];
+}
+
+} //exampi

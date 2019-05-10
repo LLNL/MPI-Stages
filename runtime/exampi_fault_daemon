@@ -205,7 +205,7 @@ class FaultDaemon(object):
 	def write_configuration(self):
 		"""Write JSON configuration file for ExaMPI Stages."""
 
-		config = {'ranks':[]}
+		config = {}
 
 		# static connection building
 		self.establish_head_connection()
@@ -221,11 +221,10 @@ class FaultDaemon(object):
 			address = contents[3]
 
 			#config += '%i:%s:%i\n' % (irank, address, self.udp_transport_base + irank)
-			config['ranks'].append({
-				'rank':irank,
+			config[irank] = {
 				'address':address,
-				'udp':self.udp_transport_base + irank, 
-				'tcp':self.tcp_transport_base + irank})
+				'udp_port':self.udp_transport_base + irank, 
+				'tcp_port':self.tcp_transport_base + irank}
 
 		self.terminate_head_connection()
 
