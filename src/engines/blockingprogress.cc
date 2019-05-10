@@ -15,8 +15,8 @@ namespace exampi
 BlockingProgress::BlockingProgress() :
 	BlockingProgress(
 	    std::unique_ptr<Matcher>(new SimpleMatcher()),
-	    std::unique_ptr<Transport>(new UDPTransport()),
-	    //std::unique_ptr<Transport>(new TCPTransport()),
+	    //std::unique_ptr<Transport>(new UDPTransport()),
+	    std::unique_ptr<Transport>(new TCPTransport()),
 	    std::unique_ptr<Decider>(new SimpleDecider())
 	)
 {

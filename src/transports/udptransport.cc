@@ -67,7 +67,7 @@ UDPTransport::UDPTransport() : header_pool(32), payload_pool(32)
 //		std::string ip = descriptor.substr(0, delimiter);
 //		int port = std::stoi(descriptor.substr(delimiter+1));
 
-		const auto& descriptor = config[rank];
+		const auto& descriptor = config[std::to_string(rank)];
 
 		struct sockaddr_in addr;
 		addr.sin_family = AF_INET;

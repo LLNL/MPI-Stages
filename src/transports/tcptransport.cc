@@ -157,7 +157,7 @@ int TCPTransport::rank_connect(int world_rank)
 	//std::string ip = descriptor.substr(0, delimiter);
 	//int port = std::stoi(descriptor.substr(delimiter+1));
 
-	const auto& descriptor = config[world_rank];
+	const auto& descriptor = config[std::to_string(world_rank)];
 
 	//std::string address = descriptor<std::string>["address"];
 	//std::string address = descriptor.get<std::string>("address");

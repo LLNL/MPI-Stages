@@ -37,7 +37,7 @@ void Configuration::load(std::string filename)
 	debug("json data: " << data);
 }
 
-const nlohmann::json &Configuration::operator[](int rank)
+const nlohmann::json &Configuration::operator[](std::string rank)
 {
 	return data[rank];
 }

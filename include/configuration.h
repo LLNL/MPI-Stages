@@ -19,7 +19,7 @@ public:
 	Configuration(const Configuration &c) 				= delete;
 	Configuration &operator=(const Configuration &c)	= delete;
 
-	const nlohmann::json &operator[](int rank);
+	const nlohmann::json &operator[](std::string rank);
 
 private:
 	nlohmann::json data;
