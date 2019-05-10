@@ -161,14 +161,15 @@ int TCPTransport::rank_connect(int world_rank)
 	//std::string ip = descriptor.substr(0, delimiter);
 	//int port = std::stoi(descriptor.substr(delimiter+1));
 
-	const auto& descriptor = config[std::to_string(world_rank)];
+	const auto &descriptor = config[std::to_string(world_rank)];
 
 	//std::string address = descriptor<std::string>["address"];
 	//std::string address = descriptor.get<std::string>("address");
 
 	struct sockaddr_in addr;
 	addr.sin_family = AF_INET;
-	addr.sin_addr.s_addr = inet_addr(descriptor["address"].get<std::string>().c_str());
+	addr.sin_addr.s_addr = inet_addr(
+	                           descriptor["address"].get<std::string>().c_str());
 	//addr.sin_addr.s_addr = inet_addr(address.c_str());
 	addr.sin_port = htons(descriptor["tcp_port"].get<int>());
 

@@ -23,7 +23,7 @@ public:
 
 private:
 	nlohmann::json data;
-	
+
 	Configuration();
 
 	void load(std::string filename);

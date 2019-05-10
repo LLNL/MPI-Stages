@@ -93,11 +93,12 @@ void UDPTransport::cache_endpoints()
 //		std::string ip = descriptor.substr(0, delimiter);
 //		int port = std::stoi(descriptor.substr(delimiter+1));
 
-		const auto& descriptor = config[std::to_string(rank)];
+		const auto &descriptor = config[std::to_string(rank)];
 
 		struct sockaddr_in addr;
 		addr.sin_family = AF_INET;
-		addr.sin_addr.s_addr = inet_addr(descriptor["address"].get<std::string>().c_str());
+		addr.sin_addr.s_addr = inet_addr(
+		                           descriptor["address"].get<std::string>().c_str());
 		addr.sin_port = htons(descriptor["udp_port"].get<int>());
 
 		cache.insert({rank, addr});
@@ -207,11 +208,13 @@ void UDPTransport::fill(Header_uptr header, Request *request)
 	// look up payload with respect to header
 	UDPTransportPayload *payload = payload_buffer[header.get()];
 
-	debug("header " << header->envelope.source << " payload " << ((int*)payload->payload)[0]);
+	debug("header " << header->envelope.source << " payload " << ((
+	            int *)payload->payload)[0]);
 	debug("payload size " << payload->payload_size);
 
 	// todo eventually we ask datatype to fill itself!
-	void *err = std::memcpy((void *)request->payload.buffer, payload->payload, payload->payload_size);
+	void *err = std::memcpy((void *)request->payload.buffer, payload->payload,
+	                        payload->payload_size);
 	if(err == nullptr)
 	{
 		throw std::runtime_error("UDPTransport failed to fill.");

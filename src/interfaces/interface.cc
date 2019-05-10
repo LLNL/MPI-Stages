@@ -189,11 +189,11 @@ int BasicInterface::MPI_Request_free(MPI_Request *request)
 	// invalidate user MPI_Request handle
 	debug("invalidating user MPI_Request handle: addr " << request);
 
-	debug("request pointer " << req << " value 0x" << std::hex << ((long*)req)[0]);
+	debug("request pointer " << req << " value 0x" << std::hex << ((long *)req)[0]);
 	debug("request handle " << *request);
 	*request = MPI_REQUEST_NULL;
 	debug("request handle " << *request);
-	debug("request pointer " << req << " value 0x" << std::hex << ((long*)req)[0]);
+	debug("request pointer " << req << " value 0x" << std::hex << ((long *)req)[0]);
 
 	return MPI_SUCCESS;
 }

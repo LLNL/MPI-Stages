@@ -114,7 +114,8 @@ public:
 			}
 
 			storage[arena_size - 1].set_next_item(nullptr);
-			debug("item " << arena_size-1 << ": init " << &storage[arena_size-1] << " -> 0x0");
+			debug("item " << arena_size-1 << ": init " << &storage[arena_size-1] <<
+			      " -> 0x0");
 		}
 
 		minipool_item *get_storage() const
@@ -139,7 +140,7 @@ public:
 public:
 	MemoryPool(size_t arena_size)
 		: arena_size(arena_size), arena(new minipool_arena(arena_size)),
-		  free_list(arena->get_storage()) 
+		  free_list(arena->get_storage())
 	{
 		debug("free_list " << free_list);
 		debug("this " << this);
@@ -160,7 +161,8 @@ public:
 			free_list = arena->get_storage();
 		}
 
-		debug("free_list " << free_list << " -> next -> " << free_list->get_next_item());
+		debug("free_list " << free_list << " -> next -> " <<
+		      free_list->get_next_item());
 		minipool_item *current_item = free_list;
 		free_list = current_item->get_next_item();
 
@@ -191,7 +193,8 @@ public:
 		debug("returning " << t << " to the pool, current free_list " << free_list);
 		current_item->set_next_item(free_list);
 		free_list = current_item;
-		debug("free_list " << free_list << " -> next -> " << free_list->get_next_item());
+		debug("free_list " << free_list << " -> next -> " <<
+		      free_list->get_next_item());
 	}
 };
 

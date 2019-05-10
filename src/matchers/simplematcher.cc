@@ -51,7 +51,8 @@ std::tuple<Header_uptr, Request *> SimpleMatcher::progress()
 	if((posted_request_queue.size() > 0) && (received_header_queue.size() > 0))
 	{
 		debug("found requests and messages to match");
-		debug("requests " << posted_request_queue.size() << " : headers " << received_header_queue.size()); 
+		debug("requests " << posted_request_queue.size() << " : headers " <<
+		      received_header_queue.size());
 
 		typedef std::list<Header_uptr>::iterator hdr_iter;
 
@@ -74,8 +75,8 @@ std::tuple<Header_uptr, Request *> SimpleMatcher::progress()
 
 				// minimal matching condition set
 				bool condition = (req->envelope.epoch               == header->envelope.epoch) &&
-				                 (req->envelope.context             == header->envelope.context) &&
-				                 (req->envelope.destination         == header->envelope.destination);
+				(req->envelope.context             == header->envelope.context) &&
+				(req->envelope.destination         == header->envelope.destination);
 
 				// check for MPI_ANY_SOURCE
 				if(req->envelope.source != MPI_ANY_SOURCE)
