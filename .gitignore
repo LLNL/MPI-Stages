@@ -5,3 +5,5 @@ lib/
 **/*.pyc
 **/*.nfs*
 **/*.swp
+
+.project
