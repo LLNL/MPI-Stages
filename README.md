@@ -7,7 +7,7 @@
 2. source runtime/environment
 
 Currently no install procedure is in place. Cmake will be used in future to provide this functionality.
-Installation can be done via manually moving the lib & include directories to the desired location.
+Installation can be done via manually moving the lib, include & runtime directories to the desired location.
 
 ### Usage
 
